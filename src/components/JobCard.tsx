@@ -1,6 +1,25 @@
 import { Job } from '@/types/jobs';
 import { JobTypeBadge } from './JobTypeBadge';
-import { ExternalLink, Building2, MapPin, Clock, DollarSign } from 'lucide-react';
+import { ExternalLink, Building2, MapPin, Calendar, DollarSign } from 'lucide-react';
+
+function formatPostedDate(dateStr?: string): string | null {
+  if (!dateStr || dateStr === 'Scraped just now') return null;
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 1) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch {
+    return dateStr;
+  }
+}
 
 export function JobCard({ job }: { job: Job }) {
   return (
@@ -28,10 +47,10 @@ export function JobCard({ job }: { job: Job }) {
               <MapPin className="h-3.5 w-3.5" />
               {job.location}
             </span>
-            {job.postedDate && (
+            {formatPostedDate(job.postedDate) && (
               <span className="flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
-                {job.postedDate}
+                <Calendar className="h-3.5 w-3.5" />
+                {formatPostedDate(job.postedDate)}
               </span>
             )}
             {job.salary && (
