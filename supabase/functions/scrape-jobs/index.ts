@@ -724,10 +724,12 @@ async function scrapeEFinancialCareers(
   const keywordMatchedJobs = allJobs.filter((j) => matchesUserKeywords(j.title, j.company, j.description, keywords));
   console.log(`eFinancialCareers: ${keywordMatchedJobs.length} keyword-matched jobs out of ${allJobs.length} total`);
 
-  if (keywordMatchedJobs.length === 0 && allJobs.length > 0) {
-    const broadVcMatches = allJobs.filter((j) => /\bvc\b|venture\s+capital|ventures?/i.test(`${j.title} ${j.company}`));
-    console.log(`eFinancialCareers: strict matches empty, broad VC fallback returned ${broadVcMatches.length}`);
-    return broadVcMatches.length > 0 ? broadVcMatches : allJobs;
+  // The source page is already query-filtered by the user's keywords/location.
+  // If strict text matching is too narrow, return all source query results.
+  const strictMatchThreshold = Math.max(10, Math.floor(allJobs.length * 0.25));
+  if (keywordMatchedJobs.length < strictMatchThreshold) {
+    console.log(`eFinancialCareers: strict matching too narrow (${keywordMatchedJobs.length} < ${strictMatchThreshold}), returning query-filtered results`);
+    return allJobs;
   }
 
   return keywordMatchedJobs;
