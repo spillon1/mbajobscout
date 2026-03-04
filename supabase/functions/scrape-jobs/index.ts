@@ -575,6 +575,29 @@ async function scrapeIndeed(
 
   console.log(`Indeed: scraping URL: ${searchUrl}`);
 
+  // Use Firecrawl JSON extraction to get structured data including dates
+  const jsonSchema = {
+    type: 'object',
+    properties: {
+      jobs: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', description: 'Job title' },
+            company: { type: 'string', description: 'Company name' },
+            location: { type: 'string', description: 'Job location' },
+            posted: { type: 'string', description: 'When the job was posted, e.g. "2 days ago", "Just posted", "30+ days ago"' },
+            salary: { type: 'string', description: 'Salary if shown' },
+            url: { type: 'string', description: 'Link to the job posting' },
+          },
+          required: ['title', 'company'],
+        },
+      },
+    },
+    required: ['jobs'],
+  };
+
   const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
     method: 'POST',
     headers: {
@@ -583,7 +606,8 @@ async function scrapeIndeed(
     },
     body: JSON.stringify({
       url: searchUrl,
-      formats: ['html', 'markdown'],
+      formats: ['extract', 'html'],
+      extract: { schema: jsonSchema },
       waitFor: 5000,
       timeout: 60000,
     }),
@@ -595,19 +619,73 @@ async function scrapeIndeed(
     throw new Error(data.error || `Firecrawl HTTP ${response.status}`);
   }
 
+  const jsonData = data.data?.extract || data.extract;
   const html = data.data?.html || data.html || '';
-  const markdown = data.data?.markdown || data.markdown || '';
-  console.log(`Indeed: got ${html.length} chars HTML, ${markdown.length} chars markdown`);
 
-  // Debug: log date-related HTML snippets
-  const dateSnippets = html.match(/.{0,60}(ago|posted|date|ActivePosting).{0,60}/gi);
-  if (dateSnippets) {
-    console.log(`Indeed date snippets (first 5): ${JSON.stringify(dateSnippets.slice(0, 5))}`);
-  } else {
-    console.log('Indeed: NO date-related strings found in HTML');
+  console.log(`Indeed: got JSON extraction: ${JSON.stringify(jsonData)?.substring(0, 500)}`);
+  console.log(`Indeed: got ${html.length} chars HTML`);
+
+  // If JSON extraction succeeded, use it directly
+  if (jsonData?.jobs && jsonData.jobs.length > 0) {
+    console.log(`Indeed: JSON extraction found ${jsonData.jobs.length} jobs`);
+    return jsonData.jobs
+      .filter((j: any) => j.title && j.title.length >= 3 && j.title.length <= 200)
+      .filter((j: any) => !/sign in|menu|filter|skip|salary estimate|location|remote|miles/i.test(j.title))
+      .map((j: any) => {
+        let type = 'full-time';
+        const tl = (j.title || '').toLowerCase();
+        if (tl.includes('intern') && !tl.includes('internal')) type = 'internship';
+        else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
+
+        let jobUrl = j.url || '';
+        if (jobUrl.startsWith('/')) jobUrl = `https://uk.indeed.com${jobUrl}`;
+        if (!jobUrl) jobUrl = searchUrl;
+
+        // Convert relative date like "2 days ago" to actual date string
+        const postedDate = j.posted ? convertRelativeDate(j.posted) : undefined;
+
+        return {
+          id: crypto.randomUUID(),
+          title: j.title,
+          company: j.company || 'Unknown',
+          location: j.location || searchCity,
+          type,
+          source: source.name,
+          sourceUrl: source.url,
+          url: jobUrl,
+          postedDate,
+          salary: j.salary || undefined,
+        };
+      });
   }
 
-  return parseIndeedJobs(html, source, searchCity, markdown);
+  // Fallback to HTML parsing if JSON extraction failed
+  console.log('Indeed: JSON extraction failed, falling back to HTML parsing');
+  return parseIndeedJobs(html, source, searchCity);
+}
+
+/** Convert relative date strings like "2 days ago" to ISO date strings */
+function convertRelativeDate(relStr: string): string | undefined {
+  if (!relStr) return undefined;
+  const lower = relStr.toLowerCase().trim();
+
+  if (lower === 'just posted' || lower === 'today') {
+    return new Date().toISOString();
+  }
+
+  const match = lower.match(/(\d+)\+?\s*(hour|day|week|month)s?\s*ago/i);
+  if (match) {
+    const n = parseInt(match[1]);
+    const unit = match[2].toLowerCase();
+    const d = new Date();
+    if (unit === 'hour') d.setHours(d.getHours() - n);
+    else if (unit === 'day') d.setDate(d.getDate() - n);
+    else if (unit === 'week') d.setDate(d.getDate() - n * 7);
+    else if (unit === 'month') d.setMonth(d.getMonth() - n);
+    return d.toISOString();
+  }
+
+  return relStr; // Return as-is if not a relative format
 }
 
 function parseIndeedJobs(
