@@ -224,6 +224,8 @@ const Index = () => {
         </div>
       </header>
 
+      {/* Main */}
+      <main className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
         {/* Keywords */}
         <KeywordBar
           keywords={keywords}
