@@ -165,15 +165,6 @@ export function FilterRow({
           onRemoveKeyword={onRemoveFilterKeyword}
         />
 
-        {hasActiveFilters && onClearFilters && (
-          <button
-            onClick={onClearFilters}
-            className="flex items-center gap-1 h-7 px-2.5 text-xs font-display rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            <X className="h-3 w-3" />
-            Clear
-          </button>
-        )}
       </div>
 
       <div className="flex items-center gap-1.5">
@@ -190,6 +181,16 @@ export function FilterRow({
             ))}
           </SelectContent>
         </Select>
+
+        {hasActiveFilters && onClearFilters && (
+          <button
+            onClick={onClearFilters}
+            className="flex items-center gap-1 h-7 px-2.5 text-xs font-display rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <X className="h-3 w-3" />
+            Clear
+          </button>
+        )}
       </div>
     </div>
   );
