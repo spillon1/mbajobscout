@@ -1,6 +1,6 @@
 import { Job } from '@/types/jobs';
 import { JobTypeBadge } from './JobTypeBadge';
-import { ExternalLink, Building2, MapPin, Calendar, DollarSign } from 'lucide-react';
+import { ExternalLink, Building2, MapPin, Calendar, DollarSign, X } from 'lucide-react';
 
 function formatPostedDate(dateStr?: string): string | null {
   if (!dateStr) return null;
@@ -22,7 +22,7 @@ function formatPostedDate(dateStr?: string): string | null {
   }
 }
 
-export function JobCard({ job }: { job: Job }) {
+export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string) => void }) {
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
     // Use a temporary <a> element on the top-level document to bypass iframe restrictions
@@ -85,8 +85,19 @@ export function JobCard({ job }: { job: Job }) {
             <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{job.description}</p>
           )}
         </div>
-        <div className="shrink-0 p-2 rounded-md text-muted-foreground group-hover:text-primary transition-colors">
-          <ExternalLink className="h-4 w-4" />
+        <div className="shrink-0 flex items-center gap-1">
+          {onDismiss && (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDismiss(job.id); }}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+              title="Dismiss this listing"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <div className="p-2 rounded-md text-muted-foreground group-hover:text-primary transition-colors">
+            <ExternalLink className="h-4 w-4" />
+          </div>
         </div>
       </div>
     </a>
