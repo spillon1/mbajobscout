@@ -91,18 +91,20 @@ Deno.serve(async (req) => {
         // Indeed UK: dedicated scraper with Firecrawl
         if (source.url.includes('indeed.com')) {
           const indeedJobs = await scrapeIndeed(apiKey, source, keywords, location);
-          results.push(...indeedJobs);
-          sourceStatuses[source.name] = { status: 'connected', count: indeedJobs.length };
-          console.log(`Found ${indeedJobs.length} jobs from Indeed UK`);
+          const vcIndeedJobs = indeedJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
+          results.push(...vcIndeedJobs);
+          sourceStatuses[source.name] = { status: 'connected', count: vcIndeedJobs.length };
+          console.log(`Found ${vcIndeedJobs.length} VC-relevant jobs from Indeed UK (filtered from ${indeedJobs.length})`);
           continue;
         }
 
         // Glassdoor UK: dedicated scraper with Firecrawl extract
         if (source.url.includes('glassdoor.co.uk')) {
           const glassdoorJobs = await scrapeGlassdoor(apiKey, source, keywords, location);
-          results.push(...glassdoorJobs);
-          sourceStatuses[source.name] = { status: 'connected', count: glassdoorJobs.length };
-          console.log(`Found ${glassdoorJobs.length} jobs from Glassdoor UK`);
+          const vcGlassdoorJobs = glassdoorJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
+          results.push(...vcGlassdoorJobs);
+          sourceStatuses[source.name] = { status: 'connected', count: vcGlassdoorJobs.length };
+          console.log(`Found ${vcGlassdoorJobs.length} VC-relevant jobs from Glassdoor UK (filtered from ${glassdoorJobs.length})`);
           continue;
         }
 
