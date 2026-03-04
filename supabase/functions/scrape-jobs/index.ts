@@ -52,15 +52,17 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Build the scrape URL — for Google Jobs, append keywords + location as query
-        let scrapeUrl = source.url;
+        // Google Jobs: paginate multiple pages
         if (isGoogleJobsUrl(source.url)) {
-          const query = encodeURIComponent(`"${keywords[0] || 'venture capital'}" jobs ${location}`);
-          scrapeUrl = `https://www.google.com/search?q=${query}&udm=8`;
-          console.log(`Google Jobs URL: ${scrapeUrl}`);
+          const googleJobs = await scrapeGoogleJobsPages(apiKey, keywords, location, source);
+          results.push(...googleJobs);
+          sourceStatuses[source.name] = { status: 'connected', count: googleJobs.length };
+          console.log(`Found ${googleJobs.length} total jobs from Google Jobs (paginated)`);
+          continue;
         }
 
         // Otherwise use Firecrawl
+        const scrapeUrl = source.url;
         const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
           method: 'POST',
           headers: {
