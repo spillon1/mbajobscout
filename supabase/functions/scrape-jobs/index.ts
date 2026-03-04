@@ -344,9 +344,17 @@ function parseVenture5Jobs(
     const url = urlMatch[1];
 
     // Proven extraction block: content before URL carries title/company/location for most listings
-    const beforeUrl = markdown.substring(Math.max(0, urlMatch.index - 700), urlMatch.index);
+    const windowStart = Math.max(0, urlMatch.index - 700);
+    const beforeUrl = markdown.substring(windowStart, urlMatch.index);
     const blockStart = beforeUrl.lastIndexOf('- [');
     if (blockStart < 0) continue;
+
+    const absoluteBlockStart = windowStart + blockStart;
+    const blockEnd = markdown.indexOf('\n- [', urlMatch.index);
+    const itemWindow = markdown.substring(
+      absoluteBlockStart,
+      blockEnd === -1 ? Math.min(markdown.length, urlMatch.index + 1200) : blockEnd
+    );
 
     const content = beforeUrl.substring(blockStart + 2);
     const textContent = content
@@ -381,21 +389,17 @@ function parseVenture5Jobs(
     if (searchCity && !jobLocation) continue;
     if (searchCity && jobLocation && !jobLocation.toLowerCase().includes(searchCity)) continue;
 
-    // Capture posted date from a wider neighborhood around URL (before + after)
+    // Capture posted date from the full listing item
     let postedDate = 'Scraped just now';
-    const aroundUrl = markdown.substring(
-      Math.max(0, urlMatch.index - 700),
-      Math.min(markdown.length, urlMatch.index + 350)
-    );
 
     const rawDateMatch =
-      aroundUrl.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i) ||
-      aroundUrl.match(/\b(\d+\s*(?:hour|day|week|month)s?\s*ago)\b/i);
+      itemWindow.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i) ||
+      itemWindow.match(/\b(\d+\s*(?:hour|day|week|month)s?\s*ago)\b/i);
 
     if (rawDateMatch) {
       postedDate = rawDateMatch[1];
     } else {
-      const absoluteDateMatch = aroundUrl.match(/\b([A-Za-z]+\s+\d{1,2},?\s+\d{4})\b/);
+      const absoluteDateMatch = itemWindow.match(/\b([A-Za-z]+\s+\d{1,2},?\s+\d{4})\b/);
       if (absoluteDateMatch) postedDate = absoluteDateMatch[1];
     }
 
