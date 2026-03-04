@@ -541,28 +541,32 @@ function isRssFeedUrl(url: string): boolean {
 
 // ---- eFinancialCareers Scraper ----
 
-const EFC_VC_KEYWORDS = [
-  'venture capital', 'vc ', 'vc,', 'venture', 'startup', 'start-up',
-  'seed', 'series a', 'series b', 'growth equity', 'private equity',
-  'portfolio', 'fund', 'investor', 'investment', 'capital',
-];
-
-function isVcRelated(title: string, company: string, description?: string): boolean {
-  const text = `${title} ${company} ${description || ''}`.toLowerCase();
-  return EFC_VC_KEYWORDS.some(kw => text.includes(kw));
+function matchesUserKeywords(title: string, company: string, description: string | undefined, keywords: string[]): boolean {
+  const text = ` ${title} ${company} ${description || ''} `.toLowerCase();
+  // Must match at least one user keyword (e.g. "venture capital", "vc")
+  return keywords.some(kw => {
+    const lower = kw.toLowerCase();
+    // For short keywords like "vc", require word boundary
+    if (lower.length <= 3) {
+      const re = new RegExp(`\\b${lower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return re.test(text);
+    }
+    return text.includes(lower);
+  });
 }
 
 async function scrapeEFinancialCareers(
   apiKey: string,
   source: { name: string; url: string },
-  location: string
+  location: string,
+  keywords: string[]
 ): Promise<any[]> {
   const allJobs: any[] = [];
   const MAX_PAGES = 12;
-  const baseUrl = source.url;
+  // Disable vector search for more precise results
+  const baseUrl = source.url.replace('enableVectorSearch=true', 'enableVectorSearch=false');
 
   for (let page = 1; page <= MAX_PAGES; page++) {
-    // eFinancialCareers uses &page=N for pagination
     const pageUrl = page === 1 ? baseUrl : `${baseUrl}&page=${page}`;
     console.log(`eFinancialCareers page ${page}: ${pageUrl}`);
 
@@ -606,9 +610,9 @@ async function scrapeEFinancialCareers(
     }
   }
 
-  // Filter to only VC-related roles
-  const vcJobs = allJobs.filter(j => isVcRelated(j.title, j.company, j.description));
-  console.log(`eFinancialCareers: ${vcJobs.length} VC-related jobs out of ${allJobs.length} total`);
+  // Filter using user's actual search keywords
+  const vcJobs = allJobs.filter(j => matchesUserKeywords(j.title, j.company, j.description, keywords));
+  console.log(`eFinancialCareers: ${vcJobs.length} keyword-matched jobs out of ${allJobs.length} total`);
 
   return vcJobs;
 }
