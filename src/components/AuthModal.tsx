@@ -22,15 +22,36 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
     e.preventDefault();
     if (!email || !password) return;
 
+    const isEmailNotConfirmedError = (err: unknown) => {
+      const message = typeof err === 'object' && err && 'message' in err ? String((err as { message?: string }).message).toLowerCase() : '';
+      const code = typeof err === 'object' && err && 'code' in err ? String((err as { code?: string }).code).toLowerCase() : '';
+      return code === 'email_not_confirmed' || message.includes('email not confirmed');
+    };
+
     setLoading(true);
     try {
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
+
+        if (!data.session) {
+          try {
+            await supabase.auth.resend({ type: 'signup', email });
+          } catch {
+            // ignore resend failures, keep UX smooth
+          }
+          toast({
+            title: 'Confirm your email',
+            description: 'We sent a confirmation link. Please verify your email, then sign in.',
+          });
+          onClose();
+          return;
+        }
+
         toast({ title: 'Account created!' });
         onSuccess();
       } else {
@@ -39,8 +60,23 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
         toast({ title: 'Signed in successfully' });
         onSuccess();
       }
-    } catch (err: any) {
-      toast({ title: 'Auth error', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      if (isEmailNotConfirmedError(err)) {
+        try {
+          await supabase.auth.resend({ type: 'signup', email });
+        } catch {
+          // ignore resend failures, still guide user clearly
+        }
+        onClose();
+        toast({
+          title: 'Email verification needed',
+          description: 'We re-sent your confirmation link. Please verify your email, then sign in again.',
+        });
+        return;
+      }
+
+      const description = typeof err === 'object' && err && 'message' in err ? String((err as { message?: string }).message) : 'Please try again.';
+      toast({ title: 'Auth error', description, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
