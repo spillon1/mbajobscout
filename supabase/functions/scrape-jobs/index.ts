@@ -52,15 +52,17 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Build the scrape URL — for Google Jobs, append keywords + location as query
-        let scrapeUrl = source.url;
+        // Google Jobs: paginate multiple pages
         if (isGoogleJobsUrl(source.url)) {
-          const query = encodeURIComponent(`"${keywords[0] || 'venture capital'}" jobs ${location}`);
-          scrapeUrl = `https://www.google.com/search?q=${query}&udm=8`;
-          console.log(`Google Jobs URL: ${scrapeUrl}`);
+          const googleJobs = await scrapeGoogleJobsPages(apiKey, keywords, location, source);
+          results.push(...googleJobs);
+          sourceStatuses[source.name] = { status: 'connected', count: googleJobs.length };
+          console.log(`Found ${googleJobs.length} total jobs from Google Jobs (paginated)`);
+          continue;
         }
 
         // Otherwise use Firecrawl
+        const scrapeUrl = source.url;
         const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
           method: 'POST',
           headers: {
@@ -99,10 +101,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Total jobs found: ${results.length}`);
+    // Filter out jobs older than 6 months
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const filteredResults = results.filter(job => {
+      if (!job.postedDate || job.postedDate === 'Scraped just now') return true;
+      const parsed = tryParseDate(job.postedDate);
+      if (!parsed) return true; // Keep if we can't parse the date
+      return parsed >= sixMonthsAgo;
+    });
+
+    console.log(`Total jobs found: ${filteredResults.length} (filtered from ${results.length})`);
 
     return new Response(
-      JSON.stringify({ success: true, jobs: results, sourceStatuses }),
+      JSON.stringify({ success: true, jobs: filteredResults, sourceStatuses }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
@@ -140,6 +152,97 @@ function expandKeywords(keywords: string[]): string[] {
 
 function isGoogleJobsUrl(url: string): boolean {
   return url.includes('google.com/search') && (url.includes('udm=8') || url.includes('jobs'));
+}
+
+// ---- Google Jobs Pagination ----
+
+const GOOGLE_JOBS_PAGES = 5; // Scrape 5 pages (~50 results per page)
+
+async function scrapeGoogleJobsPages(
+  apiKey: string,
+  keywords: string[],
+  location: string,
+  source: { name: string; url: string }
+): Promise<any[]> {
+  const allJobs: any[] = [];
+  const query = encodeURIComponent(`"${keywords[0] || 'venture capital'}" jobs ${location}`);
+
+  for (let page = 0; page < GOOGLE_JOBS_PAGES; page++) {
+    const start = page * 10;
+    const scrapeUrl = `https://www.google.com/search?q=${query}&udm=8&start=${start}`;
+    console.log(`Google Jobs page ${page + 1}: ${scrapeUrl}`);
+
+    try {
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: scrapeUrl,
+          formats: ['markdown', 'links'],
+          onlyMainContent: true,
+          waitFor: 5000,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        console.error(`Google Jobs page ${page + 1} failed:`, data);
+        break;
+      }
+
+      const markdown = data.data?.markdown || data.markdown || '';
+      const jobs = parseGoogleJobs(markdown, source);
+      
+      // Deduplicate against already found jobs
+      const newJobs = jobs.filter(j => !allJobs.some(existing => existing.title === j.title && existing.company === j.company));
+      allJobs.push(...newJobs);
+      
+      console.log(`Google Jobs page ${page + 1}: ${newJobs.length} new jobs (${jobs.length} total on page)`);
+      
+      // If we got very few results, no more pages
+      if (jobs.length < 3) break;
+    } catch (err) {
+      console.error(`Google Jobs page ${page + 1} error:`, err);
+      break;
+    }
+  }
+
+  return allJobs;
+}
+
+// ---- Date Parsing Helper ----
+
+function tryParseDate(dateStr: string): Date | null {
+  if (!dateStr || dateStr === 'Scraped just now') return null;
+  
+  // Handle relative dates like "5 days ago", "2 weeks ago"
+  const relMatch = dateStr.match(/(\d+)\s*(hour|day|week|month)s?\s*ago/i);
+  if (relMatch) {
+    const num = parseInt(relMatch[1]);
+    const unit = relMatch[2].toLowerCase();
+    const d = new Date();
+    if (unit === 'hour') d.setHours(d.getHours() - num);
+    else if (unit === 'day') d.setDate(d.getDate() - num);
+    else if (unit === 'week') d.setDate(d.getDate() - num * 7);
+    else if (unit === 'month') d.setMonth(d.getMonth() - num);
+    return d;
+  }
+
+  // Try standard date parsing
+  const parsed = new Date(dateStr);
+  if (!isNaN(parsed.getTime())) return parsed;
+
+  // Try "January 30, 2026" style
+  const monthMatch = dateStr.match(/(\w+)\s+(\d{1,2}),?\s+(\d{4})/);
+  if (monthMatch) {
+    const attempt = new Date(`${monthMatch[1]} ${monthMatch[2]}, ${monthMatch[3]}`);
+    if (!isNaN(attempt.getTime())) return attempt;
+  }
+
+  return null;
 }
 
 // ---- RSS Feed Support ----
