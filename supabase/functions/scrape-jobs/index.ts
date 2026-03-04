@@ -32,10 +32,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Scraping ${sources.length} sources for keywords: ${keywords.join(', ')} in ${location}`);
+    // Expand keywords to include common abbreviations
+    const expandedKeywords = expandKeywords(keywords);
+    console.log(`Scraping ${sources.length} sources for keywords: ${expandedKeywords.join(', ')} in ${location}`);
 
     const results: any[] = [];
-    const sourceStatuses: Record<string, { status: string; error?: string }> = {};
+    const sourceStatuses: Record<string, { status: string; error?: string; count?: number }> = {};
 
     for (const source of sources) {
       try {
@@ -43,9 +45,9 @@ Deno.serve(async (req) => {
 
         // Check if this is an RSS/XML feed
         if (isRssFeedUrl(source.url)) {
-          const rssJobs = await scrapeRssFeed(source, keywords, location);
+          const rssJobs = await scrapeRssFeed(source, expandedKeywords, location);
           results.push(...rssJobs);
-          sourceStatuses[source.name] = { status: 'connected' };
+          sourceStatuses[source.name] = { status: 'connected', count: rssJobs.length };
           console.log(`Found ${rssJobs.length} jobs from RSS feed: ${source.name}`);
           continue;
         }
@@ -69,22 +71,23 @@ Deno.serve(async (req) => {
 
         if (!response.ok) {
           console.error(`Failed to scrape ${source.name}:`, data);
-          sourceStatuses[source.name] = { status: 'error', error: data.error || `HTTP ${response.status}` };
+          sourceStatuses[source.name] = { status: 'error', error: data.error || `HTTP ${response.status}`, count: 0 };
           continue;
         }
 
-        sourceStatuses[source.name] = { status: 'connected' };
+        sourceStatuses[source.name] = { status: 'connected', count: 0 };
 
         const markdown = data.data?.markdown || data.markdown || '';
         const links = data.data?.links || data.links || [];
 
-        const jobs = parseJobsFromMarkdown(markdown, links, source, keywords, location);
+        const jobs = parseJobsFromMarkdown(markdown, links, source, expandedKeywords, location);
         results.push(...jobs);
+        sourceStatuses[source.name].count = jobs.length;
 
         console.log(`Found ${jobs.length} potential jobs from ${source.name}`);
       } catch (err) {
         console.error(`Error scraping ${source.name}:`, err);
-        sourceStatuses[source.name] = { status: 'error', error: err instanceof Error ? err.message : 'Unknown error' };
+        sourceStatuses[source.name] = { status: 'error', error: err instanceof Error ? err.message : 'Unknown error', count: 0 };
       }
     }
 
@@ -102,6 +105,28 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// ---- Keyword Expansion ----
+
+function expandKeywords(keywords: string[]): string[] {
+  const expanded = new Set(keywords.map(k => k.toLowerCase()));
+  // Add common abbreviations
+  for (const kw of keywords) {
+    const lower = kw.toLowerCase();
+    if (lower.includes('venture capital')) {
+      expanded.add(lower.replace('venture capital', 'vc'));
+    }
+    if (lower.includes('vc')) {
+      expanded.add(lower.replace('vc', 'venture capital'));
+    }
+  }
+  // Always include 'vc' and 'venture capital' as standalone matches
+  if (keywords.some(k => k.toLowerCase().includes('venture capital') || k.toLowerCase().includes('vc'))) {
+    expanded.add('vc');
+    expanded.add('venture capital');
+  }
+  return [...expanded];
+}
 
 // ---- RSS Feed Support ----
 

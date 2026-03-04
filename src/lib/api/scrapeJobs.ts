@@ -4,7 +4,7 @@ import { Job, JobSource, JobType } from '@/types/jobs';
 interface ScrapeResult {
   success: boolean;
   jobs: Job[];
-  sourceStatuses: Record<string, { status: string; error?: string }>;
+  sourceStatuses: Record<string, { status: string; error?: string; count?: number }>;
   error?: string;
 }
 
