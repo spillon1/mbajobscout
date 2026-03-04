@@ -23,19 +23,53 @@ function formatPostedDate(dateStr?: string): string | null {
 }
 
 export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string) => void }) {
+  // Extract real URL from Google redirect/search URLs
+  const resolveUrl = (url: string): string | null => {
+    try {
+      const parsed = new URL(url);
+      // Google redirect: extract destination from ?url= or ?q= params
+      if (parsed.hostname.includes('google.com')) {
+        const dest = parsed.searchParams.get('url') || parsed.searchParams.get('q');
+        if (dest && dest.startsWith('http')) return dest;
+        // Pure google.com/search with no extractable URL → unavailable
+        if (parsed.pathname.includes('/search')) return null;
+        return null;
+      }
+      return url;
+    } catch {
+      return url;
+    }
+  };
+
+  const resolvedUrl = resolveUrl(job.url);
+  const isAvailable = !!resolvedUrl;
+
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
-    window.open(job.url, '_blank', 'noopener,noreferrer');
+    if (!isAvailable) return;
+    // Use window.top for iframe breakout in preview environments
+    try {
+      const w = window.top || window;
+      const a = w.document.createElement('a');
+      a.href = resolvedUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      w.document.body.appendChild(a);
+      a.click();
+      w.document.body.removeChild(a);
+    } catch {
+      window.open(resolvedUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
   return (
     <a
-      href={job.url}
+      href={resolvedUrl || '#'}
       target="_blank"
       rel="noopener noreferrer"
       referrerPolicy="no-referrer"
       onClick={handleClick}
-      className="block group border border-border rounded-md p-4 bg-card hover:border-primary/40 hover:glow-primary transition-all duration-200 animate-slide-in cursor-pointer"
+      className={`block group border border-border rounded-md p-4 bg-card transition-all duration-200 animate-slide-in ${isAvailable ? 'hover:border-primary/40 hover:glow-primary cursor-pointer' : 'opacity-75 cursor-default'}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -81,9 +115,13 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
               <X className="h-3.5 w-3.5" />
             </button>
           )}
-          <div className="p-2 rounded-md text-muted-foreground group-hover:text-primary transition-colors">
-            <ExternalLink className="h-4 w-4" />
-          </div>
+          {isAvailable ? (
+            <div className="p-2 rounded-md text-muted-foreground group-hover:text-primary transition-colors">
+              <ExternalLink className="h-4 w-4" />
+            </div>
+          ) : (
+            <span className="text-[10px] text-muted-foreground italic">Link unavailable</span>
+          )}
         </div>
       </div>
     </a>
