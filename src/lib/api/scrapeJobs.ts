@@ -110,6 +110,10 @@ function isValidJob(job: Job): boolean {
   if (JUNK_TITLES.includes(titleLower)) return false;
   if (titleLower.includes('trusted resource')) return false;
 
+  // Raw markdown fragments or taglines that aren't job titles
+  if (job.title.includes('](http') || job.title.includes('](https')) return false;
+  if (/^invest\.|^amplify\.|^grow\./i.test(job.company)) return false;
+
   // Pattern-based junk: generic category/location headers
   if (/^(venture capital|vc)\s+(jobs|careers)\s+(in|near)\s+/i.test(job.title)) return false;
   if (/^jobs\s+(in|near)\s+/i.test(job.title)) return false;
