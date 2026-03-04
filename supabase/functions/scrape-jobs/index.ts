@@ -247,55 +247,77 @@ async function scrapeVenture5(
   const searchCity = searchLocation.split(',')[0]?.trim().toLowerCase();
   console.log(`Venture5: scraping with Load More actions, filtering for: ${searchCity}`);
 
-  // Use Firecrawl actions to click "Load more listings" multiple times
-  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      url: source.url,
-      formats: ['markdown'],
-      onlyMainContent: true,
-      waitFor: 3000,
-      actions: [
-        { type: 'wait', milliseconds: 2000 },
-        { type: 'click', selector: 'text="Load more listings"' },
-        { type: 'wait', milliseconds: 2000 },
-        { type: 'click', selector: 'text="Load more listings"' },
-        { type: 'wait', milliseconds: 2000 },
-        { type: 'click', selector: 'text="Load more listings"' },
-        { type: 'wait', milliseconds: 2000 },
-        { type: 'click', selector: 'text="Load more listings"' },
-        { type: 'wait', milliseconds: 2000 },
-        { type: 'click', selector: 'text="Load more listings"' },
-        { type: 'wait', milliseconds: 2000 },
-        { type: 'click', selector: 'text="Load more listings"' },
-        { type: 'wait', milliseconds: 2000 },
-        { type: 'click', selector: 'text="Load more listings"' },
-        { type: 'wait', milliseconds: 2000 },
-        { type: 'click', selector: 'text="Load more listings"' },
-        { type: 'wait', milliseconds: 2000 },
-        { type: 'click', selector: 'text="Load more listings"' },
-        { type: 'wait', milliseconds: 2000 },
-        { type: 'click', selector: 'text="Load more listings"' },
-        { type: 'wait', milliseconds: 2000 },
-        { type: 'scrape' },
-      ],
-    }),
-  });
+  // First attempt: use actions to click "Load more listings" via the actual CSS class
+  let markdown = '';
+  try {
+    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: source.url,
+        formats: ['markdown'],
+        onlyMainContent: true,
+        waitFor: 3000,
+        actions: [
+          { type: 'wait', milliseconds: 2000 },
+          // Use executeJavascript to click "Load more" repeatedly with error handling
+          { type: 'executeJavascript', script: `
+            async function loadAll() {
+              for (let i = 0; i < 15; i++) {
+                const btn = document.querySelector('a.load_more_jobs');
+                if (!btn || btn.style.display === 'none') break;
+                btn.click();
+                await new Promise(r => setTimeout(r, 2000));
+              }
+              return 'done';
+            }
+            await loadAll();
+          ` },
+          { type: 'wait', milliseconds: 2000 },
+          { type: 'scrape' },
+        ],
+      }),
+    });
 
-  const data = await response.json();
-  if (!response.ok) {
-    console.error('Venture5 scrape failed:', data);
-    throw new Error(data.error || `HTTP ${response.status}`);
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('Venture5 actions scrape failed:', data);
+      // Fall back to simple scrape without actions
+    } else {
+      markdown = data.data?.markdown || data.markdown || '';
+    }
+  } catch (err) {
+    console.error('Venture5 actions error:', err);
   }
 
-  const markdown = data.data?.markdown || data.markdown || '';
+  // Fallback: simple scrape without actions
+  if (!markdown) {
+    console.log('Venture5: falling back to simple scrape (no actions)');
+    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: source.url,
+        formats: ['markdown'],
+        onlyMainContent: true,
+        waitFor: 5000,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+    markdown = data.data?.markdown || data.markdown || '';
+  }
+
   console.log(`Venture5 markdown length: ${markdown.length}`);
-  // Log first 500 chars for debugging
-  console.log(`Venture5 markdown preview: ${markdown.substring(0, 500)}`);
+  console.log(`Venture5 markdown preview: ${markdown.substring(0, 800)}`);
 
   return parseVenture5Jobs(markdown, source, searchCity);
 }
@@ -307,9 +329,9 @@ function parseVenture5Jobs(
 ): any[] {
   const jobs: any[] = [];
 
-  // Venture5 job rows appear as linked blocks like:
-  // [Title\nCompany](https://venture5.com/jobs/slug) followed by location and date text
-  const linkPattern = /\[([^\]]+)\]\((https?:\/\/(?:www\.)?venture5\.com\/jobs\/[^\s)]+)\)/g;
+  // Venture5 job URLs are like https://venture5.com/job/slug (note: /job/ not /jobs/)
+  // Pattern: [Title\nCompany](https://venture5.com/job/slug) Location Posted X ago
+  const linkPattern = /\[([^\]]+)\]\((https?:\/\/(?:www\.)?venture5\.com\/job\/[^\s)]+)\)/g;
   let match;
   
   while ((match = linkPattern.exec(markdown)) !== null) {
@@ -324,7 +346,7 @@ function parseVenture5Jobs(
     const company = parts.length >= 2 ? parts[1].replace(/\*\*/g, '').trim() : 'Unknown';
     
     // Skip non-job entries
-    if (title.length < 5 || title.length > 200) continue;
+    if (title.length < 3 || title.length > 200) continue;
     const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about'];
     if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
     
@@ -332,23 +354,24 @@ function parseVenture5Jobs(
     const afterIdx = match.index + match[0].length;
     const afterText = markdown.substring(afterIdx, afterIdx + 300);
     
-    // Extract location - typically appears as "City, Country/Region" before "Posted"
+    // Extract location - look for text before "Posted"
     let jobLocation = '';
     
-    // Try "City, Region" pattern before Posted
-    const locMatch = afterText.match(/^\s*([A-Z][\w\s]+,\s*[\w\s]+?)(?:\s+Posted|\s*$)/m);
-    if (locMatch) {
-      jobLocation = locMatch[1].trim();
+    // Try to find location text between this link and the "Posted" text
+    const locAndDate = afterText.match(/^\s*(.+?)(?:Posted\s+\d)/s);
+    if (locAndDate) {
+      // Clean up the location text
+      const rawLoc = locAndDate[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+      // Remove markdown artifacts
+      const cleanLoc = rawLoc.replace(/[*#\[\]|]/g, '').trim();
+      if (cleanLoc.length > 0 && cleanLoc.length < 100) {
+        jobLocation = cleanLoc;
+      }
     }
     
-    // Also try just a city name
-    if (!jobLocation) {
-      const cityMatch = afterText.match(/^\s*(London|New York|San Francisco|Washington|Berlin|Paris|Singapore|Boston|Remote|Cambridge|Oxford|Dubai|Hong Kong|Amsterdam|Toronto|Sydney|Tokyo|Chicago|Los Angeles|Mumbai)[\s,]/im);
-      if (cityMatch) {
-        // Get the full location string
-        const fullLocMatch = afterText.match(new RegExp(cityMatch[1] + '[,\\s]+[\\w\\s]+?(?=\\s+Posted|\\s*$)', 'im'));
-        jobLocation = fullLocMatch ? fullLocMatch[0].trim() : cityMatch[1];
-      }
+    // Also check if location is one of the parts in the link content
+    if (!jobLocation && parts.length >= 3) {
+      jobLocation = parts[2].replace(/\*\*/g, '').trim();
     }
     
     // Filter by search location
