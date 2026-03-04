@@ -3,7 +3,6 @@ import { Job, JobSource } from '@/types/jobs';
 export const DEFAULT_SOURCES: (JobSource & { status?: 'connected' | 'error' | 'checking' | 'unknown' })[] = [
   { id: '1', name: 'Google Jobs', url: 'https://www.google.com/search?udm=8', enabled: true, status: 'unknown' },
   { id: '2', name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/', enabled: true, status: 'unknown' },
-  { id: '3', name: 'MBA Exchange', url: 'https://www.mba-exchange.com/candidates/jobSearch_p.php', enabled: true, status: 'unknown' },
   { id: '4', name: 'John Gannon Blog', url: 'https://johngannonblog.com/?feed=job_feed&job_types&search_location=London&job_categories&search_keywords', enabled: true, status: 'unknown' },
   { id: '5', name: 'Startup & VC', url: 'https://www.startupandvc.com/locations/london', enabled: true, status: 'unknown' },
   { id: '6', name: 'eFinancialCareers', url: 'https://www.efinancialcareers.co.uk/jobs/', enabled: true, status: 'unknown' },
@@ -11,6 +10,10 @@ export const DEFAULT_SOURCES: (JobSource & { status?: 'connected' | 'error' | 'c
   { id: '8', name: 'VC Careers', url: 'https://venturecapitalcareers.com/jobs', enabled: true, status: 'unknown' },
   { id: '9', name: 'Indeed UK', url: 'https://uk.indeed.com/', enabled: true, status: 'unknown' },
   { id: '10', name: 'Glassdoor UK', url: 'https://www.glassdoor.co.uk/Job/index.htm', enabled: true, status: 'unknown' },
+];
+
+export const MANUAL_SOURCES: JobSource[] = [
+  { id: 'm1', name: 'MBA Exchange', url: 'https://www.mba-exchange.com/candidates/jobSearch_p.php', enabled: false, manualOnly: true },
 ];
 
 export const DEFAULT_KEYWORDS = [
