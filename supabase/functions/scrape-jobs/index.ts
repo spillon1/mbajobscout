@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
         console.log(`Found ${jobs.length} potential jobs from ${source.name}`);
       } catch (err) {
         console.error(`Error scraping ${source.name}:`, err);
-        sourceStatuses[source.name] = { status: 'error', error: err instanceof Error ? err.message : 'Unknown error' };
+        sourceStatuses[source.name] = { status: 'error', error: err instanceof Error ? err.message : 'Unknown error', count: 0 };
       }
     }
 
