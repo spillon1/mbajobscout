@@ -237,7 +237,7 @@ async function scrapeGoogleJobsPages(
   return allJobs;
 }
 
-// ---- Venture5 Scraper (with Load More actions) ----
+// ---- Venture5 Scraper (with location filter + Load More) ----
 
 async function scrapeVenture5(
   apiKey: string,
@@ -245,11 +245,25 @@ async function scrapeVenture5(
   searchLocation: string
 ): Promise<any[]> {
   const searchCity = searchLocation.split(',')[0]?.trim().toLowerCase();
-  console.log(`Venture5: scraping with Load More actions, filtering for: ${searchCity}`);
+  // Use Venture5's built-in location search to pre-filter
+  const filteredUrl = `https://venture5.com/jobs/?search_location=${encodeURIComponent(searchCity)}`;
+  console.log(`Venture5: scraping pre-filtered URL: ${filteredUrl}`);
 
-  // First attempt: use actions to click "Load more listings" via the actual CSS class
+  // Try multiple Firecrawl actions approaches to click "Load more listings"
   let markdown = '';
+
+  // Approach 1: Use click actions to hit the load more button repeatedly
   try {
+    const actions: any[] = [
+      { type: 'wait', milliseconds: 3000 },
+    ];
+    // Click "Load more listings" up to 10 times
+    for (let i = 0; i < 10; i++) {
+      actions.push({ type: 'click', selector: 'a.load_more_jobs' });
+      actions.push({ type: 'wait', milliseconds: 2000 });
+    }
+    actions.push({ type: 'scrape' });
+
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
@@ -257,67 +271,60 @@ async function scrapeVenture5(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        url: source.url,
+        url: filteredUrl,
         formats: ['markdown'],
         onlyMainContent: true,
         waitFor: 3000,
-        actions: [
-          { type: 'wait', milliseconds: 2000 },
-          // Use executeJavascript to click "Load more" repeatedly with error handling
-          { type: 'executeJavascript', script: `
-            async function loadAll() {
-              for (let i = 0; i < 15; i++) {
-                const btn = document.querySelector('a.load_more_jobs');
-                if (!btn || btn.style.display === 'none') break;
-                btn.click();
-                await new Promise(r => setTimeout(r, 2000));
-              }
-              return 'done';
-            }
-            await loadAll();
-          ` },
-          { type: 'wait', milliseconds: 2000 },
-          { type: 'scrape' },
-        ],
+        actions,
       }),
     });
 
     const data = await response.json();
-    if (!response.ok) {
-      console.error('Venture5 actions scrape failed:', data);
-      // Fall back to simple scrape without actions
-    } else {
+    if (response.ok) {
       markdown = data.data?.markdown || data.markdown || '';
+      console.log(`Venture5: actions scrape got ${markdown.length} chars`);
+    } else {
+      console.error('Venture5 actions scrape failed:', data);
     }
   } catch (err) {
     console.error('Venture5 actions error:', err);
   }
 
-  // Fallback: simple scrape without actions
+  // Fallback: simple scrape of the filtered URL (gets first page only)
   if (!markdown) {
-    console.log('Venture5: falling back to simple scrape (no actions)');
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: source.url,
-        formats: ['markdown'],
-        onlyMainContent: true,
-        waitFor: 5000,
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || `HTTP ${response.status}`);
+    console.log('Venture5: falling back to simple scrape of filtered URL');
+    try {
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: filteredUrl,
+          formats: ['markdown'],
+          onlyMainContent: true,
+          waitFor: 5000,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        markdown = data.data?.markdown || data.markdown || '';
+      } else {
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+    } catch (err) {
+      console.error('Venture5 fallback error:', err);
     }
-    markdown = data.data?.markdown || data.markdown || '';
+  }
+
+  if (!markdown) {
+    console.log('Venture5: no markdown retrieved');
+    return [];
   }
 
   console.log(`Venture5 markdown length: ${markdown.length}`);
-  console.log(`Venture5 markdown preview: ${markdown.substring(0, 800)}`);
+  console.log(`Venture5 markdown preview: ${markdown.substring(0, 500)}`);
 
   return parseVenture5Jobs(markdown, source, searchCity);
 }
