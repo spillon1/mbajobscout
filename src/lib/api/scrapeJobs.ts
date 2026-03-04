@@ -128,5 +128,38 @@ function isValidJob(job: Job): boolean {
   const skipWords = ['cookie policy', 'privacy policy', 'sign in', 'log in', 'contact us'];
   if (skipWords.some(w => titleLower.includes(w))) return false;
 
+  // Filter out jobs older than 6 months
+  if (job.postedDate && job.postedDate !== 'Scraped just now') {
+    const parsed = tryParseDate(job.postedDate);
+    if (parsed) {
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      if (parsed < sixMonthsAgo) return false;
+    }
+  }
+
   return true;
+}
+
+/** Parse freetext date strings into Date objects */
+function tryParseDate(dateStr: string): Date | null {
+  const rel = dateStr.match(/(\d+)\s*(hour|day|week|month)s?\s*ago/i);
+  if (rel) {
+    const n = parseInt(rel[1]);
+    const unit = rel[2].toLowerCase();
+    const d = new Date();
+    if (unit === 'hour') d.setHours(d.getHours() - n);
+    else if (unit === 'day') d.setDate(d.getDate() - n);
+    else if (unit === 'week') d.setDate(d.getDate() - n * 7);
+    else if (unit === 'month') d.setMonth(d.getMonth() - n);
+    return d;
+  }
+  const parsed = new Date(dateStr);
+  if (!isNaN(parsed.getTime())) return parsed;
+  const monthMatch = dateStr.match(/(\w+)\s+(\d{1,2}),?\s+(\d{4})/);
+  if (monthMatch) {
+    const attempt = new Date(`${monthMatch[1]} ${monthMatch[2]}, ${monthMatch[3]}`);
+    if (!isNaN(attempt.getTime())) return attempt;
+  }
+  return null;
 }
