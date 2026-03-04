@@ -520,11 +520,12 @@ function parseStructuredCards(
     });
     const jobLocation = locationField || '';
 
-    // For Startup & VC scraping all jobs page: only include London jobs
-    if (source.url.includes('startupandvc.com/venture-capital-jobs') && !source.url.includes('/locations/')) {
+    // Filter by user's search location if provided
+    if (searchLocation && jobLocation) {
+      // Extract city from search location (e.g. "London, United Kingdom" -> "london")
+      const searchCity = searchLocation.split(',')[0].trim().toLowerCase();
       const locLower = jobLocation.toLowerCase();
-      // Must explicitly contain 'london' — skip jobs with unknown or non-London locations
-      if (!locLower.includes('london')) continue;
+      if (searchCity && !locLower.includes(searchCity)) continue;
     }
 
     // Find type field
