@@ -206,11 +206,14 @@ const Index = () => {
           onCompaniesChange={setSelectedCompanies}
           selectedTitles={selectedTitles}
           onTitlesChange={setSelectedTitles}
+          selectedSources={selectedSources}
+          onSourcesChange={setSelectedSources}
           filterKeywords={filterKeywords}
           onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])}
           onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))}
           allCompanies={allCompanies}
           allTitles={allTitles}
+          allSources={allSources}
         />
 
         {/* Stats - clickable filters */}
