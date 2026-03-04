@@ -460,8 +460,8 @@ function parseVenture5Jobs(
     let postedDate = 'Scraped just now';
 
     const rawDateMatch =
-      itemWindow.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i) ||
-      itemWindow.match(/\b(\d+\s*(?:hour|day|week|month)s?\s*ago)\b/i);
+      itemWindow.match(/Posted\s+(\d+\s*(?:hour|day|week|month|year)s?\s*ago)/i) ||
+      itemWindow.match(/\b(\d+\s*(?:hour|day|week|month|year)s?\s*ago)\b/i);
 
     if (rawDateMatch) {
       postedDate = rawDateMatch[1];
