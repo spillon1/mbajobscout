@@ -276,6 +276,7 @@ const Index = () => {
             <SourceManager
               sources={sources}
               onToggleSource={handleToggleSource}
+              onToggleAll={handleToggleAll}
               onAddSource={handleAddSource}
               onRemoveSource={handleRemoveSource}
             />
