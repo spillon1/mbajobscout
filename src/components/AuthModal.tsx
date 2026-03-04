@@ -31,10 +31,8 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
-        toast({
-          title: 'Check your email',
-          description: 'We sent you a verification link. Please confirm your email to continue.',
-        });
+        toast({ title: 'Account created!' });
+        onSuccess();
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
