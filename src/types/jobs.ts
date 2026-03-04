@@ -10,7 +10,7 @@ export interface Job {
   seniority: Seniority;
   source: string;
   sourceUrl: string;
-  url: string;
+  jobUrl?: string;
   postedDate?: string;
   description?: string;
   salary?: string;
