@@ -129,6 +129,13 @@ export function FilterRow({
         onChange={onTitlesChange}
       />
 
+      <CheckboxFilter
+        label="Sources"
+        options={allSources}
+        selected={selectedSources}
+        onChange={onSourcesChange}
+      />
+
       <CustomKeywordFilter
         customKeywords={filterKeywords}
         onAddKeyword={onAddFilterKeyword}
