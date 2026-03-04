@@ -336,69 +336,67 @@ function parseVenture5Jobs(
 ): any[] {
   const jobs: any[] = [];
 
-  // Venture5 format: - [![Company](img)\n**Title**\n**Company**\nLocation\n- Posted X ago](venture5-url)
-  // The link content has nested brackets from the image, so we can't use [^\]]+
-  // Instead, match by the URL pattern at the end
-  const linkPattern = /\[!\[.*?\]\(.*?\)([\s\S]*?)\]\((https?:\/\/(?:www\.)?venture5\.com\/(?:job\/[^\s)]+|\?post_type=job_listing[^\s)]+))\)/g;
-  let match;
+  // Instead of complex regex for nested brackets, find all venture5 job URLs
+  // and work backwards to extract the content block before each URL
+  const urlPattern = /\]\((https?:\/\/(?:www\.)?venture5\.com\/(?:job\/[^\s)]+|\?post_type=job_listing[^\s)]+))\)/g;
+  let urlMatch;
   
-  while ((match = linkPattern.exec(markdown)) !== null) {
-    const content = match[1];
-    const url = match[2];
+  while ((urlMatch = urlPattern.exec(markdown)) !== null) {
+    const url = urlMatch[1];
     
-    // Split content by newlines to get fields
-    const parts = content.split(/\n/).map(s => s.replace(/\*\*/g, '').trim()).filter(s => s.length > 0 && !s.startsWith('!['));
-    if (parts.length < 1) continue;
+    // Find the opening `[` for this link by searching backwards
+    // Look for the list item start `- [` before this position
+    const beforeUrl = markdown.substring(Math.max(0, urlMatch.index - 500), urlMatch.index);
     
-    const title = parts[0].trim();
-    const company = parts.length >= 2 ? parts[1].trim() : 'Unknown';
+    // Find the last `- [` or `- [![` in the content before the URL
+    const blockStart = beforeUrl.lastIndexOf('- [');
+    if (blockStart < 0) continue;
+    
+    const content = beforeUrl.substring(blockStart + 2); // skip "- "
+    
+    // Extract text fields: remove image markdown, bold markers, clean up
+    const textContent = content
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // remove images
+      .replace(/\*\*/g, '') // remove bold
+      .replace(/\\/g, '') // remove backslashes
+      .replace(/- Posted/g, 'Posted') // normalize
+      .trim();
+    
+    const parts = textContent
+      .split(/\n/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && s !== '[' && s !== ',' && s !== '-');
+    
+    if (parts.length < 2) continue;
+    
+    // First non-empty part is title, second is company
+    const title = parts[0].replace(/^\[/, '').trim();
+    const company = parts[1].trim();
     
     // Skip non-job entries
     if (title.length < 3 || title.length > 200) continue;
     const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about', 'latest news'];
     if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
     
-    // Location is typically the 3rd field in content, or in text after the link
+    // Find location - look for "City, Region" pattern or just city name
     let jobLocation = '';
-    if (parts.length >= 3) {
-      jobLocation = parts[2].trim();
-    }
-    
-    // Also try text after the link for location
-    if (!jobLocation) {
-      const afterIdx = match.index + match[0].length;
-      const afterText = markdown.substring(afterIdx, afterIdx + 300);
-      const locAndDate = afterText.match(/^\s*(.+?)(?:Posted\s+\d)/s);
-      if (locAndDate) {
-        const rawLoc = locAndDate[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-        const cleanLoc = rawLoc.replace(/[*#\[\]|]/g, '').trim();
-        if (cleanLoc.length > 0 && cleanLoc.length < 100) {
-          jobLocation = cleanLoc;
-        }
+    for (const part of parts) {
+      if (/london|england|uk|united kingdom/i.test(part) && !part.includes('Posted')) {
+        jobLocation = part;
+        break;
       }
     }
     
-    // Filter by search location
-    if (searchCity) {
-      if (jobLocation) {
-        if (!jobLocation.toLowerCase().includes(searchCity)) continue;
-      } else {
-        // We're scraping a pre-filtered URL so location should match, but skip if uncertain
-        continue;
-      }
-    }
+    // If we're scraping a pre-filtered URL, location should match
+    if (searchCity && !jobLocation) continue;
+    if (searchCity && jobLocation && !jobLocation.toLowerCase().includes(searchCity)) continue;
     
-    // Extract posted date from content parts or after text
+    // Extract posted date
     let postedDate = 'Scraped just now';
-    const datePartIdx = parts.findIndex(p => /posted\s+\d+/i.test(p));
-    if (datePartIdx >= 0) {
-      const m = parts[datePartIdx].match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+    const dateText = parts.find(p => /posted\s+\d+/i.test(p));
+    if (dateText) {
+      const m = dateText.match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
       if (m) postedDate = m[1];
-    } else {
-      const afterIdx = match.index + match[0].length;
-      const afterText = markdown.substring(afterIdx, afterIdx + 300);
-      const dateMatch = afterText.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
-      if (dateMatch) postedDate = dateMatch[1];
     }
     
     // Determine job type
