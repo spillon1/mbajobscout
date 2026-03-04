@@ -2132,9 +2132,14 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
     let jobLocation = parts.length >= 3 ? parts[2].trim() : 'London, UK';
     jobLocation = jobLocation.replace(/\s*•\s*via\s+.+$/i, '').trim() || 'London, UK';
 
-    const skipWords = ['filter', 'menu', 'sign in', 'cookie', 'follow', 'saved jobs', 'ai mode', 'forums', 'images', 'news'];
+    const skipWords = ['filter', 'menu', 'sign in', 'cookie', 'follow', 'saved jobs', 'ai mode', 'forums', 'images', 'news', 'county', 'from your ip'];
     if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
+    if (skipWords.some(w => company.toLowerCase().includes(w))) continue;
     if (title.length < 5 || title.length > 300) continue;
+
+    // Skip entries where title looks like a US location (e.g. "Adams County, Nebraska")
+    const usStatePattern = /\b(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new\s+hampshire|new\s+jersey|new\s+mexico|new\s+york|north\s+carolina|north\s+dakota|ohio|oklahoma|oregon|pennsylvania|rhode\s+island|south\s+carolina|south\s+dakota|tennessee|texas|utah|vermont|virginia|washington|west\s+virginia|wisconsin|wyoming)\b/i;
+    if (usStatePattern.test(title)) continue;
 
     // Enforce location filter from user search (e.g. London)
     if (searchCity) {
