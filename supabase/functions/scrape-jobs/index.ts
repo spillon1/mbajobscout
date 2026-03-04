@@ -412,7 +412,7 @@ function parseJobsFromMarkdown(
   }
 
   // Try structured card parsing first (e.g. Startup & VC format)
-  const cardJobs = parseStructuredCards(markdown, source, keywords);
+  const cardJobs = parseStructuredCards(markdown, source, keywords, location);
   if (cardJobs.length > 0) return cardJobs;
 
   // Fall back to generic header-based parsing
