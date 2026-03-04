@@ -108,6 +108,15 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // InnovatorsRoom: scrape beehiiv JobDrop newsletters
+        if (source.url.includes('innovatorsroom.beehiiv.com') || source.url.includes('innovatorsroom.com/jobs')) {
+          const irJobs = await scrapeInnovatorsRoom(apiKey, source, location);
+          results.push(...irJobs);
+          sourceStatuses[source.name] = { status: 'connected', count: irJobs.length };
+          console.log(`Found ${irJobs.length} jobs from InnovatorsRoom`);
+          continue;
+        }
+
         // Otherwise use Firecrawl
         const scrapeUrl = source.url;
         const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
@@ -2109,4 +2118,245 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
 
   console.log(`Google Jobs parser found ${jobs.length} jobs for location: ${searchCity || 'any'}`);
   return jobs;
+}
+
+// ---- InnovatorsRoom Scraper (beehiiv JobDrop newsletters) ----
+
+async function scrapeInnovatorsRoom(
+  apiKey: string,
+  source: { name: string; url: string },
+  location: string
+): Promise<any[]> {
+  const searchCity = location.split(',')[0]?.trim().toLowerCase() || 'london';
+  const allJobs: any[] = [];
+
+  // Scrape the latest Junior and Senior Investor JobDrop newsletters
+  const archiveUrls = [
+    'https://innovatorsroom.beehiiv.com/archive?tags=%F0%9F%92%B6+Junior+Investor+JobDrop',
+    'https://innovatorsroom.beehiiv.com/archive?tags=%F0%9F%92%B6+Senior+Investor+JobDrop',
+  ];
+
+  const jobDropUrls: string[] = [];
+
+  // Step 1: Get the latest JobDrop URLs from archive pages
+  for (const archiveUrl of archiveUrls) {
+    try {
+      console.log(`InnovatorsRoom: fetching archive: ${archiveUrl}`);
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: archiveUrl,
+          formats: ['markdown', 'links'],
+          onlyMainContent: true,
+          waitFor: 3000,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        console.error(`InnovatorsRoom archive failed:`, data);
+        continue;
+      }
+
+      const links: string[] = data.data?.links || data.links || [];
+      const markdown: string = data.data?.markdown || data.markdown || '';
+
+      // Extract JobDrop post URLs from links
+      const dropLinks = links.filter((l: string) =>
+        l.includes('innovatorsroom.beehiiv.com/p/inv-')
+      );
+
+      // Also extract from markdown in case links array misses some
+      const mdLinkPattern = /\(https:\/\/innovatorsroom\.beehiiv\.com\/p\/inv-[^)]+\)/g;
+      let mdMatch;
+      while ((mdMatch = mdLinkPattern.exec(markdown)) !== null) {
+        const url = mdMatch[0].slice(1, -1); // remove parens
+        if (!dropLinks.includes(url)) dropLinks.push(url);
+      }
+
+      // Only take the most recent 2 drops per category
+      const uniqueDrops = [...new Set(dropLinks)].slice(0, 2);
+      jobDropUrls.push(...uniqueDrops);
+
+      console.log(`InnovatorsRoom: found ${uniqueDrops.length} JobDrop URLs from archive`);
+    } catch (err) {
+      console.error(`InnovatorsRoom archive error:`, err);
+    }
+  }
+
+  if (jobDropUrls.length === 0) {
+    console.log('InnovatorsRoom: no JobDrop URLs found');
+    return [];
+  }
+
+  // Step 2: Scrape each JobDrop page for job listings
+  const uniqueDropUrls = [...new Set(jobDropUrls)];
+  console.log(`InnovatorsRoom: scraping ${uniqueDropUrls.length} JobDrop pages`);
+
+  for (const dropUrl of uniqueDropUrls) {
+    try {
+      console.log(`InnovatorsRoom: scraping JobDrop: ${dropUrl}`);
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: dropUrl,
+          formats: ['markdown'],
+          onlyMainContent: true,
+          waitFor: 3000,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        console.error(`InnovatorsRoom JobDrop scrape failed:`, data);
+        continue;
+      }
+
+      const markdown: string = data.data?.markdown || data.markdown || '';
+      console.log(`InnovatorsRoom: JobDrop markdown length: ${markdown.length}`);
+
+      // Extract the newsletter date from the page
+      const dateMatch = markdown.match(/(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}/i);
+      const newsletterDate = dateMatch ? dateMatch[0] : undefined;
+
+      const jobs = parseInnovatorsRoomJobs(markdown, source, searchCity, newsletterDate);
+      allJobs.push(...jobs);
+
+      console.log(`InnovatorsRoom: found ${jobs.length} London jobs from ${dropUrl}`);
+    } catch (err) {
+      console.error(`InnovatorsRoom JobDrop error:`, err);
+    }
+  }
+
+  // Deduplicate by URL
+  const seen = new Set<string>();
+  const deduped = allJobs.filter(job => {
+    if (seen.has(job.url)) return false;
+    seen.add(job.url);
+    return true;
+  });
+
+  console.log(`InnovatorsRoom: total ${deduped.length} unique London jobs`);
+  return deduped;
+}
+
+function parseInnovatorsRoomJobs(
+  markdown: string,
+  source: { name: string; url: string },
+  searchCity: string,
+  newsletterDate?: string
+): any[] {
+  const jobs: any[] = [];
+
+  // Pattern 1: Top picks format (table rows)
+  // **[Company Name](url)**<br>🇬🇧 London | [🔗](apply_url) **[Job Title](job_url)**<br>Full-time |
+  const topPickPattern = /\*\*\[([^\]]+)\]\([^)]*\)\*\*[^|]*?(🇬🇧[^|]*?(?:London|UK|United Kingdom)[^|]*?)\|[^|]*?\*\*\[([^\]]+)\]\((https:\/\/www\.innovatorsroom\.com\/jobs\/profile\?recordId=[^&)]+[^)]*)\)\*\*[^|]*?(Full-time|Part-time|Intern|Contract)?/gi;
+
+  let match;
+  while ((match = topPickPattern.exec(markdown)) !== null) {
+    const company = match[1].trim();
+    const locationStr = match[2].replace(/🇬🇧/g, '').trim();
+    const title = match[3].trim();
+    const url = match[4].split('&utm_')[0] + '&utm_source=techjobs_newsletter';
+    const typeStr = (match[5] || '').toLowerCase();
+
+    if (!locationStr.toLowerCase().includes(searchCity)) continue;
+
+    jobs.push({
+      id: crypto.randomUUID(),
+      title,
+      company,
+      location: locationStr,
+      type: inferInnovatorsRoomType(title, typeStr),
+      source: source.name,
+      sourceUrl: source.url,
+      url,
+      postedDate: newsletterDate || undefined,
+    });
+  }
+
+  // Pattern 2: Compact list format
+  // **[Company](url)**<br>FT **[Title](job_url)** [🔗](apply_url)<br>🇬🇧 London |
+  const compactPattern = /\*\*\[([^\]]+)\]\([^)]*\)\*\*[^*]*?(?:FT|PT|IN)\s*\*\*\[([^\]]+)\]\((https:\/\/www\.innovatorsroom\.com\/jobs\/profile\?recordId=[^&)]+[^)]*)\)\*\*[^🇬🇧]*?(🇬🇧[^|]*)/gi;
+
+  while ((match = compactPattern.exec(markdown)) !== null) {
+    const company = match[1].trim();
+    const title = match[2].trim();
+    const url = match[3].split('&utm_')[0] + '&utm_source=techjobs_newsletter';
+    const locationStr = match[4].replace(/🇬🇧/g, '').trim();
+
+    if (!locationStr.toLowerCase().includes(searchCity)) continue;
+    if (jobs.some(j => j.url === url)) continue;
+
+    jobs.push({
+      id: crypto.randomUUID(),
+      title,
+      company,
+      location: locationStr,
+      type: inferInnovatorsRoomType(title, ''),
+      source: source.name,
+      sourceUrl: source.url,
+      url,
+      postedDate: newsletterDate || undefined,
+    });
+  }
+
+  // Pattern 3: Generic fallback - find any innovatorsroom job profile URLs and extract context
+  const genericPattern = /\*\*\[([^\]]+)\]\((https:\/\/www\.innovatorsroom\.com\/jobs\/profile\?recordId=[^&)]+[^)]*)\)\*\*/g;
+
+  while ((match = genericPattern.exec(markdown)) !== null) {
+    const title = match[1].trim();
+    const url = match[2].split('&utm_')[0] + '&utm_source=techjobs_newsletter';
+
+    if (jobs.some(j => j.url === url)) continue;
+
+    // Look backwards for company and location context
+    const before = markdown.substring(Math.max(0, match.index - 500), match.index);
+
+    // Find company name
+    const companyMatch = before.match(/\*\*\[([^\]]+)\]\(https:\/\/www\.innovatorsroom\.com\/companies\/[^)]+\)\*\*/g);
+    const company = companyMatch
+      ? companyMatch[companyMatch.length - 1].match(/\*\*\[([^\]]+)\]/)?.[1] || 'Unknown'
+      : 'Unknown';
+
+    // Check for London/UK in surrounding context
+    const context = before + markdown.substring(match.index, Math.min(markdown.length, match.index + 200));
+    const hasLondon = /🇬🇧[^|]*london/i.test(context) || /london/i.test(context);
+
+    if (!hasLondon) continue;
+
+    // Extract location string
+    const locMatch = context.match(/🇬🇧\s*([^|<\n]+)/);
+    const locationStr = locMatch ? locMatch[1].trim() : 'London';
+
+    jobs.push({
+      id: crypto.randomUUID(),
+      title,
+      company,
+      location: locationStr,
+      type: inferInnovatorsRoomType(title, ''),
+      source: source.name,
+      sourceUrl: source.url,
+      url,
+      postedDate: newsletterDate || undefined,
+    });
+  }
+
+  return jobs;
+}
+
+function inferInnovatorsRoomType(title: string, typeHint: string): string {
+  const lower = (title + ' ' + typeHint).toLowerCase();
+  if (lower.includes('intern') && !lower.includes('internal')) return 'internship';
+  if (lower.includes('graduate') || lower.includes('entry level')) return 'graduate';
+  if (lower.includes('analyst') && !lower.includes('senior') && !lower.includes('lead')) return 'graduate';
+  return 'full-time';
 }
