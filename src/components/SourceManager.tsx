@@ -79,7 +79,7 @@ export function SourceManager({ sources, onToggleSource, onAddSource, onRemoveSo
           const status = (source.status || 'unknown') as ConnectionStatus;
           const StatusIcon = statusConfig[status].icon;
           const tooltipText = source.statusMessage
-            ? `${statusConfig[status].label}: ${source.statusMessage}`
+            ? source.statusMessage
             : statusConfig[status].label;
 
           return (
