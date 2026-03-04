@@ -109,6 +109,11 @@ export function SourceManager({ sources, onToggleSource, onAddSource, onRemoveSo
                 <span className={`text-sm truncate ${source.enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {source.name}
                 </span>
+                {source.lastJobCount !== undefined && (
+                  <span className="text-[10px] font-display text-muted-foreground ml-auto mr-1 tabular-nums">
+                    {source.lastJobCount}
+                  </span>
+                )}
               </div>
               <button
                 onClick={() => onRemoveSource(source.id)}
