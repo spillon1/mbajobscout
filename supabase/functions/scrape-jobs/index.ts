@@ -209,7 +209,7 @@ async function scrapeGoogleJobsPages(
       }
 
       const markdown = data.data?.markdown || data.markdown || '';
-      const jobs = parseGoogleJobs(markdown, source);
+      const jobs = parseGoogleJobs(markdown, source, location);
       
       // Deduplicate against already found jobs
       const newJobs = jobs.filter(j => !allJobs.some(existing => existing.title === j.title && existing.company === j.company));
