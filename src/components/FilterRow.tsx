@@ -1,6 +1,7 @@
 import { JobType } from '@/types/jobs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckboxFilter } from '@/components/CheckboxFilter';
+import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
 import { SlidersHorizontal } from 'lucide-react';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m' | '1y';
@@ -17,11 +18,11 @@ interface FilterRowProps {
   onCompaniesChange: (companies: string[]) => void;
   selectedTitles: string[];
   onTitlesChange: (titles: string[]) => void;
-  selectedKeywords: string[];
-  onKeywordsChange: (keywords: string[]) => void;
+  filterKeywords: string[];
+  onAddFilterKeyword: (keyword: string) => void;
+  onRemoveFilterKeyword: (keyword: string) => void;
   allCompanies: string[];
   allTitles: string[];
-  allKeywords: string[];
 }
 
 const TYPE_OPTIONS: { value: JobType | 'any'; label: string }[] = [
@@ -58,11 +59,11 @@ export function FilterRow({
   onCompaniesChange,
   selectedTitles,
   onTitlesChange,
-  selectedKeywords,
-  onKeywordsChange,
+  filterKeywords,
+  onAddFilterKeyword,
+  onRemoveFilterKeyword,
   allCompanies,
   allTitles,
-  allKeywords,
 }: FilterRowProps) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -122,11 +123,10 @@ export function FilterRow({
         onChange={onTitlesChange}
       />
 
-      <CheckboxFilter
-        label="Keywords"
-        options={allKeywords}
-        selected={selectedKeywords}
-        onChange={onKeywordsChange}
+      <CustomKeywordFilter
+        customKeywords={filterKeywords}
+        onAddKeyword={onAddFilterKeyword}
+        onRemoveKeyword={onRemoveFilterKeyword}
       />
     </div>
   );
