@@ -237,7 +237,7 @@ async function scrapeGoogleJobsPages(
   return allJobs;
 }
 
-// ---- Venture5 Scraper (with Load More actions) ----
+// ---- Venture5 Scraper (with location filter + Load More) ----
 
 async function scrapeVenture5(
   apiKey: string,
@@ -245,11 +245,25 @@ async function scrapeVenture5(
   searchLocation: string
 ): Promise<any[]> {
   const searchCity = searchLocation.split(',')[0]?.trim().toLowerCase();
-  console.log(`Venture5: scraping with Load More actions, filtering for: ${searchCity}`);
+  // Use Venture5's built-in location search to pre-filter
+  const filteredUrl = `https://venture5.com/jobs/?search_location=${encodeURIComponent(searchCity)}`;
+  console.log(`Venture5: scraping pre-filtered URL: ${filteredUrl}`);
 
-  // First attempt: use actions to click "Load more listings" via the actual CSS class
+  // Try multiple Firecrawl actions approaches to click "Load more listings"
   let markdown = '';
+
+  // Approach 1: Use click actions to hit the load more button repeatedly
   try {
+    const actions: any[] = [
+      { type: 'wait', milliseconds: 2000 },
+    ];
+    // Click "Load more listings" up to 5 times (each loads ~10 jobs)
+    for (let i = 0; i < 5; i++) {
+      actions.push({ type: 'click', selector: 'a.load_more_jobs' });
+      actions.push({ type: 'wait', milliseconds: 1500 });
+    }
+    actions.push({ type: 'scrape' });
+
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
@@ -257,67 +271,60 @@ async function scrapeVenture5(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        url: source.url,
+        url: filteredUrl,
         formats: ['markdown'],
         onlyMainContent: true,
         waitFor: 3000,
-        actions: [
-          { type: 'wait', milliseconds: 2000 },
-          // Use executeJavascript to click "Load more" repeatedly with error handling
-          { type: 'executeJavascript', script: `
-            async function loadAll() {
-              for (let i = 0; i < 15; i++) {
-                const btn = document.querySelector('a.load_more_jobs');
-                if (!btn || btn.style.display === 'none') break;
-                btn.click();
-                await new Promise(r => setTimeout(r, 2000));
-              }
-              return 'done';
-            }
-            await loadAll();
-          ` },
-          { type: 'wait', milliseconds: 2000 },
-          { type: 'scrape' },
-        ],
+        actions,
       }),
     });
 
     const data = await response.json();
-    if (!response.ok) {
-      console.error('Venture5 actions scrape failed:', data);
-      // Fall back to simple scrape without actions
-    } else {
+    if (response.ok) {
       markdown = data.data?.markdown || data.markdown || '';
+      console.log(`Venture5: actions scrape got ${markdown.length} chars`);
+    } else {
+      console.error('Venture5 actions scrape failed:', data);
     }
   } catch (err) {
     console.error('Venture5 actions error:', err);
   }
 
-  // Fallback: simple scrape without actions
+  // Fallback: simple scrape of the filtered URL (gets first page only)
   if (!markdown) {
-    console.log('Venture5: falling back to simple scrape (no actions)');
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: source.url,
-        formats: ['markdown'],
-        onlyMainContent: true,
-        waitFor: 5000,
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || `HTTP ${response.status}`);
+    console.log('Venture5: falling back to simple scrape of filtered URL');
+    try {
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: filteredUrl,
+          formats: ['markdown'],
+          onlyMainContent: true,
+          waitFor: 5000,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        markdown = data.data?.markdown || data.markdown || '';
+      } else {
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+    } catch (err) {
+      console.error('Venture5 fallback error:', err);
     }
-    markdown = data.data?.markdown || data.markdown || '';
+  }
+
+  if (!markdown) {
+    console.log('Venture5: no markdown retrieved');
+    return [];
   }
 
   console.log(`Venture5 markdown length: ${markdown.length}`);
-  console.log(`Venture5 markdown preview: ${markdown.substring(0, 800)}`);
+  console.log(`Venture5 markdown preview: ${markdown.substring(0, 500)}`);
 
   return parseVenture5Jobs(markdown, source, searchCity);
 }
@@ -329,70 +336,68 @@ function parseVenture5Jobs(
 ): any[] {
   const jobs: any[] = [];
 
-  // Venture5 job URLs are like https://venture5.com/job/slug (note: /job/ not /jobs/)
-  // Pattern: [Title\nCompany](https://venture5.com/job/slug) Location Posted X ago
-  const linkPattern = /\[([^\]]+)\]\((https?:\/\/(?:www\.)?venture5\.com\/job\/[^\s)]+)\)/g;
-  let match;
+  // Instead of complex regex for nested brackets, find all venture5 job URLs
+  // and work backwards to extract the content block before each URL
+  const urlPattern = /\]\((https?:\/\/(?:www\.)?venture5\.com\/(?:job\/[^\s)]+|\?post_type=job_listing[^\s)]+))\)/g;
+  let urlMatch;
   
-  while ((match = linkPattern.exec(markdown)) !== null) {
-    const content = match[1];
-    const url = match[2];
+  while ((urlMatch = urlPattern.exec(markdown)) !== null) {
+    const url = urlMatch[1];
     
-    // Split content by newlines to get title and company
-    const parts = content.split(/\n/).map(s => s.trim()).filter(s => s.length > 0);
-    if (parts.length < 1) continue;
+    // Find the opening `[` for this link by searching backwards
+    // Look for the list item start `- [` before this position
+    const beforeUrl = markdown.substring(Math.max(0, urlMatch.index - 500), urlMatch.index);
     
-    const title = parts[0].replace(/\*\*/g, '').trim();
-    const company = parts.length >= 2 ? parts[1].replace(/\*\*/g, '').trim() : 'Unknown';
+    // Find the last `- [` or `- [![` in the content before the URL
+    const blockStart = beforeUrl.lastIndexOf('- [');
+    if (blockStart < 0) continue;
+    
+    const content = beforeUrl.substring(blockStart + 2); // skip "- "
+    
+    // Extract text fields: remove image markdown, bold markers, clean up
+    const textContent = content
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // remove images
+      .replace(/\*\*/g, '') // remove bold
+      .replace(/\\/g, '') // remove backslashes
+      .replace(/- Posted/g, 'Posted') // normalize
+      .trim();
+    
+    const parts = textContent
+      .split(/\n/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && s !== '[' && s !== ',' && s !== '-');
+    
+    if (parts.length < 2) continue;
+    
+    // First non-empty part is title, second is company
+    const title = parts[0].replace(/^\[/, '').trim();
+    const company = parts[1].trim();
     
     // Skip non-job entries
     if (title.length < 3 || title.length > 200) continue;
-    const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about'];
+    const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about', 'latest news'];
     if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
     
-    // Look at text AFTER the link for location and date
-    const afterIdx = match.index + match[0].length;
-    const afterText = markdown.substring(afterIdx, afterIdx + 300);
-    
-    // Extract location - look for text before "Posted"
+    // Find location - look for "City, Region" pattern or just city name
     let jobLocation = '';
-    
-    // Try to find location text between this link and the "Posted" text
-    const locAndDate = afterText.match(/^\s*(.+?)(?:Posted\s+\d)/s);
-    if (locAndDate) {
-      // Clean up the location text
-      const rawLoc = locAndDate[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-      // Remove markdown artifacts
-      const cleanLoc = rawLoc.replace(/[*#\[\]|]/g, '').trim();
-      if (cleanLoc.length > 0 && cleanLoc.length < 100) {
-        jobLocation = cleanLoc;
+    for (const part of parts) {
+      if (/london|england|uk|united kingdom/i.test(part) && !part.includes('Posted')) {
+        jobLocation = part;
+        break;
       }
     }
     
-    // Also check if location is one of the parts in the link content
-    if (!jobLocation && parts.length >= 3) {
-      jobLocation = parts[2].replace(/\*\*/g, '').trim();
-    }
-    
-    // Filter by search location
-    if (searchCity) {
-      if (jobLocation) {
-        const locLower = jobLocation.toLowerCase();
-        if (!locLower.includes(searchCity)) {
-          console.log(`Venture5: skipping "${title}" at "${company}" - location "${jobLocation}" doesn't match "${searchCity}"`);
-          continue;
-        }
-      } else {
-        // No location found - skip since we can't confirm it matches
-        console.log(`Venture5: skipping "${title}" - no location extracted`);
-        continue;
-      }
-    }
+    // If we're scraping a pre-filtered URL, location should match
+    if (searchCity && !jobLocation) continue;
+    if (searchCity && jobLocation && !jobLocation.toLowerCase().includes(searchCity)) continue;
     
     // Extract posted date
     let postedDate = 'Scraped just now';
-    const dateMatch = afterText.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
-    if (dateMatch) postedDate = dateMatch[1];
+    const dateText = parts.find(p => /posted\s+\d+/i.test(p));
+    if (dateText) {
+      const m = dateText.match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+      if (m) postedDate = m[1];
+    }
     
     // Determine job type
     let type = 'full-time';
