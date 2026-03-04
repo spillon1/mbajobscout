@@ -2,6 +2,8 @@ import { Job } from '@/types/jobs';
 import { JobTypeBadge } from './JobTypeBadge';
 import { ExternalLink, Building2, MapPin, Calendar, DollarSign } from 'lucide-react';
 
+const FRAME_BLOCKED_DOMAINS = ['venturecapitalcareers.com'];
+
 function formatPostedDate(dateStr?: string): string | null {
   if (!dateStr || dateStr === 'Scraped just now') return null;
   try {
@@ -21,13 +23,46 @@ function formatPostedDate(dateStr?: string): string | null {
   }
 }
 
+function isFrameBlockedUrl(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return FRAME_BLOCKED_DOMAINS.some(
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function openExternalLink(url: string, forceTopLevel: boolean) {
+  const popup = window.open('about:blank', '_blank', 'noopener,noreferrer');
+  if (popup) {
+    popup.opener = null;
+    popup.location.replace(url);
+    return;
+  }
+
+  if (forceTopLevel) {
+    window.top?.location.assign(url);
+    return;
+  }
+
+  window.location.assign(url);
+}
+
 export function JobCard({ job }: { job: Job }) {
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    openExternalLink(job.url, isFrameBlockedUrl(job.url));
+  };
+
   return (
     <a
       href={job.url}
       target="_blank"
       rel="noopener noreferrer"
       referrerPolicy="no-referrer"
+      onClick={handleClick}
       className="block group border border-border rounded-md p-4 bg-card hover:border-primary/40 hover:glow-primary transition-all duration-200 animate-slide-in cursor-pointer"
     >
       <div className="flex items-start justify-between gap-3">
