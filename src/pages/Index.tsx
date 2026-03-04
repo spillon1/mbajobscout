@@ -193,8 +193,8 @@ const Index = () => {
     <div className="min-h-screen bg-background bg-grid">
       {/* Header */}
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="container max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 shrink-0">
             <div className="h-8 w-8 rounded-sm bg-primary/15 border border-primary/30 flex items-center justify-center">
               <Zap className="h-4 w-4 text-primary" />
             </div>
@@ -207,23 +207,22 @@ const Index = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
+
+          {/* Location & Scrape — inline in header */}
+          <FilterBar
+            location={location}
+            onLocationChange={setLocation}
+            onSearch={handleScrape}
+            isSearching={isSearching}
+          />
+
+          <div className="flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground shrink-0">
             <span>{stats.total} jobs</span>
             <span className="h-3 w-px bg-border" />
             <span>{sources.filter((s) => s.enabled).length} sources</span>
           </div>
         </div>
       </header>
-
-      {/* Main */}
-      <main className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
-        {/* Location & Scrape */}
-        <FilterBar
-          location={location}
-          onLocationChange={setLocation}
-          onSearch={handleScrape}
-          isSearching={isSearching}
-        />
 
         {/* Keywords */}
         <KeywordBar
