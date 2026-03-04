@@ -108,6 +108,7 @@ const Index = () => {
   // Derive unique companies and titles from scraped jobs
   const allCompanies = useMemo(() => [...new Set(jobs.map((j) => j.company))].sort(), [jobs]);
   const allTitles = useMemo(() => [...new Set(jobs.map((j) => j.title))].sort(), [jobs]);
+  const allSources = useMemo(() => [...new Set(jobs.map((j) => j.source))].sort(), [jobs]);
 
   // Jobs filtered by everything EXCEPT type (for stable stat counts)
   const baseFilteredJobs = useMemo(() => {
