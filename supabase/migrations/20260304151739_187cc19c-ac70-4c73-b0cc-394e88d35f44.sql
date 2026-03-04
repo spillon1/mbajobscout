@@ -1,0 +1,1 @@
+DELETE FROM public.scraped_jobs WHERE source = 'Google Jobs' AND lower(coalesce(location, '') || ' ' || coalesce(title, '')) NOT LIKE '%london%';

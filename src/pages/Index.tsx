@@ -169,8 +169,17 @@ const Index = () => {
     const enabledSources = sources.filter((s) => s.enabled).map((s) => s.name);
     filtered = filtered.filter((j) => enabledSources.includes(j.source));
 
+    // Always respect selected search location in displayed results
+    const searchCity = location.split(',')[0]?.trim().toLowerCase();
+    if (searchCity) {
+      filtered = filtered.filter((j) => {
+        const locationText = `${j.location} ${j.title}`.toLowerCase();
+        return locationText.includes(searchCity);
+      });
+    }
+
     return filtered;
-  }, [jobs, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources]);
+  }, [jobs, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, location]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
