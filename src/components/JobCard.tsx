@@ -81,7 +81,7 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
             {job.title}
           </h3>
           <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 font-semibold text-foreground/80">
               <Building2 className="h-3.5 w-3.5" />
               {job.company}
             </span>
