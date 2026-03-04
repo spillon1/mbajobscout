@@ -66,11 +66,17 @@ const Index = () => {
       // Update source statuses
       if (result.sourceStatuses) {
         setSources((prev) =>
-          prev.map((s) => ({
-            ...s,
-            status: (result.sourceStatuses[s.name]?.status as any) || s.status,
-            statusMessage: result.sourceStatuses[s.name]?.error || (result.sourceStatuses[s.name]?.status === 'connected' ? 'Scraped successfully' : undefined),
-          }))
+          prev.map((s) => {
+            const sourceStatus = result.sourceStatuses[s.name];
+            return {
+              ...s,
+              status: (sourceStatus?.status as any) || s.status,
+              statusMessage: sourceStatus?.error || (sourceStatus?.status === 'connected'
+                ? `Scraped successfully (${sourceStatus?.count ?? 0} jobs found)`
+                : undefined),
+              lastJobCount: sourceStatus?.count ?? undefined,
+            };
+          })
         );
       }
 
