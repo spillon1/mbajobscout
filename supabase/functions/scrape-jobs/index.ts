@@ -32,10 +32,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Scraping ${sources.length} sources for keywords: ${keywords.join(', ')} in ${location}`);
+    // Expand keywords to include common abbreviations
+    const expandedKeywords = expandKeywords(keywords);
+    console.log(`Scraping ${sources.length} sources for keywords: ${expandedKeywords.join(', ')} in ${location}`);
 
     const results: any[] = [];
-    const sourceStatuses: Record<string, { status: string; error?: string }> = {};
+    const sourceStatuses: Record<string, { status: string; error?: string; count?: number }> = {};
 
     for (const source of sources) {
       try {
