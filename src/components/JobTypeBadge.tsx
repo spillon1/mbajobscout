@@ -2,9 +2,9 @@ import { Badge } from '@/components/ui/badge';
 import { JobType } from '@/types/jobs';
 
 const typeConfig: Record<JobType, { label: string; className: string }> = {
-  'full-time': { label: 'Full Time', className: 'bg-primary/15 text-primary border-primary/30' },
-  'internship': { label: 'Internship', className: 'bg-warning/15 text-warning border-warning/30' },
-  'graduate': { label: 'Graduate', className: 'bg-accent/15 text-accent border-accent/30' },
+  'full-time': { label: 'Full Time', className: 'bg-primary/10 text-primary border-primary/25' },
+  'internship': { label: 'Internship', className: 'bg-warning/10 text-warning border-warning/25' },
+  'graduate': { label: 'Graduate', className: 'bg-accent/10 text-accent border-accent/25' },
   'unknown': { label: 'Unknown', className: 'bg-muted text-muted-foreground border-border' },
 };
 
