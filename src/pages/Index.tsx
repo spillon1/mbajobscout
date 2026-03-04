@@ -23,6 +23,7 @@ function parsePostedDate(dateStr?: string): Date {
 
   return new Date(); // fallback: treat as recent
 }
+const isOccSource = (value: string): boolean => /occ\s*\(cambridge\)|12twenty/i.test(value);
 import { Job, JobType, JobSource } from '@/types/jobs';
 import { DEFAULT_SOURCES, DEFAULT_KEYWORDS } from '@/data/jobData';
 import { FilterBar } from '@/components/FilterBar';
@@ -38,7 +39,9 @@ import { useToast } from '@/hooks/use-toast';
 const Index = () => {
   const { toast } = useToast();
   const [location, setLocation] = useState('London, United Kingdom');
-  const [sources, setSources] = useState<JobSource[]>(DEFAULT_SOURCES);
+  const [sources, setSources] = useState<JobSource[]>(() =>
+    DEFAULT_SOURCES.filter((s) => !isOccSource(`${s.name} ${s.url}`))
+  );
   const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
   const [isSearching, setIsSearching] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -49,8 +52,9 @@ const Index = () => {
   // Load saved jobs on mount
   useEffect(() => {
     loadSavedJobs().then((savedJobs) => {
-      if (savedJobs.length > 0) {
-        setJobs(savedJobs);
+      const cleanedJobs = savedJobs.filter((j) => !isOccSource(`${j.source} ${j.sourceUrl}`));
+      if (cleanedJobs.length > 0) {
+        setJobs(cleanedJobs);
         setHasScraped(true);
       }
       setIsLoading(false);
@@ -65,6 +69,11 @@ const Index = () => {
   const [selectedTitles, setSelectedTitles] = useState<string[]>([]);
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [filterKeywords, setFilterKeywords] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSources((prev) => prev.filter((s) => !isOccSource(`${s.name} ${s.url}`)));
+    setSelectedSources((prev) => prev.filter((name) => !isOccSource(name)));
+  }, []);
 
   const handleToggleSource = (id: string) => {
     setSources((prev) =>
@@ -139,7 +148,10 @@ const Index = () => {
   // Derive unique companies and titles from scraped jobs
   const allCompanies = useMemo(() => [...new Set(jobs.map((j) => j.company))].sort(), [jobs]);
   const allTitles = useMemo(() => [...new Set(jobs.map((j) => j.title))].sort(), [jobs]);
-  const allSources = useMemo(() => [...new Set(jobs.map((j) => j.source))].sort(), [jobs]);
+  const allSources = useMemo(
+    () => [...new Set(jobs.map((j) => j.source).filter((sourceName) => !isOccSource(sourceName) && sources.some((s) => s.name === sourceName)))].sort(),
+    [jobs, sources]
+  );
 
   // Jobs filtered by everything EXCEPT type (for stable stat counts)
   const baseFilteredJobs = useMemo(() => {
