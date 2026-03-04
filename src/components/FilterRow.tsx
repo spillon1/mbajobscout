@@ -42,7 +42,6 @@ const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
   { value: '1m', label: 'Past Month' },
   { value: '3m', label: 'Past 3 Months' },
   { value: '6m', label: 'Past 6 Months' },
-  { value: '1y', label: 'Past Year' },
 ];
 
 const STATUS_OPTIONS: { value: JobStatus; label: string }[] = [
