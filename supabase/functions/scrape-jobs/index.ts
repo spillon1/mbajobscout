@@ -491,3 +491,75 @@ function extractJobDetails(
     postedDate: 'Scraped just now',
   };
 }
+
+// ---- Google Jobs Parser ----
+
+function parseGoogleJobs(markdown: string, source: { name: string; url: string }): any[] {
+  const jobs: any[] = [];
+
+  // Google Jobs markdown contains blocks like:
+  // [Title\\ \\ Company\\ \\ Location • via Source](url)
+  // Match linked blocks that contain job info separated by \\ 
+  const linkPattern = /\[([^\]]*\\\\[^\]]*)\]\((https?:\/\/[^\s)]+)\)/g;
+
+  let match;
+  while ((match = linkPattern.exec(markdown)) !== null) {
+    const content = match[1];
+    const url = match[2];
+
+    // Split by \\ separators
+    const parts = content
+      .split(/\\+\s*\\*/)
+      .map(s => s.replace(/\\\\/g, '').trim())
+      .filter(s => s.length > 0);
+
+    if (parts.length < 2) continue;
+
+    const title = parts[0].trim();
+    const company = parts.length >= 2 ? parts[1].trim() : 'Unknown';
+    let jobLocation = parts.length >= 3 ? parts[2].trim() : 'London, UK';
+
+    // Clean "via Source" from location
+    jobLocation = jobLocation.replace(/\s*•\s*via\s+.+$/i, '').trim() || 'London, UK';
+
+    // Skip non-job entries
+    const skipWords = ['filter', 'menu', 'sign in', 'cookie', 'follow', 'saved jobs', 'ai mode', 'forums', 'images', 'news'];
+    if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
+    if (title.length < 5 || title.length > 300) continue;
+
+    // Determine type
+    let type = 'full-time';
+    const fullText = `${title} ${company}`.toLowerCase();
+    if (fullText.includes('intern') && !fullText.includes('internal')) type = 'internship';
+    else if (fullText.includes('graduate') || fullText.includes('entry level')) type = 'graduate';
+
+    // Extract salary from nearby text
+    let salary: string | undefined;
+    const salaryMatch = content.match(/[£$€]\s?[\d,]+(?:\s?[-–]\s?[£$€]?\s?[\d,]+)?(?:\s?(?:k|K|pa|p\.a\.|per annum|per year|a year))?/);
+    if (salaryMatch) salary = salaryMatch[0];
+
+    // Extract time ago
+    let postedDate = 'Scraped just now';
+    const timeMatch = content.match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+    if (timeMatch) postedDate = timeMatch[1];
+
+    // Deduplicate by title+company
+    if (jobs.some(j => j.title === title && j.company === company)) continue;
+
+    jobs.push({
+      id: crypto.randomUUID(),
+      title,
+      company,
+      location: jobLocation,
+      type,
+      source: source.name,
+      sourceUrl: source.url,
+      url,
+      salary,
+      postedDate,
+    });
+  }
+
+  console.log(`Google Jobs parser found ${jobs.length} jobs`);
+  return jobs;
+}
