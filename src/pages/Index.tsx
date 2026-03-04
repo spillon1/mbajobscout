@@ -12,7 +12,7 @@ const Index = () => {
   const [location, setLocation] = useState('London, United Kingdom');
   const [selectedTypes, setSelectedTypes] = useState<JobType[]>([]);
   const [sources, setSources] = useState<JobSource[]>(DEFAULT_SOURCES);
-  const [activeKeyword, setActiveKeyword] = useState<string | null>(null);
+  const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
   const [isSearching, setIsSearching] = useState(false);
 
   const handleTypeToggle = (type: JobType) => {
@@ -115,9 +115,9 @@ const Index = () => {
 
         {/* Keywords */}
         <KeywordBar
-          keywords={DEFAULT_KEYWORDS}
-          activeKeyword={activeKeyword}
-          onKeywordClick={setActiveKeyword}
+          keywords={keywords}
+          onAddKeyword={(kw) => setKeywords((prev) => [...prev, kw])}
+          onRemoveKeyword={(kw) => setKeywords((prev) => prev.filter((k) => k !== kw))}
         />
 
         {/* Stats */}
