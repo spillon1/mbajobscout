@@ -45,15 +45,28 @@ export function SourceManager({ sources, onToggleSource, onToggleAll, onAddSourc
         <h3 className="font-display text-xs uppercase tracking-wider text-muted-foreground">
           Sources ({sources.filter(s => s.enabled).length}/{sources.length})
         </h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowAdd(!showAdd)}
-          className="h-7 px-2 text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-primary"
-        >
-          <Plus className="h-3 w-3 mr-1" />
-          Add
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const allEnabled = sources.every(s => s.enabled);
+              onToggleAll(!allEnabled);
+            }}
+            className="h-7 px-2 text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-primary"
+          >
+            {sources.every(s => s.enabled) ? 'None' : 'All'}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAdd(!showAdd)}
+            className="h-7 px-2 text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-primary"
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Add
+          </Button>
+        </div>
       </div>
 
       {showAdd && (
