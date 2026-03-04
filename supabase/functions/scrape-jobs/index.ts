@@ -281,15 +281,19 @@ async function scrapeRssFeed(
   const items = parseRssItems(xml);
   const jobs: any[] = [];
 
+  // For VC-specific job boards, all listings are relevant
+  const isVcSource = /startup\s*&?\s*vc|venture5|venturecapitalcareers|john\s*gannon/i.test(source.name);
+
   for (const item of items) {
     const fullText = `${item.title} ${item.description}`.toLowerCase();
 
-    // Check keyword match
-    const matchesKeyword = keywords.length === 0 || keywords.some(kw =>
-      fullText.includes(kw.toLowerCase())
-    );
-
-    if (!matchesKeyword) continue;
+    // Check keyword match (skip for VC-specific sources)
+    if (!isVcSource) {
+      const matchesKeyword = keywords.length === 0 || keywords.some(kw =>
+        fullText.includes(kw.toLowerCase())
+      );
+      if (!matchesKeyword) continue;
+    }
 
     // Parse title format: "VC Internship @ Breega in London, England"
     // or "IR Analyst - Isomer Capital in London, England"
@@ -526,11 +530,14 @@ function parseStructuredCards(
 
     const fullText = `${title} ${company} ${typeStr}`.toLowerCase();
 
-    const matchesKeyword = keywords.length === 0 || keywords.some(kw =>
-      fullText.includes(kw.toLowerCase())
-    );
-
-    if (!matchesKeyword) continue;
+    // For VC-specific job boards, all listings are relevant — skip keyword filtering
+    const isVcSource = /startup\s*&?\s*vc|venture5|venturecapitalcareers|john\s*gannon/i.test(source.name);
+    if (!isVcSource) {
+      const matchesKeyword = keywords.length === 0 || keywords.some(kw =>
+        fullText.includes(kw.toLowerCase())
+      );
+      if (!matchesKeyword) continue;
+    }
 
     // Skip non-job entries (page headers, newsletter, etc.)
     const skipWords = ['newsletter', 'subscribe', 'terms', 'sign in', 'cookie', 'trusted resource', 'playbook'];
