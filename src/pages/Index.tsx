@@ -198,6 +198,21 @@ const Index = () => {
       filtered = filtered.filter((j) => !j.postedDate || j.postedDate === 'Scraped just now');
     }
 
+    // Listed period filter
+    if (listedPeriod !== 'any') {
+      const now = new Date();
+      const cutoff = new Date();
+      if (listedPeriod === '1d') cutoff.setDate(now.getDate() - 1);
+      else if (listedPeriod === '1w') cutoff.setDate(now.getDate() - 7);
+      else if (listedPeriod === '1m') cutoff.setMonth(now.getMonth() - 1);
+      else if (listedPeriod === '3m') cutoff.setMonth(now.getMonth() - 3);
+      else if (listedPeriod === '6m') cutoff.setMonth(now.getMonth() - 6);
+      filtered = filtered.filter((j) => {
+        const d = parsePostedDate(j.postedDate);
+        return d >= cutoff;
+      });
+    }
+
 
     // Seniority filter
     if (selectedSeniorities.length > 0) {
@@ -205,7 +220,7 @@ const Index = () => {
     }
 
     return filtered;
-  }, [jobs, dismissedIds, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, location, datePostedFilter, selectedSeniorities]);
+  }, [jobs, dismissedIds, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, location, datePostedFilter, listedPeriod, selectedSeniorities]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
