@@ -76,7 +76,6 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
             )}
             {job.salary && (
               <span className="flex items-center gap-1 text-accent">
-                <DollarSign className="h-3.5 w-3.5" />
                 {job.salary}
               </span>
             )}
