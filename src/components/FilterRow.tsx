@@ -16,8 +16,8 @@ interface FilterRowProps {
   onSortByChange: (sort: SortOption) => void;
   datePostedFilter: DatePostedFilter;
   onDatePostedFilterChange: (filter: DatePostedFilter) => void;
-  selectedSeniority: Seniority | 'any';
-  onSeniorityChange: (seniority: Seniority | 'any') => void;
+  selectedSeniorities: Seniority[];
+  onSenioritiesChange: (seniorities: Seniority[]) => void;
   selectedCompanies: string[];
   onCompaniesChange: (companies: string[]) => void;
   selectedTitles: string[];
@@ -54,14 +54,14 @@ const DATE_POSTED_OPTIONS: { value: DatePostedFilter; label: string }[] = [
   { value: 'without-date', label: 'Without Date' },
 ];
 
-const SENIORITY_OPTIONS: { value: Seniority | 'any'; label: string }[] = [
-  { value: 'any', label: 'Any Seniority' },
-  { value: 'intern', label: 'Intern' },
-  { value: 'junior', label: 'Junior / Entry' },
-  { value: 'mid', label: 'Mid-level' },
-  { value: 'senior', label: 'Senior / Lead' },
-  { value: 'unknown', label: 'Unclassified' },
-];
+const SENIORITY_OPTIONS = ['intern', 'junior', 'mid', 'senior', 'unknown'] as const;
+const SENIORITY_LABELS: Record<string, string> = {
+  intern: 'Intern',
+  junior: 'Junior / Entry',
+  mid: 'Mid-level',
+  senior: 'Senior / Lead',
+  unknown: 'Unclassified',
+};
 
 export function FilterRow({
   listedPeriod,
@@ -70,8 +70,8 @@ export function FilterRow({
   onSortByChange,
   datePostedFilter,
   onDatePostedFilterChange,
-  selectedSeniority,
-  onSeniorityChange,
+  selectedSeniorities,
+  onSenioritiesChange,
   selectedCompanies,
   onCompaniesChange,
   selectedTitles,
@@ -123,18 +123,15 @@ export function FilterRow({
         </SelectContent>
       </Select>
 
-      <Select value={selectedSeniority} onValueChange={(v) => onSeniorityChange(v as Seniority | 'any')}>
-        <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
-          <SelectValue placeholder="Seniority" />
-        </SelectTrigger>
-        <SelectContent>
-          {SENIORITY_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value} className="text-xs">
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <CheckboxFilter
+        label="Seniority"
+        options={SENIORITY_OPTIONS.map(s => SENIORITY_LABELS[s])}
+        selected={selectedSeniorities.map(s => SENIORITY_LABELS[s])}
+        onChange={(labels) => {
+          const reversed = Object.fromEntries(Object.entries(SENIORITY_LABELS).map(([k, v]) => [v, k]));
+          onSenioritiesChange(labels.map(l => reversed[l] as Seniority));
+        }}
+      />
 
       <CheckboxFilter
         label="Companies"

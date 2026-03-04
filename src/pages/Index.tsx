@@ -71,7 +71,7 @@ const Index = () => {
   const [filterKeywords, setFilterKeywords] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [datePostedFilter, setDatePostedFilter] = useState<DatePostedFilter>('all');
-  const [selectedSeniority, setSelectedSeniority] = useState<Seniority | 'any'>('any');
+  const [selectedSeniorities, setSelectedSeniorities] = useState<Seniority[]>([]);
 
   useEffect(() => {
     setSources((prev) => prev.filter((s) => !isOccSource(`${s.name} ${s.url}`)));
@@ -200,12 +200,12 @@ const Index = () => {
 
 
     // Seniority filter
-    if (selectedSeniority !== 'any') {
-      filtered = filtered.filter((j) => j.seniority === selectedSeniority);
+    if (selectedSeniorities.length > 0) {
+      filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
     }
 
     return filtered;
-  }, [jobs, dismissedIds, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, location, datePostedFilter, selectedSeniority]);
+  }, [jobs, dismissedIds, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, location, datePostedFilter, selectedSeniorities]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -285,8 +285,8 @@ const Index = () => {
           onSortByChange={setSortBy}
           datePostedFilter={datePostedFilter}
           onDatePostedFilterChange={setDatePostedFilter}
-          selectedSeniority={selectedSeniority}
-          onSeniorityChange={setSelectedSeniority}
+          selectedSeniorities={selectedSeniorities}
+          onSenioritiesChange={setSelectedSeniorities}
           selectedCompanies={selectedCompanies}
           onCompaniesChange={setSelectedCompanies}
           selectedTitles={selectedTitles}
