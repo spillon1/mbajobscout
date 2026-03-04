@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
 
         // eFinancialCareers: dedicated scraper with structured markdown parsing
         if (source.url.includes('efinancialcareers')) {
-          const efcJobs = await scrapeEFinancialCareers(apiKey, source, location, expandedKeywords);
+          const efcJobs = await scrapeEFinancialCareers(apiKey, source, location, keywords);
           results.push(...efcJobs);
           sourceStatuses[source.name] = { status: 'connected', count: efcJobs.length };
           console.log(`Found ${efcJobs.length} jobs from eFinancialCareers`);
@@ -541,18 +541,145 @@ function isRssFeedUrl(url: string): boolean {
 
 // ---- eFinancialCareers Scraper ----
 
+function normalizeKeyword(keyword: string): string {
+  return keyword
+    .toLowerCase()
+    .replace(/["']/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function matchesUserKeywords(title: string, company: string, description: string | undefined, keywords: string[]): boolean {
   const text = ` ${title} ${company} ${description || ''} `.toLowerCase();
-  // Must match at least one user keyword (e.g. "venture capital", "vc")
-  return keywords.some(kw => {
-    const lower = kw.toLowerCase();
-    // For short keywords like "vc", require word boundary
-    if (lower.length <= 3) {
-      const re = new RegExp(`\\b${lower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-      return re.test(text);
+
+  return keywords.some((rawKw) => {
+    const kw = normalizeKeyword(rawKw);
+    if (!kw) return false;
+
+    // Exact phrase match first
+    if (text.includes(kw)) return true;
+
+    // Handle "vc" safely as a full token
+    if (kw === 'vc') {
+      return /\bvc\b/i.test(text);
     }
-    return text.includes(lower);
+
+    // Fuzzy token fallback for multi-word keywords (e.g. "venture capital internship")
+    const tokens = kw
+      .split(/[^a-z0-9]+/)
+      .filter((t) => t.length > 1 && !['job', 'jobs', 'role', 'roles', 'london', 'uk', 'united', 'kingdom'].includes(t));
+
+    if (tokens.length === 0) return false;
+
+    const matchedTokens = tokens.filter((token) => {
+      if (token === 'vc') return /\bvc\b/i.test(text);
+      return text.includes(token);
+    }).length;
+
+    // Require strong overlap, but not perfect phrase equality
+    return matchedTokens >= Math.min(2, tokens.length);
   });
+}
+
+function isLikelyVcRole(title: string, company: string, description: string | undefined, keywords: string[]): boolean {
+  const text = ` ${title} ${company} ${description || ''} `.toLowerCase();
+
+  // Strong VC signals
+  if (/\bvc\b|venture\s+capital|ventures?\b|pre-?seed|seed\s+stage|series\s+[abc]|early[-\s]?stage|startup|start-up/i.test(text)) {
+    return true;
+  }
+
+  // Fallback: any meaningful keyword token appears in title/company
+  const keywordTokens = Array.from(new Set(
+    keywords
+      .map(normalizeKeyword)
+      .flatMap((kw) => kw.split(/[^a-z0-9]+/))
+      .filter((t) => t.length > 2 && !['intern', 'internship', 'graduate', 'role', 'roles', 'jobs', 'london', 'capital', 'equity', 'finance', 'financial'].includes(t))
+  ));
+
+  const titleCompany = ` ${title} ${company} `.toLowerCase();
+  return keywordTokens.some((token) => titleCompany.includes(token));
+}
+
+function pickPrimaryEfcKeyword(keywords: string[]): string {
+  const cleaned = keywords.map(normalizeKeyword).filter(Boolean);
+  const preferred = cleaned.find((kw) => kw.includes('venture capital'));
+  return preferred || cleaned[0] || 'venture capital';
+}
+
+function buildEfcSearchUrl(sourceUrl: string, keywords: string[], location: string): string {
+  const city = (location.split(',')[0] || 'London').trim();
+  const keyword = pickPrimaryEfcKeyword(keywords);
+
+  const phraseForPath = encodeURIComponent(`"${keyword.replace(/\s+/g, '-')}"`);
+  const citySlug = encodeURIComponent(city.toLowerCase());
+  const q = encodeURIComponent(`"${keyword}"`);
+  const locationParam = encodeURIComponent(`${city}, UK`);
+
+  // Build a deterministic keyword/location URL from user search settings
+  const dynamicUrl = `https://www.efinancialcareers.co.uk/jobs/${phraseForPath}/in-${citySlug}%2C-uk?q=${q}&location=${locationParam}&radius=40&radiusUnit=km&pageSize=50&currencyCode=GBP&language=en&includeUnspecifiedSalary=true&enableVectorSearch=false`;
+
+  // If source already has keyword query, still force vector search off + larger page size
+  if (sourceUrl.includes('/jobs/') && sourceUrl.includes('q=')) {
+    try {
+      const existing = new URL(sourceUrl);
+      existing.searchParams.set('location', `${city}, UK`);
+      existing.searchParams.set('q', `"${keyword}"`);
+      existing.searchParams.set('pageSize', '50');
+      existing.searchParams.set('enableVectorSearch', 'false');
+      return existing.toString();
+    } catch {
+      return dynamicUrl;
+    }
+  }
+
+  return dynamicUrl;
+}
+
+function parseEfcTotalJobs(markdown: string): number | null {
+  const patterns = [
+    /"[^"]+"\s+jobs\s+in\s+[^\n(]+\((\d+)\)/i,
+    /jobs\s+in\s+[^\n(]+\((\d+)\)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = markdown.match(pattern);
+    if (match) {
+      const value = parseInt(match[1], 10);
+      if (!Number.isNaN(value) && value > 0) return value;
+    }
+  }
+
+  return null;
+}
+
+async function fetchEfcPageJobs(
+  apiKey: string,
+  pageUrl: string,
+  source: { name: string; url: string }
+): Promise<{ jobs: any[]; markdown: string }> {
+  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url: pageUrl,
+      formats: ['markdown'],
+      onlyMainContent: true,
+      waitFor: 5000,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || `HTTP ${response.status}`);
+  }
+
+  const markdown = data.data?.markdown || data.markdown || '';
+  const jobs = parseEFinancialCareersJobs(markdown, source);
+  return { jobs, markdown };
 }
 
 async function scrapeEFinancialCareers(
@@ -561,60 +688,75 @@ async function scrapeEFinancialCareers(
   location: string,
   keywords: string[]
 ): Promise<any[]> {
+  const PAGE_SIZE = 50;
+  const MAX_PAGES = 6;
   const allJobs: any[] = [];
-  const MAX_PAGES = 12;
-  // Disable vector search for more precise results
-  const baseUrl = source.url.replace('enableVectorSearch=true', 'enableVectorSearch=false');
+  const baseUrl = buildEfcSearchUrl(source.url, keywords, location);
 
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    const pageUrl = page === 1 ? baseUrl : `${baseUrl}&page=${page}`;
-    console.log(`eFinancialCareers page ${page}: ${pageUrl}`);
+  const firstPageUrl = new URL(baseUrl).toString();
+  console.log(`eFinancialCareers page 1: ${firstPageUrl}`);
 
-    try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: pageUrl,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          waitFor: 5000,
-        }),
-      });
+  const firstPage = await fetchEfcPageJobs(apiKey, firstPageUrl, source);
+  allJobs.push(...firstPage.jobs);
+  console.log(`eFinancialCareers page 1: ${firstPage.jobs.length} new jobs (${firstPage.jobs.length} on page)`);
 
-      const data = await response.json();
-      if (!response.ok) {
-        if (page === 1) throw new Error(data.error || `HTTP ${response.status}`);
-        console.log(`eFinancialCareers page ${page} failed, stopping`);
-        break;
+  const totalJobs = parseEfcTotalJobs(firstPage.markdown);
+  const fallbackPageCount = firstPage.jobs.length >= 40 ? 4 : 2;
+  const targetPages = Math.max(
+    1,
+    Math.min(MAX_PAGES, totalJobs ? Math.ceil(totalJobs / PAGE_SIZE) : fallbackPageCount)
+  );
+
+  if (targetPages > 1) {
+    const pagePromises: Promise<{ page: number; jobs: any[]; error?: string }>[] = [];
+
+    for (let page = 2; page <= targetPages; page++) {
+      const pageUrlObj = new URL(baseUrl);
+      pageUrlObj.searchParams.set('page', String(page));
+      const pageUrl = pageUrlObj.toString();
+      console.log(`eFinancialCareers page ${page}: ${pageUrl}`);
+
+      pagePromises.push(
+        fetchEfcPageJobs(apiKey, pageUrl, source)
+          .then((result) => ({ page, jobs: result.jobs }))
+          .catch((err) => ({
+            page,
+            jobs: [],
+            error: err instanceof Error ? err.message : String(err),
+          }))
+      );
+    }
+
+    const pageResults = await Promise.all(pagePromises);
+
+    for (const result of pageResults) {
+      if (result.error) {
+        console.log(`eFinancialCareers page ${result.page} failed: ${result.error}`);
+        continue;
       }
 
-      const markdown = data.data?.markdown || data.markdown || '';
-      const pageJobs = parseEFinancialCareersJobs(markdown, source);
-
-      // Deduplicate against already found jobs
-      const newJobs = pageJobs.filter(j => !allJobs.some(existing => existing.url === j.url));
+      const newJobs = result.jobs.filter((j) => !allJobs.some((existing) => existing.url === j.url));
       allJobs.push(...newJobs);
-
-      console.log(`eFinancialCareers page ${page}: ${newJobs.length} new jobs (${pageJobs.length} on page)`);
-
-      // If we got very few results, no more pages
-      if (pageJobs.length < 5) break;
-    } catch (err) {
-      if (page === 1) throw err;
-      console.log(`eFinancialCareers pagination stopped at page ${page}: ${err}`);
-      break;
+      console.log(`eFinancialCareers page ${result.page}: ${newJobs.length} new jobs (${result.jobs.length} on page)`);
     }
   }
 
-  // Filter using user's actual search keywords
-  const vcJobs = allJobs.filter(j => matchesUserKeywords(j.title, j.company, j.description, keywords));
-  console.log(`eFinancialCareers: ${vcJobs.length} keyword-matched jobs out of ${allJobs.length} total`);
+  const keywordMatchedJobs = allJobs.filter((j) => matchesUserKeywords(j.title, j.company, j.description, keywords));
+  const vcLikelyJobs = allJobs.filter((j) => isLikelyVcRole(j.title, j.company, j.description, keywords));
+  console.log(`eFinancialCareers: ${keywordMatchedJobs.length} strict matches, ${vcLikelyJobs.length} VC-likely matches, ${allJobs.length} total`);
 
-  return vcJobs;
+  // Keep strong precision if enough strict matches; otherwise use VC-likely filter to avoid non-VC noise.
+  const strictMatchThreshold = Math.max(10, Math.floor(allJobs.length * 0.25));
+  if (keywordMatchedJobs.length >= strictMatchThreshold) {
+    return keywordMatchedJobs;
+  }
+
+  if (vcLikelyJobs.length > 0) {
+    return vcLikelyJobs;
+  }
+
+  // Last resort: return query-filtered results from source page
+  return allJobs;
 }
 
 function parseEFinancialCareersJobs(
