@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
 
         if (!response.ok) {
           console.error(`Failed to scrape ${source.name}:`, data);
-          sourceStatuses[source.name] = { status: 'error', error: data.error || `HTTP ${response.status}` };
+          sourceStatuses[source.name] = { status: 'error', error: data.error || `HTTP ${response.status}`, count: 0 };
           continue;
         }
 
