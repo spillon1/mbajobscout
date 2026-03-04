@@ -330,6 +330,42 @@ async function scrapeVenture5(
   return await enrichVenture5PostedDates(parsedJobs, searchCity);
 }
 
+async function enrichVenture5PostedDates(jobs: any[], searchCity: string): Promise<any[]> {
+  const missingDateJobs = jobs.filter((j) => !j.postedDate || j.postedDate === 'Scraped just now');
+  if (missingDateJobs.length === 0) return jobs;
+
+  try {
+    const rssUrl = `https://venture5.com/?feed=job_feed&job_types=freelance%2Cfull-time%2Cinternship%2Cpart-time%2Ctemporary&search_location=${encodeURIComponent(searchCity)}&job_categories&search_keywords`;
+    const response = await fetch(rssUrl);
+    if (!response.ok) return jobs;
+
+    const xml = await response.text();
+    const rssItems = parseRssItems(xml);
+
+    const dateByUrl = new Map<string, string>();
+    for (const item of rssItems) {
+      const key = normalizeVenture5Url(item.link);
+      if (key && item.pubDate) dateByUrl.set(key, item.pubDate);
+    }
+
+    return jobs.map((job) => {
+      if (job.postedDate && job.postedDate !== 'Scraped just now') return job;
+      const rssDate = dateByUrl.get(normalizeVenture5Url(job.url));
+      return rssDate ? { ...job, postedDate: rssDate } : job;
+    });
+  } catch (err) {
+    console.error('Venture5 RSS date enrichment failed:', err);
+    return jobs;
+  }
+}
+
+function normalizeVenture5Url(url: string): string {
+  return (url || '')
+    .trim()
+    .replace(/^https?:\/\/(www\.)?/i, 'https://')
+    .replace(/\/$/, '');
+}
+
 function parseVenture5Jobs(
   markdown: string,
   source: { name: string; url: string },
