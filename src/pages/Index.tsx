@@ -398,11 +398,7 @@ const Index = () => {
 
           {/* Sidebar */}
           <div className="space-y-4">
-            <AlertConfig
-              keywords={keywords}
-              location={location}
-              sourceNames={sources.filter(s => s.enabled).map(s => s.name)}
-            />
+            <AlertConfig />
             <SourceManager
               sources={sources}
               onToggleSource={handleToggleSource}
