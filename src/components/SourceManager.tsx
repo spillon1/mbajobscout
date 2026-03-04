@@ -26,6 +26,7 @@ export function SourceManager({ sources, onToggleSource, onAddSource, onRemoveSo
   const [newName, setNewName] = useState('');
   const [newUrl, setNewUrl] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [openTooltip, setOpenTooltip] = useState<string | null>(null);
 
   const handleAdd = () => {
     if (newName.trim() && newUrl.trim()) {
@@ -92,9 +93,9 @@ export function SourceManager({ sources, onToggleSource, onAddSource, onRemoveSo
                   onCheckedChange={() => onToggleSource(source.id)}
                   className="scale-75"
                 />
-                <Tooltip>
+                <Tooltip open={openTooltip === source.id} onOpenChange={(open) => setOpenTooltip(open ? source.id : null)}>
                   <TooltipTrigger asChild>
-                    <span className="cursor-help">
+                    <span className="cursor-help" onClick={() => setOpenTooltip(openTooltip === source.id ? null : source.id)}>
                       <StatusIcon
                         className={`h-3.5 w-3.5 shrink-0 ${statusConfig[status].className}`}
                       />
