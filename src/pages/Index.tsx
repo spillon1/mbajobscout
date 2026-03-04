@@ -38,6 +38,7 @@ const Index = () => {
   const [jobStatus, setJobStatus] = useState<JobStatus>('any');
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [selectedTitles, setSelectedTitles] = useState<string[]>([]);
+  const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [filterKeywords, setFilterKeywords] = useState<string[]>([]);
 
   const handleToggleSource = (id: string) => {
