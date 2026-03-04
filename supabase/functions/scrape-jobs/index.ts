@@ -1462,8 +1462,19 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bbusiness\s+development\b/i,
     /\breal\s+estate\b/i,
     /\bm&a\b/i,
+    /\bsearch\s+fund\b/i,                // search funds ≠ VC
+    /\bcorporate\s+development\b/i,       // corp dev roles
+    /\bfund\s+administ/i,                 // fund administrator/administration
+    /\bcredit\s+invest/i,                 // credit/debt fund roles
+    /\bportfolio\s+monitor/i,             // PE ops/fund services
+    /\bportfolio\s+manager\b/i,           // asset mgmt, not VC (VC uses "portfolio lead/director")
+    /\bbook\s+portfolio/i,                // quant trading
   ];
   if (hardExclude.some(p => p.test(titleLower))) return false;
+
+  // ── Soft exclusions: private equity in title blocks even ultra-strong signals ──
+  // (PE co-investment roles should not pass via co-invest signal)
+  if (/\bprivate\s+equity\b/i.test(titleLower)) return false;
 
   // ── Tier 1a: Ultra-strong VC signals → pass always ──
   const ultraStrongVcPatterns = [
@@ -1478,6 +1489,9 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bss&c\b/i, /\bcarta\b/i, /\bcitco\b/i, /\bjuniper\s+square/i,
     /\bprivate\s+equity\s+insights/i, /\bpreqin\b/i, /\bpitchbook\b/i,
     /\bstate\s+street\b/i, /\bnt\s+global/i, /\bnorthern\s+trust/i,
+    /\bbritish\s+business\s+bank/i,       // government development bank
+    /\bprivate\s+equity\s+recruitment/i,   // PE recruitment agency
+    /\bfinancial\s+services\s+limited/i,   // fund services companies
   ];
   const isFundServices = fundServicesCompanies.some(p => p.test(companyLower));
 
@@ -1485,12 +1499,11 @@ function isLikelyVcRole(title: string, company: string, description: string | un
   // Only pass if not at a fund services/fintech company
   if (/limited\s+partner|general\s+partner|\blp\b|\bgp\b/.test(titleLower) && !isFundServices) return true;
 
-  // ── Tier 1b: Strong VC signals in TITLE → pass unless recruitment agency ──
+  // ── Tier 1b: Strong VC signals in TITLE → pass unless fund services ──
   const titleVcPatterns = [
     /venture\s+capital/,
     /\bvc\s+(fund|firm|analyst|associate|partner|principal|director|investment)/,
-    /fund\s+(admin|management|of\s+funds|raising|operations|accounting|controller)/,
-    /portfolio\s+(management|monitoring|controller|principal|manager|analyst)/,
+    /fund\s+(management|of\s+funds|raising|operations|accounting|controller)/,
     /investment\s+(analyst|associate|manager|director|principal|partner)/,
   ];
   if (titleVcPatterns.some(p => p.test(titleLower))) {
@@ -1509,7 +1522,7 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bgrowth\s+specialist/i, /\bgrowth\s+marketing/i,
     /\bgrowth\s+hacker/i,
     /\bfounding\s+(business|sales|marketing|product|engineer)/i,
-    /\bprivate\s+equity\s+(analyst|associate)\b/i,
+    // private equity already caught by hard exclude above
     /\binvestment\s+banking\b/i,        // IB in title only
     /\binvestment\s+bank\b/i,
     /\bmanagement\s+consult/i,          // consulting in title only
