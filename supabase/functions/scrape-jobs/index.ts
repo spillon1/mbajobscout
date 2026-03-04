@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
 
 function isRssFeedUrl(url: string): boolean {
   const lower = url.toLowerCase();
-  return lower.includes('/feed') || lower.includes('.rss') || lower.includes('.xml') || lower.includes('format=xml');
+  return lower.includes('/feed') || lower.includes('feed=') || lower.includes('.rss') || lower.includes('.xml') || lower.includes('format=xml');
 }
 
 async function scrapeRssFeed(
