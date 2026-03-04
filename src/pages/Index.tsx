@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { JobType, JobSource } from '@/types/jobs';
 import { MOCK_JOBS, DEFAULT_SOURCES, DEFAULT_KEYWORDS } from '@/data/jobData';
 import { FilterBar } from '@/components/FilterBar';
+import { FilterRow, ListedPeriod, JobStatus } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
 import { KeywordBar } from '@/components/KeywordBar';
@@ -10,16 +11,16 @@ import { Briefcase, Zap } from 'lucide-react';
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('London, United Kingdom');
-  const [selectedTypes, setSelectedTypes] = useState<JobType[]>([]);
   const [sources, setSources] = useState<JobSource[]>(DEFAULT_SOURCES);
   const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
   const [isSearching, setIsSearching] = useState(false);
 
-  const handleTypeToggle = (type: JobType) => {
-    setSelectedTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    );
-  };
+  // Filters
+  const [selectedType, setSelectedType] = useState<JobType | 'any'>('any');
+  const [listedPeriod, setListedPeriod] = useState<ListedPeriod>('any');
+  const [jobStatus, setJobStatus] = useState<JobStatus>('any');
+  const [companyFilter, setCompanyFilter] = useState('');
+  const [titleFilter, setTitleFilter] = useState('');
 
   const handleToggleSource = (id: string) => {
     setSources((prev) =>
@@ -46,8 +47,8 @@ const Index = () => {
   const filteredJobs = useMemo(() => {
     let jobs = MOCK_JOBS;
 
-    if (selectedTypes.length > 0) {
-      jobs = jobs.filter((j) => selectedTypes.includes(j.type));
+    if (selectedType !== 'any') {
+      jobs = jobs.filter((j) => j.type === selectedType);
     }
 
     if (searchQuery.trim()) {
@@ -60,11 +61,21 @@ const Index = () => {
       );
     }
 
+    if (companyFilter.trim()) {
+      const c = companyFilter.toLowerCase();
+      jobs = jobs.filter((j) => j.company.toLowerCase().includes(c));
+    }
+
+    if (titleFilter.trim()) {
+      const t = titleFilter.toLowerCase();
+      jobs = jobs.filter((j) => j.title.toLowerCase().includes(t));
+    }
+
     const enabledSources = sources.filter((s) => s.enabled).map((s) => s.name);
     jobs = jobs.filter((j) => enabledSources.includes(j.source));
 
     return jobs;
-  }, [searchQuery, selectedTypes, sources]);
+  }, [searchQuery, selectedType, companyFilter, titleFilter, sources]);
 
   const stats = useMemo(() => ({
     total: filteredJobs.length,
@@ -101,14 +112,12 @@ const Index = () => {
 
       {/* Main */}
       <main className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
-        {/* Filters */}
+        {/* Search bar */}
         <FilterBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           location={location}
           onLocationChange={setLocation}
-          selectedTypes={selectedTypes}
-          onTypeToggle={handleTypeToggle}
           onSearch={handleSearch}
           isSearching={isSearching}
         />
@@ -118,6 +127,20 @@ const Index = () => {
           keywords={keywords}
           onAddKeyword={(kw) => setKeywords((prev) => [...prev, kw])}
           onRemoveKeyword={(kw) => setKeywords((prev) => prev.filter((k) => k !== kw))}
+        />
+
+        {/* Filters */}
+        <FilterRow
+          selectedType={selectedType}
+          onTypeChange={setSelectedType}
+          listedPeriod={listedPeriod}
+          onListedPeriodChange={setListedPeriod}
+          jobStatus={jobStatus}
+          onJobStatusChange={setJobStatus}
+          companyFilter={companyFilter}
+          onCompanyFilterChange={setCompanyFilter}
+          titleFilter={titleFilter}
+          onTitleFilterChange={setTitleFilter}
         />
 
         {/* Stats */}
