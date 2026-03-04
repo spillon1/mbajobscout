@@ -37,14 +37,20 @@ Deno.serve(async (req) => {
     const results: any[] = [];
     const sourceStatuses: Record<string, { status: string; error?: string }> = {};
 
-    // Scrape each source
     for (const source of sources) {
       try {
         console.log(`Scraping: ${source.name} (${source.url})`);
 
-        // Build search URL with keywords and location for sources that support search
-        let scrapeUrl = source.url;
+        // Check if this is an RSS/XML feed
+        if (isRssFeedUrl(source.url)) {
+          const rssJobs = await scrapeRssFeed(source, keywords, location);
+          results.push(...rssJobs);
+          sourceStatuses[source.name] = { status: 'connected' };
+          console.log(`Found ${rssJobs.length} jobs from RSS feed: ${source.name}`);
+          continue;
+        }
 
+        // Otherwise use Firecrawl
         const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
           method: 'POST',
           headers: {
@@ -52,7 +58,7 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            url: scrapeUrl,
+            url: source.url,
             formats: ['markdown', 'links'],
             onlyMainContent: true,
             waitFor: 3000,
@@ -69,11 +75,9 @@ Deno.serve(async (req) => {
 
         sourceStatuses[source.name] = { status: 'connected' };
 
-        // Extract job-like content from markdown
         const markdown = data.data?.markdown || data.markdown || '';
         const links = data.data?.links || data.links || [];
 
-        // Parse the markdown to find job listings
         const jobs = parseJobsFromMarkdown(markdown, links, source, keywords, location);
         results.push(...jobs);
 
@@ -99,6 +103,148 @@ Deno.serve(async (req) => {
   }
 });
 
+// ---- RSS Feed Support ----
+
+function isRssFeedUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  return lower.includes('/feed') || lower.includes('.rss') || lower.includes('.xml') || lower.includes('format=xml');
+}
+
+async function scrapeRssFeed(
+  source: { name: string; url: string },
+  keywords: string[],
+  location: string
+): Promise<any[]> {
+  const response = await fetch(source.url);
+  if (!response.ok) {
+    throw new Error(`RSS fetch failed: HTTP ${response.status}`);
+  }
+
+  const xml = await response.text();
+  const items = parseRssItems(xml);
+  const jobs: any[] = [];
+
+  for (const item of items) {
+    const fullText = `${item.title} ${item.description}`.toLowerCase();
+
+    // Check keyword match
+    const matchesKeyword = keywords.length === 0 || keywords.some(kw =>
+      fullText.includes(kw.toLowerCase())
+    );
+
+    if (!matchesKeyword) continue;
+
+    // Extract company from title patterns like "VC Internship - Breega in London"
+    // or "Role - Company in Location" or "Role @ Company"
+    let company = 'Unknown';
+    const companyPatterns = [
+      /[-–—]\s*(.+?)\s+in\s+/i,
+      /(?:at|@)\s+(.+?)(?:\s+in\s+|\s*$)/i,
+      /,\s*(.+?)\s+in\s+/i,
+    ];
+    for (const pattern of companyPatterns) {
+      const match = item.title.match(pattern);
+      if (match) {
+        company = match[1].trim().replace(/^(vc|venture capital)\s+/i, '');
+        break;
+      }
+    }
+
+    // Extract location from title
+    let jobLocation = 'London, UK';
+    const locMatch = item.title.match(/in\s+(.+?)$/i);
+    if (locMatch) {
+      jobLocation = locMatch[1].trim();
+    }
+
+    // Clean the title - take just the role part
+    let title = item.title;
+    const dashIdx = title.search(/\s[-–—]\s/);
+    if (dashIdx > 0) {
+      title = title.substring(0, dashIdx).trim();
+    }
+
+    // Determine job type
+    let type = 'full-time';
+    if (fullText.includes('intern') && !fullText.includes('internal')) type = 'internship';
+    else if (fullText.includes('graduate') || fullText.includes('grad scheme') || fullText.includes('entry level') || fullText.includes('entry-level')) type = 'graduate';
+
+    // Extract salary
+    let salary: string | undefined;
+    const salaryMatch = item.description.match(/[£$€]\s?[\d,]+(?:\s?[-–]\s?[£$€]?\s?[\d,]+)?(?:\s?(?:k|K|pa|p\.a\.|per annum|per year))?/);
+    if (salaryMatch) salary = salaryMatch[0];
+
+    // Clean description - strip HTML tags
+    const cleanDesc = item.description
+      .replace(/<[^>]+>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 500);
+
+    jobs.push({
+      id: crypto.randomUUID(),
+      title: title.slice(0, 200),
+      company,
+      location: jobLocation,
+      type,
+      source: source.name,
+      sourceUrl: source.url,
+      url: item.link || source.url,
+      description: cleanDesc || undefined,
+      salary,
+      postedDate: item.pubDate || 'Scraped just now',
+    });
+  }
+
+  return jobs;
+}
+
+function parseRssItems(xml: string): Array<{ title: string; link: string; description: string; pubDate: string }> {
+  const items: Array<{ title: string; link: string; description: string; pubDate: string }> = [];
+
+  // Split by <item> tags
+  const itemBlocks = xml.split(/<item>/i).slice(1);
+
+  for (const block of itemBlocks) {
+    const endIdx = block.indexOf('</item>');
+    const itemXml = endIdx >= 0 ? block.substring(0, endIdx) : block;
+
+    const title = extractTag(itemXml, 'title');
+    const link = extractTag(itemXml, 'link') || extractTag(itemXml, 'guid');
+    const description = extractTag(itemXml, 'description') || extractTag(itemXml, 'content:encoded');
+    const pubDate = extractTag(itemXml, 'pubDate');
+
+    if (title) {
+      items.push({ title, link, description, pubDate });
+    }
+  }
+
+  return items;
+}
+
+function extractTag(xml: string, tag: string): string {
+  // Handle CDATA sections
+  const cdataPattern = new RegExp(`<${tag}[^>]*>\\s*<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>\\s*</${tag}>`, 'i');
+  const cdataMatch = xml.match(cdataPattern);
+  if (cdataMatch) return cdataMatch[1].trim();
+
+  // Handle regular tags
+  const pattern = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i');
+  const match = xml.match(pattern);
+  if (match) return match[1].trim();
+
+  // Handle self-closing or empty link tags (some RSS feeds put link as text after tag)
+  if (tag === 'link') {
+    const linkPattern = /<link[^>]*\/?\s*>\s*\n?\s*(https?:\/\/[^\s<]+)/i;
+    const linkMatch = xml.match(linkPattern);
+    if (linkMatch) return linkMatch[1].trim();
+  }
+
+  return '';
+}
+
+// ---- Firecrawl Markdown Parsing (existing) ----
+
 function parseJobsFromMarkdown(
   markdown: string,
   links: string[],
@@ -108,25 +254,18 @@ function parseJobsFromMarkdown(
 ): any[] {
   const jobs: any[] = [];
   const lines = markdown.split('\n');
-  const lowerLocation = location.toLowerCase();
 
-  // Split into sections by headers or list items
   let currentTitle = '';
   let currentContent = '';
   let sectionStart = -1;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-
-    // Detect job-like headers (## Title, ### Title, or **Title**)
     const headerMatch = line.match(/^#{1,4}\s+(.+)/) || line.match(/^\*\*(.+?)\*\*/);
 
     if (headerMatch || i === lines.length - 1) {
-      // Process previous section
       if (currentTitle && sectionStart >= 0) {
         const fullText = `${currentTitle} ${currentContent}`.toLowerCase();
-
-        // Check if it matches any keyword
         const matchesKeyword = keywords.length === 0 || keywords.some(kw =>
           fullText.includes(kw.toLowerCase())
         );
@@ -149,7 +288,6 @@ function parseJobsFromMarkdown(
     }
   }
 
-  // Also look for list-based job entries (- Job Title at Company)
   const listPattern = /^[-*]\s+\[?(.+?)\]?\(?.*?\)?\s*[-–—]?\s*(.*)/;
   for (const line of lines) {
     const match = line.trim().match(listPattern);
@@ -163,7 +301,6 @@ function parseJobsFromMarkdown(
       );
 
       if (matchesKeyword && title.length > 5 && title.length < 200) {
-        // Avoid duplicates
         if (!jobs.some(j => j.title === title)) {
           const job = extractJobDetails(title, rest, source, links);
           if (job) {
@@ -183,14 +320,12 @@ function extractJobDetails(
   source: { name: string; url: string },
   links: string[]
 ): any | null {
-  // Skip navigation items, headers, footers
   if (title.length < 4 || title.length > 200) return null;
   const skipWords = ['menu', 'navigation', 'footer', 'header', 'cookie', 'privacy', 'terms', 'sign in', 'log in', 'subscribe'];
   if (skipWords.some(w => title.toLowerCase().includes(w))) return null;
 
   const fullText = `${title} ${content}`.toLowerCase();
 
-  // Extract company
   let company = 'Unknown';
   const companyPatterns = [
     /(?:at|@)\s+([A-Z][A-Za-z0-9\s&.]+)/,
@@ -205,17 +340,14 @@ function extractJobDetails(
     }
   }
 
-  // Determine job type
   let type: string = 'full-time';
   if (fullText.includes('intern') && !fullText.includes('internal')) type = 'internship';
   else if (fullText.includes('graduate') || fullText.includes('grad scheme') || fullText.includes('entry level')) type = 'graduate';
 
-  // Extract salary
   let salary: string | undefined;
   const salaryMatch = content.match(/[£$€]\s?[\d,]+(?:\s?[-–]\s?[£$€]?\s?[\d,]+)?(?:\s?(?:k|K|pa|p\.a\.|per annum|per year))?/);
   if (salaryMatch) salary = salaryMatch[0];
 
-  // Find a relevant link
   let url = source.url;
   const titleWords = title.toLowerCase().split(/\s+/).filter(w => w.length > 3);
   for (const link of links) {
