@@ -18,11 +18,14 @@ interface FilterRowProps {
   onCompaniesChange: (companies: string[]) => void;
   selectedTitles: string[];
   onTitlesChange: (titles: string[]) => void;
+  selectedSources: string[];
+  onSourcesChange: (sources: string[]) => void;
   filterKeywords: string[];
   onAddFilterKeyword: (keyword: string) => void;
   onRemoveFilterKeyword: (keyword: string) => void;
   allCompanies: string[];
   allTitles: string[];
+  allSources: string[];
 }
 
 const TYPE_OPTIONS: { value: JobType | 'any'; label: string }[] = [
