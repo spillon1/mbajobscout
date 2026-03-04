@@ -13,10 +13,10 @@ export const DEFAULT_SOURCES: (JobSource & { status?: 'connected' | 'error' | 'c
 ];
 
 export const MANUAL_SOURCES: JobSource[] = [
-  { id: 'm0', name: 'Google Jobs', url: 'https://www.google.com/search?udm=8&q=venture+capital+jobs+london', enabled: false, manualOnly: true },
-  { id: 'm1', name: 'MBA Exchange', url: 'https://www.mba-exchange.com/candidates/jobSearch_p.php', enabled: false, manualOnly: true },
-  { id: 'm2', name: 'VC Careers', url: 'https://venturecapitalcareers.com/jobs/locations/london-eng-united-kingdom', enabled: false, manualOnly: true },
   { id: 'm3', name: 'OCC (Cambridge)', url: 'https://cjbs-careers.12twenty.com/jobPostings#/jobPostings/index?tab=all&quickSearch=venture', enabled: false, manualOnly: true },
+  { id: 'm1', name: 'MBA Exchange', url: 'https://www.mba-exchange.com/candidates/jobSearch_p.php', enabled: false, manualOnly: true },
+  { id: 'm0', name: 'Google Jobs', url: 'https://www.google.com/search?udm=8&q=venture+capital+jobs+london', enabled: false, manualOnly: true },
+  { id: 'm2', name: 'VC Careers', url: 'https://venturecapitalcareers.com/jobs/locations/london-eng-united-kingdom', enabled: false, manualOnly: true },
 ];
 
 export const DEFAULT_KEYWORDS = [
