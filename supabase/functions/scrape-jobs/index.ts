@@ -252,6 +252,11 @@ function parseJobsFromMarkdown(
   keywords: string[],
   location: string
 ): any[] {
+  // Try structured card parsing first (e.g. Startup & VC format)
+  const cardJobs = parseStructuredCards(markdown, source, keywords);
+  if (cardJobs.length > 0) return cardJobs;
+
+  // Fall back to generic header-based parsing
   const jobs: any[] = [];
   const lines = markdown.split('\n');
 
@@ -314,6 +319,54 @@ function parseJobsFromMarkdown(
   return jobs;
 }
 
+/**
+ * Parse structured card-style listings (e.g. Startup & VC).
+ * Pattern: [![](img)\\\nTitle\\\nCompany\\\nType\\\nPosted\\\nDate](url)
+ */
+function parseStructuredCards(
+  markdown: string,
+  source: { name: string; url: string },
+  keywords: string[]
+): any[] {
+  const jobs: any[] = [];
+
+  // Match card blocks: [![...](...)\\\n...\\\n...](url)
+  const cardPattern = /\[!\[.*?\]\(.*?\)\\\s*\\\s*(.+?)\\\s*\\\s*(.+?)\\\s*\\\s*(.+?)\\\s*\\\s*Posted\s*\\\s*\\\s*(.+?)\]\((https?:\/\/[^\s)]+)\)/g;
+
+  let match;
+  while ((match = cardPattern.exec(markdown)) !== null) {
+    const [, title, company, typeStr, dateStr, url] = match;
+    const cleanTitle = title.trim();
+    const cleanCompany = company.trim();
+    const fullText = `${cleanTitle} ${cleanCompany} ${typeStr}`.toLowerCase();
+
+    const matchesKeyword = keywords.length === 0 || keywords.some(kw =>
+      fullText.includes(kw.toLowerCase())
+    );
+
+    if (!matchesKeyword) continue;
+
+    let type = 'full-time';
+    const typeLower = typeStr.toLowerCase().trim();
+    if (typeLower.includes('intern')) type = 'internship';
+    else if (typeLower.includes('graduate') || typeLower.includes('grad')) type = 'graduate';
+
+    jobs.push({
+      id: crypto.randomUUID(),
+      title: cleanTitle,
+      company: cleanCompany,
+      location: 'London, UK',
+      type,
+      source: source.name,
+      sourceUrl: source.url,
+      url,
+      postedDate: dateStr.trim(),
+    });
+  }
+
+  return jobs;
+}
+
 function extractJobDetails(
   title: string,
   content: string,
@@ -321,19 +374,20 @@ function extractJobDetails(
   links: string[]
 ): any | null {
   if (title.length < 4 || title.length > 200) return null;
-  const skipWords = ['menu', 'navigation', 'footer', 'header', 'cookie', 'privacy', 'terms', 'sign in', 'log in', 'subscribe'];
+  const skipWords = ['menu', 'navigation', 'footer', 'header', 'cookie', 'privacy', 'terms', 'sign in', 'log in', 'subscribe', 'newsletter', 'don\'t miss'];
   if (skipWords.some(w => title.toLowerCase().includes(w))) return null;
 
   const fullText = `${title} ${content}`.toLowerCase();
 
   let company = 'Unknown';
   const companyPatterns = [
-    /(?:at|@)\s+([A-Z][A-Za-z0-9\s&.]+)/,
-    /company[:\s]+([A-Za-z0-9\s&.]+)/i,
-    /([A-Z][A-Za-z0-9]+(?:\s[A-Z][A-Za-z0-9]+)*)\s+(?:is hiring|is looking|seeks)/,
+    /(?:at|@)\s+([A-Z][A-Za-z0-9\s&.'-]+?)(?:\s+in\s+|\s*[,.]|\s*$)/,
+    /company[:\s]+([A-Za-z0-9\s&.'-]+)/i,
+    /([A-Z][A-Za-z0-9&.']+(?:\s[A-Z][A-Za-z0-9&.']+)*)\s+(?:is hiring|is looking|seeks|are looking)/,
+    /[-–—]\s+([A-Z][A-Za-z0-9\s&.'-]+?)(?:\s+in\s+|\s*$)/,
   ];
   for (const pattern of companyPatterns) {
-    const match = content.match(pattern) || title.match(pattern);
+    const match = title.match(pattern) || content.match(pattern);
     if (match) {
       company = match[1].trim();
       break;
