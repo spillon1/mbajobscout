@@ -43,8 +43,12 @@ function openExternalLink(url: string, forceTopLevel: boolean) {
   }
 
   if (forceTopLevel) {
-    window.top?.location.assign(url);
-    return;
+    try {
+      window.top?.location.assign(url);
+      return;
+    } catch {
+      // Ignore and fall back
+    }
   }
 
   window.location.assign(url);
