@@ -627,6 +627,12 @@ function extractJobDetails(
     }
   }
 
+  // If URL is still the source URL, make it unique by appending a hash of the title
+  if (url === source.url) {
+    const hash = Array.from(new TextEncoder().encode(title)).reduce((a, b) => ((a << 5) - a + b) | 0, 0);
+    url = `${source.url}#job-${Math.abs(hash)}`;
+  }
+
   return {
     id: crypto.randomUUID(),
     title: title.slice(0, 200),
