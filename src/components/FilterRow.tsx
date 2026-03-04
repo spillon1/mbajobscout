@@ -4,7 +4,7 @@ import { CheckboxFilter } from '@/components/CheckboxFilter';
 import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
 import { SlidersHorizontal } from 'lucide-react';
 
-export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m' | '1y';
+export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
 export type JobStatus = 'any' | 'open' | 'closed';
 
 interface FilterRowProps {
@@ -42,7 +42,6 @@ const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
   { value: '1m', label: 'Past Month' },
   { value: '3m', label: 'Past 3 Months' },
   { value: '6m', label: 'Past 6 Months' },
-  { value: '1y', label: 'Past Year' },
 ];
 
 const STATUS_OPTIONS: { value: JobStatus; label: string }[] = [
