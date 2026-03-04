@@ -23,9 +23,9 @@ export function CheckboxFilter({ label, options, selected, onChange }: CheckboxF
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const filtered = options.filter((o) =>
-    o.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = options
+    .filter((o) => o.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => a.localeCompare(b));
 
   const allSelected = selected.length === 0;
   const displayLabel = allSelected
