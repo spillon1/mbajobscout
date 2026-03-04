@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
       if (job.company === 'Unknown' && job.title.length < 10) return false;
 
       // Age filter
-      if (job.source === 'Venture5' && (!job.postedDate || job.postedDate === 'Scraped just now')) return false;
+      // Don't drop Venture5 jobs without dates — they may still be valid recent postings
       if (!job.postedDate || job.postedDate === 'Scraped just now') return true;
       const parsed = tryParseDate(job.postedDate);
       if (!parsed) return true;
@@ -346,10 +346,15 @@ async function enrichVenture5PostedDates(jobs: any[], searchCity: string): Promi
   const missingDateJobs = jobs.filter((j) => !j.postedDate || j.postedDate === 'Scraped just now');
   if (missingDateJobs.length === 0) return jobs;
 
+  console.log(`Venture5: ${missingDateJobs.length} jobs missing dates, trying RSS enrichment`);
+
   try {
     const rssUrl = `https://venture5.com/jobs/?feed=job_feed&search_location=${encodeURIComponent(searchCity)}`;
     const response = await fetch(rssUrl);
-    if (!response.ok) return jobs;
+    if (!response.ok) {
+      console.log('Venture5 RSS feed failed, keeping jobs without dates');
+      return jobs;
+    }
 
     const xml = await response.text();
     const rssItems = parseRssItems(xml);
@@ -362,13 +367,18 @@ async function enrichVenture5PostedDates(jobs: any[], searchCity: string): Promi
 
     console.log(`Venture5 RSS date enrichment loaded ${dateByUrl.size} dated URLs`);
 
-    return jobs
-      .map((job) => {
-        if (job.postedDate && job.postedDate !== 'Scraped just now') return job;
-        const rssDate = dateByUrl.get(normalizeVenture5Url(job.url));
-        return rssDate ? { ...job, postedDate: rssDate } : job;
-      })
-      .filter((job) => job.postedDate && job.postedDate !== 'Scraped just now');
+    const enriched = jobs.map((job) => {
+      if (job.postedDate && job.postedDate !== 'Scraped just now') return job;
+      const rssDate = dateByUrl.get(normalizeVenture5Url(job.url));
+      if (rssDate) {
+        return { ...job, postedDate: rssDate };
+      }
+      console.log(`Venture5: no date found for "${job.title}" at ${job.company} (${job.url})`);
+      return job;
+    });
+
+    // Keep ALL jobs — don't drop ones without dates
+    return enriched;
   } catch (err) {
     console.error('Venture5 RSS date enrichment failed:', err);
     return jobs;
