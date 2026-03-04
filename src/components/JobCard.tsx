@@ -27,6 +27,7 @@ export function JobCard({ job }: { job: Job }) {
       href={job.url}
       target="_blank"
       rel="noopener noreferrer"
+      referrerPolicy="no-referrer"
       className="block group border border-border rounded-md p-4 bg-card hover:border-primary/40 hover:glow-primary transition-all duration-200 animate-slide-in cursor-pointer"
     >
       <div className="flex items-start justify-between gap-3">
