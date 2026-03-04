@@ -34,12 +34,19 @@ export async function scrapeJobs(
     return { success: false, jobs: [], sourceStatuses: data.sourceStatuses || {}, error: data.error };
   }
 
-  const jobs: Job[] = (data.jobs || []).map((j: any) => ({
-    ...j,
-    type: j.type as JobType,
-  }));
+  // Filter out junk entries
+  const JUNK_TITLES = ['venture capital jobs in london', 'venture capital careers', "the vc industry's trusted resource", 'filters and topics', 'search results'];
+  const jobs: Job[] = (data.jobs || [])
+    .map((j: any) => ({ ...j, type: j.type as JobType }))
+    .filter((j: Job) => {
+      const titleLower = j.title.toLowerCase();
+      if (JUNK_TITLES.includes(titleLower)) return false;
+      if (j.company === 'Unknown' && j.title.length < 10) return false;
+      if (titleLower === j.source.toLowerCase()) return false;
+      return true;
+    });
 
-  // Save to database
+  // Save to database using upsert (deduplicate by url)
   if (jobs.length > 0) {
     const rows = jobs.map((j) => ({
       title: j.title,
@@ -56,7 +63,7 @@ export async function scrapeJobs(
 
     const { error: insertError } = await supabase
       .from('scraped_jobs')
-      .insert(rows);
+      .upsert(rows, { onConflict: 'url', ignoreDuplicates: false });
 
     if (insertError) {
       console.error('Failed to save jobs:', insertError);
