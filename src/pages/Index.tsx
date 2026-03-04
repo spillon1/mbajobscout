@@ -146,19 +146,28 @@ const Index = () => {
           allTitles={allTitles}
         />
 
-        {/* Stats */}
+        {/* Stats - clickable filters */}
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: 'Total', value: stats.total, color: 'text-foreground' },
-            { label: 'Full Time', value: stats.fullTime, color: 'text-primary' },
-            { label: 'Internship', value: stats.internship, color: 'text-warning' },
-            { label: 'Graduate', value: stats.graduate, color: 'text-accent' },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="border border-border rounded-md bg-card p-3 text-center">
-              <div className={`font-display text-2xl font-bold ${color}`}>{value}</div>
-              <div className="font-display text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-            </div>
-          ))}
+            { label: 'Total', value: stats.total, color: 'text-foreground', type: 'any' as const },
+            { label: 'Full Time', value: stats.fullTime, color: 'text-primary', type: 'full-time' as const },
+            { label: 'Internship', value: stats.internship, color: 'text-warning', type: 'internship' as const },
+            { label: 'Graduate', value: stats.graduate, color: 'text-accent', type: 'graduate' as const },
+          ].map(({ label, value, color, type }) => {
+            const isActive = selectedType === type;
+            return (
+              <button
+                key={label}
+                onClick={() => setSelectedType(isActive && type !== 'any' ? 'any' : type)}
+                className={`border rounded-md bg-card p-3 text-center transition-all cursor-pointer hover:glow-primary ${
+                  isActive ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'
+                }`}
+              >
+                <div className={`font-display text-2xl font-bold ${color}`}>{value}</div>
+                <div className="font-display text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+              </button>
+            );
+          })}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
