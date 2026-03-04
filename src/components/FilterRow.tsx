@@ -1,7 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckboxFilter } from '@/components/CheckboxFilter';
 import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, X } from 'lucide-react';
 import { Seniority } from '@/types/jobs';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
@@ -30,6 +30,7 @@ interface FilterRowProps {
   allCompanies: string[];
   allTitles: string[];
   allSources: string[];
+  onClearFilters?: () => void;
 }
 
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
@@ -84,7 +85,17 @@ export function FilterRow({
   allCompanies,
   allTitles,
   allSources,
+  onClearFilters,
 }: FilterRowProps) {
+  const hasActiveFilters =
+    listedPeriod !== 'any' ||
+    datePostedFilter !== 'all' ||
+    selectedSeniorities.length > 0 ||
+    selectedCompanies.length > 0 ||
+    selectedTitles.length > 0 ||
+    selectedSources.length > 0 ||
+    filterKeywords.length > 0;
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 flex-wrap">
@@ -153,6 +164,16 @@ export function FilterRow({
           onAddKeyword={onAddFilterKeyword}
           onRemoveKeyword={onRemoveFilterKeyword}
         />
+
+        {hasActiveFilters && onClearFilters && (
+          <button
+            onClick={onClearFilters}
+            className="flex items-center gap-1 h-7 px-2.5 text-xs font-display rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <X className="h-3 w-3" />
+            Clear
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-1.5">
