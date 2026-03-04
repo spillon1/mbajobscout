@@ -681,8 +681,9 @@ async function scrapeEFinancialCareers(
   console.log(`eFinancialCareers: ${keywordMatchedJobs.length} keyword-matched jobs out of ${allJobs.length} total`);
 
   if (keywordMatchedJobs.length === 0 && allJobs.length > 0) {
-    console.log('eFinancialCareers: no strict keyword matches, returning query-filtered results from source page');
-    return allJobs;
+    const broadVcMatches = allJobs.filter((j) => /\bvc\b|venture\s+capital|ventures?/i.test(`${j.title} ${j.company}`));
+    console.log(`eFinancialCareers: strict matches empty, broad VC fallback returned ${broadVcMatches.length}`);
+    return broadVcMatches.length > 0 ? broadVcMatches : allJobs;
   }
 
   return keywordMatchedJobs;
