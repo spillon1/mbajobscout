@@ -742,17 +742,21 @@ async function scrapeEFinancialCareers(
   }
 
   const keywordMatchedJobs = allJobs.filter((j) => matchesUserKeywords(j.title, j.company, j.description, keywords));
-  console.log(`eFinancialCareers: ${keywordMatchedJobs.length} keyword-matched jobs out of ${allJobs.length} total`);
+  const vcLikelyJobs = allJobs.filter((j) => isLikelyVcRole(j.title, j.company, j.description, keywords));
+  console.log(`eFinancialCareers: ${keywordMatchedJobs.length} strict matches, ${vcLikelyJobs.length} VC-likely matches, ${allJobs.length} total`);
 
-  // The source page is already query-filtered by the user's keywords/location.
-  // If strict text matching is too narrow, return all source query results.
+  // Keep strong precision if enough strict matches; otherwise use VC-likely filter to avoid non-VC noise.
   const strictMatchThreshold = Math.max(10, Math.floor(allJobs.length * 0.25));
-  if (keywordMatchedJobs.length < strictMatchThreshold) {
-    console.log(`eFinancialCareers: strict matching too narrow (${keywordMatchedJobs.length} < ${strictMatchThreshold}), returning query-filtered results`);
-    return allJobs;
+  if (keywordMatchedJobs.length >= strictMatchThreshold) {
+    return keywordMatchedJobs;
   }
 
-  return keywordMatchedJobs;
+  if (vcLikelyJobs.length > 0) {
+    return vcLikelyJobs;
+  }
+
+  // Last resort: return query-filtered results from source page
+  return allJobs;
 }
 
 function parseEFinancialCareersJobs(
