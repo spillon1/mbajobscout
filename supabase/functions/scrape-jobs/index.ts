@@ -2361,6 +2361,9 @@ function parseInnovatorsRoomJobs(
     });
 }
 
+  return jobs;
+}
+
 // ---- LinkedIn Jobs Guest API Scraper ----
 
 const LINKEDIN_PAGES = 4; // 25 jobs per page
@@ -2381,37 +2384,32 @@ async function scrapeLinkedIn(
     console.log(`LinkedIn page ${page + 1}: ${guestUrl}`);
 
     try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
+      // Direct fetch — LinkedIn guest API returns static HTML, no JS rendering needed
+      const response = await fetch(guestUrl, {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
         },
-        body: JSON.stringify({
-          url: guestUrl,
-          formats: ['html', 'markdown'],
-          onlyMainContent: false,
-          waitFor: 3000,
-          timeout: 30000,
-        }),
       });
 
-      const data = await response.json();
       if (!response.ok) {
-        console.error(`LinkedIn page ${page + 1} failed:`, data);
+        console.error(`LinkedIn page ${page + 1} failed: HTTP ${response.status}`);
+        await response.text(); // consume body
         break;
       }
 
-      const html = data.data?.html || data.html || '';
-      const markdown = data.data?.markdown || data.markdown || '';
-      console.log(`LinkedIn page ${page + 1}: ${html.length} chars HTML, ${markdown.length} chars markdown`);
+      const html = await response.text();
+      console.log(`LinkedIn page ${page + 1}: ${html.length} chars HTML`);
 
-      const pageJobs = parseLinkedInGuestJobs(html, markdown, source, searchCity);
+      const pageJobs = parseLinkedInGuestJobs(html, '', source, searchCity);
       const newJobs = pageJobs.filter(j => !allJobs.some(e => e.title === j.title && e.company === j.company));
       allJobs.push(...newJobs);
       console.log(`LinkedIn page ${page + 1}: ${newJobs.length} new jobs`);
 
-      if (pageJobs.length < 5) break; // No more results
+      if (pageJobs.length < 5) break;
+      // Delay between pages to avoid rate limiting
+      if (page < LINKEDIN_PAGES - 1) await new Promise(r => setTimeout(r, 1000));
     } catch (err) {
       console.error(`LinkedIn page ${page + 1} error:`, err);
       break;
@@ -2555,9 +2553,6 @@ function parseLinkedInGuestJobs(
       }
     }
   }
-
-  return jobs;
-}
 
   return jobs;
 }
