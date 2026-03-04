@@ -88,7 +88,22 @@ export function FilterRow({
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-      <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider mr-1">Filters:</span>
+
+      <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">Sort:</span>
+      <Select value={sortBy} onValueChange={(v) => onSortByChange(v as SortOption)}>
+        <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
+          <SelectValue placeholder="Sort by" />
+        </SelectTrigger>
+        <SelectContent>
+          {SORT_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value} className="text-xs">
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <span className="h-4 w-px bg-border mx-1" />
 
       <CheckboxFilter
         label="Sources"
@@ -152,22 +167,6 @@ export function FilterRow({
         onAddKeyword={onAddFilterKeyword}
         onRemoveKeyword={onRemoveFilterKeyword}
       />
-
-      <div className="ml-auto flex items-center gap-1.5">
-        <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">Sort:</span>
-        <Select value={sortBy} onValueChange={(v) => onSortByChange(v as SortOption)}>
-          <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
     </div>
   );
 }
