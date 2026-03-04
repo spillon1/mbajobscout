@@ -756,11 +756,24 @@ function extractIndeedCardDetails(context: string, fallbackCity: string) {
     salary = salaryMatch[1].replace(/<[^>]*>/g, '').trim();
   }
 
-  // Posted date
-  const dateMatch = context.match(/class="[^"]*date[^"]*"[^>]*>([^<]+)/i)
-    || context.match(/(\d+\+?\s*(?:day|hour|week|month)s?\s*ago|just posted|today)/i);
-  if (dateMatch) {
-    postedDate = dateMatch[1]?.trim() || dateMatch[0]?.trim() || '';
+  // Posted date — Indeed uses various patterns
+  const datePatterns = [
+    /data-testid="[^"]*date[^"]*"[^>]*>([^<]+)/i,
+    /class="[^"]*date[^"]*"[^>]*>([^<]+)/i,
+    /class="[^"]*result-footer[^"]*"[\s\S]*?(\d+\+?\s*(?:day|hour|week|month)s?\s*ago|just posted|today|posted\s+\d+)/i,
+    />(Posted\s+\d+\+?\s*(?:day|hour|week|month)s?\s*ago)<\//i,
+    />(\d+\+?\s*(?:day|hour|week|month)s?\s*ago)<\//i,
+    />(just posted|today)<\//i,
+    /(\d+\+?\s*(?:day|hour|week|month)s?\s*ago|just posted|today)/i,
+  ];
+  for (const pat of datePatterns) {
+    const dm = context.match(pat);
+    if (dm) {
+      const raw = (dm[1] || dm[0]).replace(/<[^>]*>/g, '').trim();
+      // Clean up "Posted 5 days ago" → "5 days ago", "PostedPosted 30+ days ago" → "30+ days ago"
+      postedDate = raw.replace(/^(posted\s*)+/i, '').trim();
+      if (postedDate) break;
+    }
   }
 
   // Description snippet
