@@ -108,6 +108,7 @@ function isValidJob(job: Job): boolean {
     'search results', 'united states',
   ];
   if (JUNK_TITLES.includes(titleLower)) return false;
+  if (titleLower.includes('trusted resource')) return false;
 
   // Pattern-based junk: generic category/location headers
   if (/^(venture capital|vc)\s+(jobs|careers)\s+(in|near)\s+/i.test(job.title)) return false;
