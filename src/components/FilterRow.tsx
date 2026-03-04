@@ -62,11 +62,14 @@ export function FilterRow({
   onCompaniesChange,
   selectedTitles,
   onTitlesChange,
+  selectedSources,
+  onSourcesChange,
   filterKeywords,
   onAddFilterKeyword,
   onRemoveFilterKeyword,
   allCompanies,
   allTitles,
+  allSources,
 }: FilterRowProps) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
