@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
 
 function isRssFeedUrl(url: string): boolean {
   const lower = url.toLowerCase();
-  return lower.includes('/feed') || lower.includes('.rss') || lower.includes('.xml') || lower.includes('format=xml');
+  return lower.includes('/feed') || lower.includes('feed=') || lower.includes('.rss') || lower.includes('.xml') || lower.includes('format=xml');
 }
 
 async function scrapeRssFeed(
@@ -134,35 +134,30 @@ async function scrapeRssFeed(
 
     if (!matchesKeyword) continue;
 
-    // Extract company from title patterns like "VC Internship - Breega in London"
-    // or "Role - Company in Location" or "Role @ Company"
+    // Parse title format: "VC Internship @ Breega in London, England"
+    // or "IR Analyst - Isomer Capital in London, England"
     let company = 'Unknown';
-    const companyPatterns = [
-      /[-–—]\s*(.+?)\s+in\s+/i,
-      /(?:at|@)\s+(.+?)(?:\s+in\s+|\s*$)/i,
-      /,\s*(.+?)\s+in\s+/i,
-    ];
-    for (const pattern of companyPatterns) {
-      const match = item.title.match(pattern);
-      if (match) {
-        company = match[1].trim().replace(/^(vc|venture capital)\s+/i, '');
-        break;
-      }
-    }
-
-    // Extract location from title
     let jobLocation = 'London, UK';
-    const locMatch = item.title.match(/in\s+(.+?)$/i);
+    let title = item.title;
+
+    // Extract location from "in Location" at the end
+    const locMatch = title.match(/\s+in\s+(.+?)$/i);
     if (locMatch) {
       jobLocation = locMatch[1].trim();
+      title = title.substring(0, locMatch.index).trim();
     }
 
-    // Clean the title - take just the role part
-    let title = item.title;
-    const dashIdx = title.search(/\s[-–—]\s/);
-    if (dashIdx > 0) {
-      title = title.substring(0, dashIdx).trim();
+    // Extract company from "@ Company" or "- Company" patterns
+    const companyMatch = title.match(/\s+[@]\s+(.+)$/i) || title.match(/\s+[-–—]\s+(.+)$/i);
+    if (companyMatch) {
+      company = companyMatch[1].trim();
+      title = title.substring(0, companyMatch.index).trim();
     }
+
+    // Clean title prefix like "VC " from "VC Internship"
+    title = title.replace(/^VC\s+/i, '').trim();
+    // But keep the full title if it becomes too short
+    if (title.length < 3) title = item.title.split(/\s+[@-]\s+/)[0].trim();
 
     // Determine job type
     let type = 'full-time';

@@ -4,7 +4,7 @@ export const DEFAULT_SOURCES: (JobSource & { status?: 'connected' | 'error' | 'c
   { id: '1', name: 'Google Jobs', url: 'https://www.google.com/search?udm=8', enabled: true, status: 'unknown' },
   { id: '2', name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/', enabled: true, status: 'unknown' },
   { id: '3', name: 'MBA Exchange', url: 'https://www.mba-exchange.com/candidates/jobSearch_p.php', enabled: true, status: 'unknown' },
-  { id: '4', name: 'John Gannon Blog', url: 'https://johngannonblog.com/feed/', enabled: true, status: 'unknown' },
+  { id: '4', name: 'John Gannon Blog', url: 'https://johngannonblog.com/?feed=job_feed&job_types&search_location=London&job_categories&search_keywords', enabled: true, status: 'unknown' },
   { id: '5', name: 'Startup & VC', url: 'https://www.startupandvc.com/locations/london', enabled: true, status: 'unknown' },
   { id: '6', name: 'eFinancialCareers', url: 'https://www.efinancialcareers.co.uk/jobs/', enabled: true, status: 'unknown' },
   { id: '7', name: 'Venture5', url: 'https://venture5.com/jobs/', enabled: true, status: 'unknown' },
