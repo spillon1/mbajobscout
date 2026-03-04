@@ -26,7 +26,7 @@ function parsePostedDate(dateStr?: string): Date {
 const isOccSource = (value: string): boolean => /occ\s*\(cambridge\)|12twenty/i.test(value);
 import { Job, JobType, JobSource, Seniority } from '@/types/jobs';
 import { DEFAULT_SOURCES, DEFAULT_KEYWORDS } from '@/data/jobData';
-
+import { FilterBar } from '@/components/FilterBar';
 import { FilterRow, ListedPeriod, JobStatus, SortOption, DatePostedFilter } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
@@ -34,13 +34,12 @@ import { KeywordBar } from '@/components/KeywordBar';
 import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { AlertConfig } from '@/components/AlertConfig';
-import { Briefcase, Zap, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Briefcase, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const { toast } = useToast();
-  const location = 'London, United Kingdom';
+  const [location, setLocation] = useState('London, United Kingdom');
   const [sources, setSources] = useState<JobSource[]>(() =>
     DEFAULT_SOURCES.filter((s) => !isOccSource(`${s.name} ${s.url}`))
   );
@@ -273,6 +272,14 @@ const Index = () => {
             </div>
           </div>
 
+          {/* Location & Scrape — inline in header */}
+          <FilterBar
+            location={location}
+            onLocationChange={setLocation}
+            onSearch={handleScrape}
+            isSearching={isSearching}
+          />
+
           <div className="flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground shrink-0">
             <span>{stats.total} jobs</span>
             <span className="h-3 w-px bg-border" />
@@ -320,19 +327,7 @@ const Index = () => {
           }}
         />
 
-        {/* Scrape button + Stats */}
-        <div className="flex justify-end">
-          <Button onClick={handleScrape} disabled={isSearching} size="sm" className="font-display text-[10px] uppercase tracking-wider h-8 px-6">
-            {isSearching ? (
-              <span className="flex items-center gap-1.5">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Scraping
-              </span>
-            ) : (
-              'Scrape'
-            )}
-          </Button>
-        </div>
+        {/* Stats - clickable filters */}
         <div className="grid grid-cols-4 gap-3">
           {[
             { label: 'Total', value: stats.total, color: 'text-foreground', type: 'any' as const },
