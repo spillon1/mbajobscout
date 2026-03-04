@@ -535,19 +535,47 @@ async function scrapeRssFeed(
   keywords: string[],
   location: string
 ): Promise<any[]> {
-  const response = await fetch(source.url);
-  if (!response.ok) {
-    throw new Error(`RSS fetch failed: HTTP ${response.status}`);
+  const allItems: Array<{ title: string; link: string; description: string; pubDate: string }> = [];
+  const MAX_PAGES = 10;
+  const baseUrl = source.url;
+
+  // WordPress RSS feeds default to 10 items — paginate with &paged=N
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    const pageUrl = page === 1 ? baseUrl : `${baseUrl}${separator}paged=${page}`;
+
+    try {
+      const response = await fetch(pageUrl);
+      if (!response.ok) {
+        if (page === 1) throw new Error(`RSS fetch failed: HTTP ${response.status}`);
+        break; // No more pages
+      }
+
+      const xml = await response.text();
+      const items = parseRssItems(xml);
+
+      if (items.length === 0) break; // Empty page = done
+
+      allItems.push(...items);
+      console.log(`RSS page ${page}: ${items.length} items from ${source.name}`);
+
+      // If fewer than 10 items, likely the last page
+      if (items.length < 10) break;
+    } catch (err) {
+      if (page === 1) throw err;
+      console.log(`RSS pagination stopped at page ${page}: ${err}`);
+      break;
+    }
   }
 
-  const xml = await response.text();
-  const items = parseRssItems(xml);
+  console.log(`RSS total: ${allItems.length} items from ${source.name}`);
+
   const jobs: any[] = [];
 
   // For VC-specific job boards, all listings are relevant
   const isVcSource = /startup\s*&?\s*vc|venture5|venturecapitalcareers|john\s*gannon/i.test(source.name);
 
-  for (const item of items) {
+  for (const item of allItems) {
     const fullText = `${item.title} ${item.description}`.toLowerCase();
 
     // Check keyword match (skip for VC-specific sources)
@@ -559,39 +587,32 @@ async function scrapeRssFeed(
     }
 
     // Parse title format: "VC Internship @ Breega in London, England"
-    // or "IR Analyst - Isomer Capital in London, England"
     let company = 'Unknown';
     let jobLocation = 'London, UK';
     let title = item.title;
 
-    // Extract location from "in Location" at the end
     const locMatch = title.match(/\s+in\s+(.+?)$/i);
     if (locMatch) {
       jobLocation = locMatch[1].trim();
       title = title.substring(0, locMatch.index).trim();
     }
 
-    // Extract company from "@ Company" or "- Company" patterns
     const companyMatch = title.match(/\s+[@]\s+(.+)$/i) || title.match(/\s+[-–—]\s+(.+)$/i);
     if (companyMatch) {
       company = companyMatch[1].trim();
       title = title.substring(0, companyMatch.index).trim();
     }
 
-    // But keep the full title if it becomes too short
     if (title.length < 3) title = item.title.split(/\s+[@-]\s+/)[0].trim();
 
-    // Determine job type
     let type = 'full-time';
     if (fullText.includes('intern') && !fullText.includes('internal')) type = 'internship';
     else if (fullText.includes('graduate') || fullText.includes('grad scheme') || fullText.includes('entry level') || fullText.includes('entry-level')) type = 'graduate';
 
-    // Extract salary
     let salary: string | undefined;
     const salaryMatch = item.description.match(/[£$€]\s?[\d,]+(?:\s?[-–]\s?[£$€]?\s?[\d,]+)?(?:\s?(?:k|K|pa|p\.a\.|per annum|per year))?/);
     if (salaryMatch) salary = salaryMatch[0];
 
-    // Clean description - strip HTML tags
     const cleanDesc = item.description
       .replace(/<[^>]+>/g, '')
       .replace(/\s+/g, ' ')
