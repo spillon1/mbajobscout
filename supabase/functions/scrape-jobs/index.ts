@@ -70,6 +70,15 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // eFinancialCareers: dedicated scraper with structured markdown parsing
+        if (source.url.includes('efinancialcareers')) {
+          const efcJobs = await scrapeEFinancialCareers(apiKey, source, location);
+          results.push(...efcJobs);
+          sourceStatuses[source.name] = { status: 'connected', count: efcJobs.length };
+          console.log(`Found ${efcJobs.length} jobs from eFinancialCareers`);
+          continue;
+        }
+
         // Otherwise use Firecrawl
         const scrapeUrl = source.url;
         const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
