@@ -357,7 +357,8 @@ function parseVenture5Jobs(
       .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
       .replace(/\*\*/g, '')
       .replace(/\\+/g, ' ')
-      .replace(/\[[^\]]+\]\(https?:\/\/[^)]+\)/g, ' ')
+      .replace(/\]\(https?:\/\/[^)]+\)/g, '')
+      .replace(/\[/g, '')
       .split('\n')
       .map((line) => cleanVenture5Text(line))
       .filter(Boolean);
