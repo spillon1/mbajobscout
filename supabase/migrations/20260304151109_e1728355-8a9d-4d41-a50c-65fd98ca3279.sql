@@ -1,0 +1,1 @@
+UPDATE public.scraped_jobs SET title = 'VC ' || title WHERE source = 'John Gannon Blog' AND title NOT LIKE 'VC %' AND title NOT LIKE 'IR %' AND title NOT LIKE 'Ops %';
