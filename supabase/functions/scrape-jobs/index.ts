@@ -336,10 +336,10 @@ function parseVenture5Jobs(
 ): any[] {
   const jobs: any[] = [];
 
-  // Venture5 filtered page format (list items):
-  // - [![Company](img)\n**Title**\n\n**Company**\n\nLocation \n\n  - Posted X ago](url)
-  // URLs can be /job/slug or /?post_type=job_listing&p=ID
-  const linkPattern = /\[([^\]]+)\]\((https?:\/\/(?:www\.)?venture5\.com\/(?:job\/[^\s)]+|\?post_type=job_listing[^\s)]+))\)/g;
+  // Venture5 format: - [![Company](img)\n**Title**\n**Company**\nLocation\n- Posted X ago](venture5-url)
+  // The link content has nested brackets from the image, so we can't use [^\]]+
+  // Instead, match by the URL pattern at the end
+  const linkPattern = /\[!\[.*?\]\(.*?\)([\s\S]*?)\]\((https?:\/\/(?:www\.)?venture5\.com\/(?:job\/[^\s)]+|\?post_type=job_listing[^\s)]+))\)/g;
   let match;
   
   while ((match = linkPattern.exec(markdown)) !== null) {
