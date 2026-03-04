@@ -1,0 +1,1 @@
+DELETE FROM public.scraped_jobs WHERE source = 'Venture5' AND lower(location) NOT LIKE '%london%';
