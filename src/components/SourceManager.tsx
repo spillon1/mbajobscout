@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, Globe, Trash2, CheckCircle2, AlertCircle, Loader2, HelpCircle } from 'lucide-react';
+import { Plus, Globe, Trash2, CheckCircle2, AlertCircle, Loader2, HelpCircle, ExternalLink } from 'lucide-react';
+import { MANUAL_SOURCES } from '@/data/jobData';
 
 export type ConnectionStatus = 'connected' | 'error' | 'checking' | 'unknown';
 
@@ -125,6 +126,30 @@ export function SourceManager({ sources, onToggleSource, onAddSource, onRemoveSo
           );
         })}
       </div>
+
+      {/* Other Sources - manual check only */}
+      {MANUAL_SOURCES.length > 0 && (
+        <div className="mt-4 pt-3 border-t border-border">
+          <h3 className="font-display text-xs uppercase tracking-wider text-muted-foreground mb-2">
+            Other Sources (manual)
+          </h3>
+          <div className="space-y-1">
+            {MANUAL_SOURCES.map((source) => (
+              <a
+                key={source.id}
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                referrerPolicy="no-referrer"
+                className="flex items-center gap-2 py-1.5 px-2 rounded-sm hover:bg-muted/50 transition-colors text-sm text-muted-foreground hover:text-foreground"
+              >
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{source.name}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
