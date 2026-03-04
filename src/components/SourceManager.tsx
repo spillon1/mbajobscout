@@ -121,9 +121,15 @@ export function SourceManager({ sources, onToggleSource, onToggleAll, onAddSourc
                     <p className={status === 'error' ? 'text-destructive' : ''}>{tooltipText}</p>
                   </TooltipContent>
                 </Tooltip>
-                <span className={`text-sm truncate ${source.enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
+                <a
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`text-sm truncate hover:underline ${source.enabled ? 'text-foreground' : 'text-muted-foreground'}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {source.name}
-                </span>
+                </a>
                 {source.lastJobCount !== undefined && (
                   <span className="text-[10px] font-display text-muted-foreground ml-auto mr-1 tabular-nums">
                     {source.lastJobCount}
