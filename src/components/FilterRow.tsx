@@ -1,6 +1,6 @@
 import { JobType } from '@/types/jobs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+import { CheckboxFilter } from '@/components/CheckboxFilter';
 import { SlidersHorizontal } from 'lucide-react';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m' | '1y';
@@ -13,10 +13,15 @@ interface FilterRowProps {
   onListedPeriodChange: (period: ListedPeriod) => void;
   jobStatus: JobStatus;
   onJobStatusChange: (status: JobStatus) => void;
-  companyFilter: string;
-  onCompanyFilterChange: (company: string) => void;
-  titleFilter: string;
-  onTitleFilterChange: (title: string) => void;
+  selectedCompanies: string[];
+  onCompaniesChange: (companies: string[]) => void;
+  selectedTitles: string[];
+  onTitlesChange: (titles: string[]) => void;
+  selectedKeywords: string[];
+  onKeywordsChange: (keywords: string[]) => void;
+  allCompanies: string[];
+  allTitles: string[];
+  allKeywords: string[];
 }
 
 const TYPE_OPTIONS: { value: JobType | 'any'; label: string }[] = [
@@ -49,10 +54,15 @@ export function FilterRow({
   onListedPeriodChange,
   jobStatus,
   onJobStatusChange,
-  companyFilter,
-  onCompanyFilterChange,
-  titleFilter,
-  onTitleFilterChange,
+  selectedCompanies,
+  onCompaniesChange,
+  selectedTitles,
+  onTitlesChange,
+  selectedKeywords,
+  onKeywordsChange,
+  allCompanies,
+  allTitles,
+  allKeywords,
 }: FilterRowProps) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -98,18 +108,25 @@ export function FilterRow({
         </SelectContent>
       </Select>
 
-      <Input
-        value={companyFilter}
-        onChange={(e) => onCompanyFilterChange(e.target.value)}
-        placeholder="Company..."
-        className="h-7 w-[130px] text-xs font-display bg-card border-border"
+      <CheckboxFilter
+        label="Companies"
+        options={allCompanies}
+        selected={selectedCompanies}
+        onChange={onCompaniesChange}
       />
 
-      <Input
-        value={titleFilter}
-        onChange={(e) => onTitleFilterChange(e.target.value)}
-        placeholder="Title..."
-        className="h-7 w-[130px] text-xs font-display bg-card border-border"
+      <CheckboxFilter
+        label="Titles"
+        options={allTitles}
+        selected={selectedTitles}
+        onChange={onTitlesChange}
+      />
+
+      <CheckboxFilter
+        label="Keywords"
+        options={allKeywords}
+        selected={selectedKeywords}
+        onChange={onKeywordsChange}
       />
     </div>
   );
