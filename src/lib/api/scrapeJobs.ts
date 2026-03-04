@@ -4,9 +4,9 @@ import { Job, JobSource, JobType, Seniority } from '@/types/jobs';
 function inferSeniority(title: string): Seniority {
   const t = title.toLowerCase();
   if (t.includes('intern') && !t.includes('internal')) return 'intern';
-  if (/\b(junior|graduate|entry.level|trainee|visiting analyst)\b/.test(t)) return 'junior';
   if (/\b(senior|lead|head of|director|managing director|partner|principal|vp|vice president|cio|cfo|cto)\b/.test(t)) return 'senior';
-  if (/\b(analyst|associate|manager|investment manager)\b/.test(t)) return 'mid';
+  if (/\b(junior|graduate|entry.level|trainee|visiting analyst|analyst|associate)\b/.test(t)) return 'junior';
+  if (/\b(manager|investment manager)\b/.test(t)) return 'mid';
   return 'unknown';
 }
 
@@ -44,9 +44,18 @@ export async function scrapeJobs(
   }
 
   // Filter out junk entries
-  const jobs: Job[] = (data.jobs || [])
+  const allJobs: Job[] = (data.jobs || [])
     .map((j: any) => ({ ...j, type: j.type as JobType, seniority: inferSeniority(j.title) }))
     .filter(isValidJob);
+
+  // Cross-source deduplication: keep first occurrence by normalized title+company
+  const seen = new Set<string>();
+  const jobs = allJobs.filter((j) => {
+    const key = `${j.title.toLowerCase().trim()}::${j.company.toLowerCase().trim()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 
   // Replace saved rows for successfully scraped sources to prevent stale jobs from lingering
   const successfulSources = Object.entries(data.sourceStatuses || {})
@@ -106,7 +115,7 @@ export async function loadSavedJobs(): Promise<Job[]> {
     return [];
   }
 
-  return (data || []).map((row) => ({
+  const allSaved = (data || []).map((row) => ({
     id: row.id,
     title: row.title,
     company: row.company,
@@ -120,6 +129,15 @@ export async function loadSavedJobs(): Promise<Job[]> {
     description: row.description || undefined,
     salary: row.salary || undefined,
   })).filter(isValidJob);
+
+  // Cross-source dedup
+  const seen = new Set<string>();
+  return allSaved.filter((j) => {
+    const key = `${j.title.toLowerCase().trim()}::${j.company.toLowerCase().trim()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /** Returns false for non-job entries like category headers, newsletter prompts, etc. */
