@@ -24,7 +24,7 @@ function parsePostedDate(dateStr?: string): Date {
   return new Date(); // fallback: treat as recent
 }
 const isOccSource = (value: string): boolean => /occ\s*\(cambridge\)|12twenty/i.test(value);
-import { Job, JobType, JobSource } from '@/types/jobs';
+import { Job, JobType, JobSource, Seniority } from '@/types/jobs';
 import { DEFAULT_SOURCES, DEFAULT_KEYWORDS } from '@/data/jobData';
 import { FilterBar } from '@/components/FilterBar';
 import { FilterRow, ListedPeriod, JobStatus, SortOption, DatePostedFilter } from '@/components/FilterRow';
@@ -71,6 +71,7 @@ const Index = () => {
   const [filterKeywords, setFilterKeywords] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [datePostedFilter, setDatePostedFilter] = useState<DatePostedFilter>('all');
+  const [selectedSeniority, setSelectedSeniority] = useState<Seniority | 'any'>('any');
 
   useEffect(() => {
     setSources((prev) => prev.filter((s) => !isOccSource(`${s.name} ${s.url}`)));
@@ -197,8 +198,14 @@ const Index = () => {
       filtered = filtered.filter((j) => !j.postedDate || j.postedDate === 'Scraped just now');
     }
 
+
+    // Seniority filter
+    if (selectedSeniority !== 'any') {
+      filtered = filtered.filter((j) => j.seniority === selectedSeniority);
+    }
+
     return filtered;
-  }, [jobs, dismissedIds, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, location, datePostedFilter]);
+  }, [jobs, dismissedIds, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, location, datePostedFilter, selectedSeniority]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -278,6 +285,8 @@ const Index = () => {
           onSortByChange={setSortBy}
           datePostedFilter={datePostedFilter}
           onDatePostedFilterChange={setDatePostedFilter}
+          selectedSeniority={selectedSeniority}
+          onSeniorityChange={setSelectedSeniority}
           selectedCompanies={selectedCompanies}
           onCompaniesChange={setSelectedCompanies}
           selectedTitles={selectedTitles}

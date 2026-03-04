@@ -2,6 +2,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckboxFilter } from '@/components/CheckboxFilter';
 import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
 import { SlidersHorizontal } from 'lucide-react';
+import { Seniority } from '@/types/jobs';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
 export type JobStatus = 'any' | 'open' | 'closed';
@@ -15,6 +16,8 @@ interface FilterRowProps {
   onSortByChange: (sort: SortOption) => void;
   datePostedFilter: DatePostedFilter;
   onDatePostedFilterChange: (filter: DatePostedFilter) => void;
+  selectedSeniority: Seniority | 'any';
+  onSeniorityChange: (seniority: Seniority | 'any') => void;
   selectedCompanies: string[];
   onCompaniesChange: (companies: string[]) => void;
   selectedTitles: string[];
@@ -51,6 +54,15 @@ const DATE_POSTED_OPTIONS: { value: DatePostedFilter; label: string }[] = [
   { value: 'without-date', label: 'Without Date' },
 ];
 
+const SENIORITY_OPTIONS: { value: Seniority | 'any'; label: string }[] = [
+  { value: 'any', label: 'Any Seniority' },
+  { value: 'intern', label: 'Intern' },
+  { value: 'junior', label: 'Junior / Entry' },
+  { value: 'mid', label: 'Mid-level' },
+  { value: 'senior', label: 'Senior / Lead' },
+  { value: 'unknown', label: 'Unclassified' },
+];
+
 export function FilterRow({
   listedPeriod,
   onListedPeriodChange,
@@ -58,6 +70,8 @@ export function FilterRow({
   onSortByChange,
   datePostedFilter,
   onDatePostedFilterChange,
+  selectedSeniority,
+  onSeniorityChange,
   selectedCompanies,
   onCompaniesChange,
   selectedTitles,
@@ -102,6 +116,19 @@ export function FilterRow({
         </SelectTrigger>
         <SelectContent>
           {DATE_POSTED_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value} className="text-xs">
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={selectedSeniority} onValueChange={(v) => onSeniorityChange(v as Seniority | 'any')}>
+        <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
+          <SelectValue placeholder="Seniority" />
+        </SelectTrigger>
+        <SelectContent>
+          {SENIORITY_OPTIONS.map((opt) => (
             <SelectItem key={opt.value} value={opt.value} className="text-xs">
               {opt.label}
             </SelectItem>

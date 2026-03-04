@@ -1,4 +1,5 @@
 export type JobType = 'full-time' | 'internship' | 'graduate' | 'unknown';
+export type Seniority = 'intern' | 'junior' | 'mid' | 'senior' | 'unknown';
 
 export interface Job {
   id: string;
@@ -6,6 +7,7 @@ export interface Job {
   company: string;
   location: string;
   type: JobType;
+  seniority: Seniority;
   source: string;
   sourceUrl: string;
   url: string;
