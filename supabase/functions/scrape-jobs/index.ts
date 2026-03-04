@@ -326,7 +326,8 @@ async function scrapeVenture5(
   console.log(`Venture5 markdown length: ${markdown.length}`);
   console.log(`Venture5 markdown preview: ${markdown.substring(0, 500)}`);
 
-  return parseVenture5Jobs(markdown, source, searchCity);
+  const parsedJobs = parseVenture5Jobs(markdown, source, searchCity);
+  return await enrichVenture5PostedDates(parsedJobs, searchCity);
 }
 
 function parseVenture5Jobs(
