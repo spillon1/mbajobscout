@@ -1448,7 +1448,7 @@ async function scrapeRssFeed(
       source: source.name,
       sourceUrl: source.url,
       url: item.link || source.url,
-      description: cleanDesc || undefined,
+      description: undefined,
       salary,
       postedDate: item.pubDate || 'Scraped just now',
     });
