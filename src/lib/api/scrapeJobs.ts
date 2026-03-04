@@ -35,16 +35,9 @@ export async function scrapeJobs(
   }
 
   // Filter out junk entries
-  const JUNK_TITLES = ['venture capital jobs in london', 'venture capital careers', "the vc industry's trusted resource", 'filters and topics', 'search results'];
   const jobs: Job[] = (data.jobs || [])
     .map((j: any) => ({ ...j, type: j.type as JobType }))
-    .filter((j: Job) => {
-      const titleLower = j.title.toLowerCase();
-      if (JUNK_TITLES.includes(titleLower)) return false;
-      if (j.company === 'Unknown' && j.title.length < 10) return false;
-      if (titleLower === j.source.toLowerCase()) return false;
-      return true;
-    });
+    .filter(isValidJob);
 
   // Save to database using upsert (deduplicate by url)
   if (jobs.length > 0) {
@@ -100,5 +93,40 @@ export async function loadSavedJobs(): Promise<Job[]> {
     postedDate: row.posted_date || undefined,
     description: row.description || undefined,
     salary: row.salary || undefined,
-  }));
+  })).filter(isValidJob);
+}
+
+/** Returns false for non-job entries like category headers, newsletter prompts, etc. */
+function isValidJob(job: Job): boolean {
+  const titleLower = job.title.toLowerCase();
+  const descLower = (job.description || '').toLowerCase();
+
+  // Exact junk titles
+  const JUNK_TITLES = [
+    'venture capital jobs in london', 'venture capital careers',
+    "the vc industry's trusted resource", 'filters and topics',
+    'search results', 'united states',
+  ];
+  if (JUNK_TITLES.includes(titleLower)) return false;
+
+  // Pattern-based junk: generic category/location headers
+  if (/^(venture capital|vc)\s+(jobs|careers)\s+(in|near)\s+/i.test(job.title)) return false;
+  if (/^jobs\s+(in|near)\s+/i.test(job.title)) return false;
+
+  // Title matches source name exactly
+  if (titleLower === job.source.toLowerCase()) return false;
+
+  // Unknown company with short or generic title
+  if (job.company === 'Unknown' && job.title.length < 15) return false;
+
+  // Description contains newsletter/subscribe spam (not a real job)
+  const spamSignals = ['subscribing to our', 'newsletter', 'subscribe to', 'terms & conditions', 'something went wrong while submitting'];
+  const spamCount = spamSignals.filter(s => descLower.includes(s)).length;
+  if (spamCount >= 2) return false;
+
+  // Skip entries that are clearly not job postings
+  const skipWords = ['cookie policy', 'privacy policy', 'sign in', 'log in', 'contact us'];
+  if (skipWords.some(w => titleLower.includes(w))) return false;
+
+  return true;
 }
