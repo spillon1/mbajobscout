@@ -250,12 +250,8 @@ const Index = () => {
 
         {/* Filters */}
         <FilterRow
-          selectedType={selectedType}
-          onTypeChange={setSelectedType}
           listedPeriod={listedPeriod}
           onListedPeriodChange={setListedPeriod}
-          jobStatus={jobStatus}
-          onJobStatusChange={setJobStatus}
           selectedCompanies={selectedCompanies}
           onCompaniesChange={setSelectedCompanies}
           selectedTitles={selectedTitles}
