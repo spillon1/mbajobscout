@@ -713,11 +713,13 @@ function parseStructuredCards(
     const jobLocation = locationField || '';
 
     // Filter by user's search location if provided
-    if (searchLocation && jobLocation) {
-      // Extract city from search location (e.g. "London, United Kingdom" -> "london")
+    if (searchLocation) {
       const searchCity = searchLocation.split(',')[0].trim().toLowerCase();
-      const locLower = jobLocation.toLowerCase();
-      if (searchCity && !locLower.includes(searchCity)) continue;
+      if (searchCity) {
+        if (!jobLocation) continue; // No location detected — skip
+        const locLower = jobLocation.toLowerCase();
+        if (!locLower.includes(searchCity)) continue;
+      }
     }
 
     // Find type field
