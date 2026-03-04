@@ -1,5 +1,14 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Job, JobSource, JobType } from '@/types/jobs';
+import { Job, JobSource, JobType, Seniority } from '@/types/jobs';
+
+function inferSeniority(title: string): Seniority {
+  const t = title.toLowerCase();
+  if (t.includes('intern') && !t.includes('internal')) return 'intern';
+  if (/\b(junior|graduate|entry.level|trainee|visiting analyst)\b/.test(t)) return 'junior';
+  if (/\b(senior|lead|head of|director|managing director|partner|principal|vp|vice president|cio|cfo|cto)\b/.test(t)) return 'senior';
+  if (/\b(analyst|associate|manager|investment manager)\b/.test(t)) return 'mid';
+  return 'unknown';
+}
 
 interface ScrapeResult {
   success: boolean;
@@ -36,7 +45,7 @@ export async function scrapeJobs(
 
   // Filter out junk entries
   const jobs: Job[] = (data.jobs || [])
-    .map((j: any) => ({ ...j, type: j.type as JobType }))
+    .map((j: any) => ({ ...j, type: j.type as JobType, seniority: inferSeniority(j.title) }))
     .filter(isValidJob);
 
   // Replace saved rows for successfully scraped sources to prevent stale jobs from lingering
@@ -103,6 +112,7 @@ export async function loadSavedJobs(): Promise<Job[]> {
     company: row.company,
     location: row.location,
     type: row.type as JobType,
+    seniority: inferSeniority(row.title),
     source: row.source,
     sourceUrl: row.source_url,
     url: row.url,

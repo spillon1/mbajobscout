@@ -2356,7 +2356,6 @@ function parseInnovatorsRoomJobs(
 function inferInnovatorsRoomType(title: string, typeHint: string): string {
   const lower = (title + ' ' + typeHint).toLowerCase();
   if (lower.includes('intern') && !lower.includes('internal')) return 'internship';
-  if (lower.includes('graduate') || lower.includes('entry level')) return 'graduate';
-  if (lower.includes('analyst') && !lower.includes('senior') && !lower.includes('lead')) return 'graduate';
+  if (/\b(graduate|entry.level|trainee)\b/.test(lower)) return 'graduate';
   return 'full-time';
 }
