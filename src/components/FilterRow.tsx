@@ -204,7 +204,7 @@ export function FilterRow({
                 Scraping
               </span>
             ) : (
-              'Scrape'
+              'Find jobs'
             )}
           </Button>
         </div>
