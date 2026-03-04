@@ -748,10 +748,9 @@ async function scrapeEFinancialCareers(
     }
   }
 
-  // The eFinancialCareers URL is already built with the user's keyword query (e.g. q="venture capital").
-  // The source itself filters results, so we trust its output — no additional keyword filtering needed.
-  console.log(`eFinancialCareers: returning all ${allJobs.length} query-filtered jobs`);
-  return allJobs;
+  const vcJobs = allJobs.filter((j) => isLikelyVcRole(j.title, j.company, j.description));
+  console.log(`eFinancialCareers: ${vcJobs.length} VC-likely jobs out of ${allJobs.length} total`);
+  return vcJobs;
 }
 
 function parseEFinancialCareersJobs(
