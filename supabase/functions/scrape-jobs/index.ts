@@ -526,11 +526,14 @@ function parseStructuredCards(
 
     const fullText = `${title} ${company} ${typeStr}`.toLowerCase();
 
-    const matchesKeyword = keywords.length === 0 || keywords.some(kw =>
-      fullText.includes(kw.toLowerCase())
-    );
-
-    if (!matchesKeyword) continue;
+    // For VC-specific job boards, all listings are relevant — skip keyword filtering
+    const isVcSource = /startup\s*&?\s*vc|venture5|venturecapitalcareers|john\s*gannon/i.test(source.name);
+    if (!isVcSource) {
+      const matchesKeyword = keywords.length === 0 || keywords.some(kw =>
+        fullText.includes(kw.toLowerCase())
+      );
+      if (!matchesKeyword) continue;
+    }
 
     // Skip non-job entries (page headers, newsletter, etc.)
     const skipWords = ['newsletter', 'subscribe', 'terms', 'sign in', 'cookie', 'trusted resource', 'playbook'];
