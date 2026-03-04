@@ -45,9 +45,9 @@ Deno.serve(async (req) => {
 
         // Check if this is an RSS/XML feed
         if (isRssFeedUrl(source.url)) {
-          const rssJobs = await scrapeRssFeed(source, keywords, location);
+          const rssJobs = await scrapeRssFeed(source, expandedKeywords, location);
           results.push(...rssJobs);
-          sourceStatuses[source.name] = { status: 'connected' };
+          sourceStatuses[source.name] = { status: 'connected', count: rssJobs.length };
           console.log(`Found ${rssJobs.length} jobs from RSS feed: ${source.name}`);
           continue;
         }
