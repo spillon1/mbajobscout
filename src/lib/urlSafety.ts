@@ -18,18 +18,27 @@ export function openExternal(url?: string | null): boolean {
   const safeUrl = getSafeJobUrl(url);
   if (!safeUrl) return false;
 
-  try {
-    const w = window.top || window;
-    const a = w.document.createElement('a');
-    a.href = safeUrl;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    w.document.body.appendChild(a);
-    a.click();
-    w.document.body.removeChild(a);
-    return true;
-  } catch {
-    window.open(safeUrl, '_blank', 'noopener,noreferrer');
+  // Open a blank tab first, then navigate — this severs the opener/referrer
+  // relationship completely, preventing ERR_BLOCKED_BY_RESPONSE errors.
+  const newTab = window.open('about:blank', '_blank', 'noopener,noreferrer');
+  if (!newTab) {
+    // Popup blocked — fall back to anchor click
+    try {
+      const w = window.top || window;
+      const a = w.document.createElement('a');
+      a.href = safeUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      w.document.body.appendChild(a);
+      a.click();
+      w.document.body.removeChild(a);
+    } catch {
+      window.open(safeUrl, '_blank', 'noopener,noreferrer');
+    }
     return true;
   }
+
+  newTab.opener = null;
+  newTab.location.href = safeUrl;
+  return true;
 }
