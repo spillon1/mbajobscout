@@ -741,21 +741,9 @@ async function scrapeEFinancialCareers(
     }
   }
 
-  const keywordMatchedJobs = allJobs.filter((j) => matchesUserKeywords(j.title, j.company, j.description, keywords));
-  const vcLikelyJobs = allJobs.filter((j) => isLikelyVcRole(j.title, j.company, j.description, keywords));
-  console.log(`eFinancialCareers: ${keywordMatchedJobs.length} strict matches, ${vcLikelyJobs.length} VC-likely matches, ${allJobs.length} total`);
-
-  // Keep strong precision if enough strict matches; otherwise use VC-likely filter to avoid non-VC noise.
-  const strictMatchThreshold = Math.max(10, Math.floor(allJobs.length * 0.25));
-  if (keywordMatchedJobs.length >= strictMatchThreshold) {
-    return keywordMatchedJobs;
-  }
-
-  if (vcLikelyJobs.length > 0) {
-    return vcLikelyJobs;
-  }
-
-  // Last resort: return query-filtered results from source page
+  // The eFinancialCareers URL is already built with the user's keyword query (e.g. q="venture capital").
+  // The source itself filters results, so we trust its output — no additional keyword filtering needed.
+  console.log(`eFinancialCareers: returning all ${allJobs.length} query-filtered jobs`);
   return allJobs;
 }
 
