@@ -33,7 +33,6 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get active alert config
-    const { data: alerts, error: alertsError } = await supabase
     let alertRecipients: any[] = [];
 
     if (isTestMode) {
