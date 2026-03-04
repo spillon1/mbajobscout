@@ -571,79 +571,27 @@ async function scrapeOcc12Twenty(
 
   const urlObj = new URL(source.url);
   const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
-  console.log(`OCC: Starting authenticated scrape of ${baseUrl}...`);
-
-  // Step 1: GET login page for cookies + verification token
-  const loginPageRes = await fetch(`${baseUrl}/login`, {
-    method: 'GET',
-    redirect: 'manual',
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    },
-  });
-
-  let cookies = extractSetCookies(loginPageRes.headers);
-  const loginHtml = await loginPageRes.text();
-  console.log(`OCC: Login page status ${loginPageRes.status}, cookies: ${cookies.length}`);
-
-  let verificationToken = '';
-  const tokenMatch = loginHtml.match(/name="__RequestVerificationToken"[^>]*value="([^"]+)"/);
-  if (tokenMatch) {
-    verificationToken = tokenMatch[1];
-    console.log('OCC: Found verification token');
-  }
-
-  // Step 2: POST login
-  const formBody = new URLSearchParams();
-  formBody.set('UserName', email);
-  formBody.set('Password', password);
-  if (verificationToken) {
-    formBody.set('__RequestVerificationToken', verificationToken);
-  }
-
-  const loginRes = await fetch(`${baseUrl}/Account/Login`, {
-    method: 'POST',
-    redirect: 'manual',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie': cookies.join('; '),
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Referer': `${baseUrl}/login`,
-    },
-    body: formBody.toString(),
-  });
-
-  console.log(`OCC: Login POST status ${loginRes.status}`);
-  const loginCookies = extractSetCookies(loginRes.headers);
-  let allCookies = mergeCookies(cookies, loginCookies);
-
-  // Follow redirect chain to collect all session cookies
-  let nextUrl = loginRes.headers.get('location');
-  let redirectCount = 0;
-  while (nextUrl && redirectCount < 5) {
-    redirectCount++;
-    const fullUrl = nextUrl.startsWith('http') ? nextUrl : `${baseUrl}${nextUrl}`;
-    console.log(`OCC: Following redirect ${redirectCount}: ${fullUrl}`);
-    const followRes = await fetch(fullUrl, {
-      method: 'GET',
-      redirect: 'manual',
-      headers: {
-        'Cookie': allCookies.join('; '),
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    });
-    const followCookies = extractSetCookies(followRes.headers);
-    allCookies = mergeCookies(allCookies, followCookies);
-    nextUrl = followRes.headers.get('location');
-  }
-
-  const sessionCookie = allCookies.join('; ');
-  console.log(`OCC: Session established with ${allCookies.length} cookies`);
-
-  // Step 3: Use Firecrawl to render the SPA with our session cookies
   const searchQuery = keywords[0] || 'venture';
-  const scrapeUrl = `${baseUrl}/jobPostings#/jobPostings/index?tab=all&quickSearch=${encodeURIComponent(searchQuery)}`;
-  console.log(`OCC: Scraping with Firecrawl: ${scrapeUrl}`);
+
+  // Use Firecrawl actions to login in-browser, then navigate to job postings
+  const loginUrl = `${baseUrl}/login?ReturnUrl=%2FjobPostings`;
+  console.log(`OCC: Using Firecrawl actions to login at ${loginUrl}`);
+
+  const jobsPageUrl = `${baseUrl}/jobPostings#/jobPostings/index?tab=all&quickSearch=${encodeURIComponent(searchQuery)}`;
+
+  const actions: any[] = [
+    { type: 'wait', milliseconds: 2000 },
+    { type: 'click', selector: '#UserName' },
+    { type: 'write', text: email },
+    { type: 'click', selector: '#Password' },
+    { type: 'write', text: password },
+    { type: 'click', selector: 'button.submit-login-form' },
+    { type: 'wait', milliseconds: 6000 },
+    // Dismiss any modal/interstitial and navigate to job postings
+    { type: 'executeJavascript', script: "document.querySelectorAll('button, a').forEach(function(el) { if (el.textContent.match(/save|continue|skip/i)) el.click(); }); setTimeout(function() { window.location.assign('" + jobsPageUrl + "'); }, 1000);" },
+    { type: 'wait', milliseconds: 10000 },
+    { type: 'scrape' },
+  ];
 
   const firecrawlRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
     method: 'POST',
@@ -652,12 +600,11 @@ async function scrapeOcc12Twenty(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      url: scrapeUrl,
+      url: loginUrl,
       formats: ['markdown', 'html'],
-      waitFor: 10000,
-      headers: {
-        'Cookie': sessionCookie,
-      },
+      waitFor: 3000,
+      actions,
+      timeout: 90000,
     }),
   });
 
@@ -667,17 +614,15 @@ async function scrapeOcc12Twenty(
     throw new Error(firecrawlData.error || `Firecrawl HTTP ${firecrawlRes.status}`);
   }
 
-  const markdown = firecrawlData.data?.markdown || firecrawlData.markdown || '';
-  const html = firecrawlData.data?.html || firecrawlData.html || '';
+  let markdown = firecrawlData.data?.markdown || firecrawlData.markdown || '';
+  let html = firecrawlData.data?.html || firecrawlData.html || '';
   console.log(`OCC: Firecrawl returned ${markdown.length} chars markdown, ${html.length} chars HTML`);
+  console.log(`OCC markdown preview: ${markdown.substring(0, 2000)}`);
 
-  // Log preview for debugging
-  console.log(`OCC markdown preview: ${markdown.substring(0, 1000)}`);
-
-  // Check if we're still on login page
-  if (markdown.includes('You must be logged in') || markdown.includes('login-page') || html.includes('login-page')) {
-    console.error('OCC: Firecrawl rendered the login page - session cookies not accepted');
-    throw new Error('OCC authentication failed - cookies not accepted by Firecrawl rendering');
+  // Check if still on login page
+  if (markdown.includes('You must be logged in') || markdown.includes('Login to continue')) {
+    console.error('OCC: Still on login page after actions - login may have failed');
+    throw new Error('OCC login failed via Firecrawl actions - check credentials');
   }
 
   // Parse jobs from the rendered content
@@ -685,7 +630,6 @@ async function scrapeOcc12Twenty(
   console.log(`OCC: Parsed ${jobs.length} jobs from rendered page`);
   return jobs;
 }
-
 function parseOcc12TwentyJobs(
   markdown: string,
   html: string,
@@ -839,42 +783,6 @@ function parseOcc12TwentyJobs(
   return jobs;
 }
 
-function extractSetCookies(headers: Headers): string[] {
-  const cookies: string[] = [];
-  // getSetCookie() is available in Deno
-  const setCookieHeaders = (headers as any).getSetCookie?.() || [];
-  for (const sc of setCookieHeaders) {
-    const nameValue = sc.split(';')[0]?.trim();
-    if (nameValue) cookies.push(nameValue);
-  }
-
-  // Fallback: try get-all pattern
-  if (cookies.length === 0) {
-    const allValues = headers.get('set-cookie');
-    if (allValues) {
-      // Simple split - might not handle all edge cases
-      for (const part of allValues.split(/,\s*(?=[A-Za-z_]+=)/)) {
-        const nameValue = part.split(';')[0]?.trim();
-        if (nameValue && nameValue.includes('=')) cookies.push(nameValue);
-      }
-    }
-  }
-
-  return cookies;
-}
-
-function mergeCookies(existing: string[], incoming: string[]): string[] {
-  const map = new Map<string, string>();
-  for (const c of existing) {
-    const name = c.split('=')[0];
-    map.set(name, c);
-  }
-  for (const c of incoming) {
-    const name = c.split('=')[0];
-    map.set(name, c);
-  }
-  return [...map.values()];
-}
 
 // ---- eFinancialCareers Scraper ----
 
