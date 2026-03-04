@@ -70,6 +70,15 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // eFinancialCareers: dedicated scraper with structured markdown parsing
+        if (source.url.includes('efinancialcareers')) {
+          const efcJobs = await scrapeEFinancialCareers(apiKey, source, location);
+          results.push(...efcJobs);
+          sourceStatuses[source.name] = { status: 'connected', count: efcJobs.length };
+          console.log(`Found ${efcJobs.length} jobs from eFinancialCareers`);
+          continue;
+        }
+
         // Otherwise use Firecrawl
         const scrapeUrl = source.url;
         const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
@@ -528,6 +537,131 @@ function tryParseDate(dateStr: string): Date | null {
 function isRssFeedUrl(url: string): boolean {
   const lower = url.toLowerCase();
   return lower.includes('/feed') || lower.includes('feed=') || lower.includes('.rss') || lower.includes('.xml') || lower.includes('format=xml');
+}
+
+// ---- eFinancialCareers Scraper ----
+
+async function scrapeEFinancialCareers(
+  apiKey: string,
+  source: { name: string; url: string },
+  location: string
+): Promise<any[]> {
+  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url: source.url,
+      formats: ['markdown'],
+      onlyMainContent: true,
+      waitFor: 5000,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || `HTTP ${response.status}`);
+  }
+
+  const markdown = data.data?.markdown || data.markdown || '';
+  console.log(`eFinancialCareers markdown length: ${markdown.length}`);
+
+  return parseEFinancialCareersJobs(markdown, source);
+}
+
+function parseEFinancialCareersJobs(
+  markdown: string,
+  source: { name: string; url: string }
+): any[] {
+  const jobs: any[] = [];
+
+  // Pattern: [**Job Title**](url "Job Title")
+  const jobPattern = /\[\*\*(.+?)\*\*\]\((https:\/\/www\.efinancialcareers\.co\.uk\/jobs-[^\s"]+)\s*(?:"[^"]*")?\)/g;
+  let match;
+
+  while ((match = jobPattern.exec(markdown)) !== null) {
+    const title = match[1].trim();
+    const url = match[2].trim();
+
+    // Skip "Apply now" links
+    if (title.toLowerCase() === 'apply now') continue;
+
+    // Get context after this match
+    const afterMatch = markdown.substring(match.index + match[0].length, match.index + match[0].length + 500);
+    const lines = afterMatch.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+    // Skip "Apply now" / "Save" lines
+    let lineIdx = 0;
+    while (lineIdx < lines.length && (lines[lineIdx].startsWith('[Apply') || lines[lineIdx] === 'Save' || lines[lineIdx].includes('Apply now'))) {
+      lineIdx++;
+    }
+
+    // Company name
+    let company = 'Unknown';
+    if (lineIdx < lines.length && !lines[lineIdx].startsWith('![') && !lines[lineIdx].startsWith('[')) {
+      company = lines[lineIdx].trim();
+      lineIdx++;
+    }
+
+    // Location + Type (e.g. "London, United KingdomPermanent")
+    let jobLocation = 'London, UK';
+    let contractType = 'Permanent';
+    if (lineIdx < lines.length) {
+      const locLine = lines[lineIdx];
+      const typeMatch = locLine.match(/(Permanent|Contract|Temporary|Freelance|Part Time|Internship)\s*$/i);
+      if (typeMatch) {
+        contractType = typeMatch[1];
+        jobLocation = locLine.substring(0, typeMatch.index).trim();
+      } else {
+        jobLocation = locLine;
+      }
+      lineIdx++;
+    }
+
+    // Salary line
+    let salary: string | undefined;
+    if (lineIdx < lines.length) {
+      const salaryLine = lines[lineIdx];
+      if (salaryLine !== 'Competitive' && /[£$€\d]/.test(salaryLine)) {
+        salary = salaryLine.replace(/^Hybrid/, '').trim();
+      }
+      lineIdx++;
+    }
+
+    // Posted date
+    let postedDate = 'Scraped just now';
+    if (lineIdx < lines.length) {
+      const dateLine = lines[lineIdx];
+      if (/\d+\s*(hour|day|week|month|year)s?\s*ago/i.test(dateLine)) {
+        postedDate = dateLine;
+      }
+    }
+
+    // Determine job type
+    let type = 'full-time';
+    const titleLower = title.toLowerCase();
+    if (titleLower.includes('intern') && !titleLower.includes('internal')) type = 'internship';
+    else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
+
+    if (jobs.some(j => j.url === url)) continue;
+
+    jobs.push({
+      id: crypto.randomUUID(),
+      title: title.slice(0, 200),
+      company,
+      location: jobLocation,
+      type,
+      source: source.name,
+      sourceUrl: source.url,
+      url,
+      salary,
+      postedDate,
+    });
+  }
+
+  return jobs;
 }
 
 async function scrapeRssFeed(
