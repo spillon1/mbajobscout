@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Job, JobSource, JobType, Seniority } from '@/types/jobs';
+import { getSafeJobUrl } from '@/lib/urlSafety';
 
 function inferSeniority(title: string): Seniority {
   const t = title.toLowerCase();
@@ -45,7 +46,25 @@ export async function scrapeJobs(
 
   // Filter out junk entries
   const allJobs: Job[] = (data.jobs || [])
-    .map((j: any) => ({ ...j, type: j.type as JobType, seniority: inferSeniority(j.title) }))
+    .map((j: any): Job => {
+      const rawJobUrl = j.jobUrl ?? j.url ?? '';
+      const rawSourceUrl = j.sourceUrl ?? j.source_url ?? rawJobUrl;
+
+      return {
+        id: j.id ?? crypto.randomUUID(),
+        title: j.title ?? 'Untitled role',
+        company: j.company ?? 'Unknown',
+        location: j.location ?? 'London, UK',
+        type: (j.type as JobType) || 'full-time',
+        seniority: inferSeniority(j.title ?? ''),
+        source: j.source ?? 'Unknown source',
+        sourceUrl: rawSourceUrl,
+        jobUrl: getSafeJobUrl(rawJobUrl) ?? undefined,
+        postedDate: j.postedDate ?? j.posted_date ?? undefined,
+        description: j.description ?? undefined,
+        salary: j.salary ?? undefined,
+      };
+    })
     .filter(isValidJob);
 
   // Cross-source deduplication: keep first occurrence by normalized title+company
@@ -81,8 +100,8 @@ export async function scrapeJobs(
       location: j.location,
       type: j.type,
       source: j.source,
-      source_url: j.sourceUrl,
-      url: j.url,
+      source_url: j.sourceUrl || j.jobUrl || '',
+      url: j.jobUrl || j.sourceUrl,
       posted_date: j.postedDate || null,
       description: j.description || null,
       salary: j.salary || null,
@@ -115,7 +134,7 @@ export async function loadSavedJobs(): Promise<Job[]> {
     return [];
   }
 
-  const allSaved = (data || []).map((row) => ({
+  const allSaved = (data || []).map((row): Job => ({
     id: row.id,
     title: row.title,
     company: row.company,
@@ -123,8 +142,8 @@ export async function loadSavedJobs(): Promise<Job[]> {
     type: row.type as JobType,
     seniority: inferSeniority(row.title),
     source: row.source,
-    sourceUrl: row.source_url,
-    url: row.url,
+    sourceUrl: row.source_url || row.url,
+    jobUrl: getSafeJobUrl(row.url) ?? undefined,
     postedDate: row.posted_date || undefined,
     description: row.description || undefined,
     salary: row.salary || undefined,

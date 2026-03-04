@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Job } from '@/types/jobs';
 import { JobTypeBadge } from './JobTypeBadge';
-import { ExternalLink, Building2, MapPin, Calendar, DollarSign, X } from 'lucide-react';
+import { ExternalLink, Building2, MapPin, Calendar, X, Copy, Check } from 'lucide-react';
+import { isBlockedUrl, openExternal } from '@/lib/urlSafety';
 
 function formatPostedDate(dateStr?: string): string | null {
   if (!dateStr) return null;
@@ -23,53 +25,34 @@ function formatPostedDate(dateStr?: string): string | null {
 }
 
 export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string) => void }) {
-  // Extract real URL from Google redirect/search URLs
-  const resolveUrl = (url: string): string | null => {
-    try {
-      const parsed = new URL(url);
-      // Google redirect: extract destination from ?url= or ?q= params
-      if (parsed.hostname.includes('google.com')) {
-        const dest = parsed.searchParams.get('url') || parsed.searchParams.get('q');
-        if (dest && dest.startsWith('http')) return dest;
-        // Pure google.com/search with no extractable URL → unavailable
-        if (parsed.pathname.includes('/search')) return null;
-        return null;
-      }
-      return url;
-    } catch {
-      return url;
-    }
+  const [copied, setCopied] = useState(false);
+
+  const hasBlockedJobUrl = isBlockedUrl(job.jobUrl);
+  const hasDirectJobUrl = !!job.jobUrl && !hasBlockedJobUrl;
+  const canCopySearchLink = !!job.sourceUrl;
+
+  const handleViewJob = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!hasDirectJobUrl) return;
+    openExternal(job.jobUrl);
   };
 
-  const resolvedUrl = resolveUrl(job.url);
-  const isAvailable = !!resolvedUrl;
-
-  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleCopySearchLink = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    if (!isAvailable) return;
-    // Use window.top for iframe breakout in preview environments
-    try {
-      const w = window.top || window;
-      const a = w.document.createElement('a');
-      a.href = resolvedUrl;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      w.document.body.appendChild(a);
-      a.click();
-      w.document.body.removeChild(a);
-    } catch {
-      window.open(resolvedUrl, '_blank', 'noopener,noreferrer');
-    }
+    event.stopPropagation();
+    if (!job.sourceUrl) return;
+
+    await navigator.clipboard.writeText(job.sourceUrl);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
   };
 
   return (
-    <a
-      href={resolvedUrl || '#'}
-      target="_blank"
-      rel="noopener noreferrer"
-      referrerPolicy="no-referrer"
-      onClick={handleClick}
-      className={`block group border border-border rounded-md p-4 bg-card transition-all duration-200 animate-slide-in ${isAvailable ? 'hover:border-primary/40 hover:glow-primary cursor-pointer' : 'opacity-75 cursor-default'}`}
+    <article
+      className={`group border border-border rounded-md p-4 bg-card transition-all duration-200 animate-slide-in ${
+        hasDirectJobUrl ? 'hover:border-primary/40 hover:glow-primary' : 'opacity-90'
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -77,7 +60,7 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
             <JobTypeBadge type={job.type} />
             <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">{job.source}</span>
           </div>
-          <h3 className="font-body font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+          <h3 className="font-body font-semibold text-foreground transition-colors">
             {job.title}
           </h3>
           <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
@@ -95,35 +78,54 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
                 {formatPostedDate(job.postedDate)}
               </span>
             )}
-            {job.salary && (
-              <span className="flex items-center gap-1 text-accent">
-                {job.salary}
-              </span>
-            )}
+            {job.salary && <span className="text-accent">{job.salary}</span>}
           </div>
           {job.description && (
             <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{job.description}</p>
           )}
-        </div>
-        <div className="shrink-0 flex items-center gap-1">
-          {onDismiss && (
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDismiss(job.id); }}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
-              title="Dismiss this listing"
+              onClick={handleViewJob}
+              disabled={!hasDirectJobUrl}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors enabled:hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <X className="h-3.5 w-3.5" />
+              <ExternalLink className="h-3.5 w-3.5" />
+              View Job
             </button>
-          )}
-          {isAvailable ? (
-            <div className="p-2 rounded-md text-muted-foreground group-hover:text-primary transition-colors">
-              <ExternalLink className="h-4 w-4" />
-            </div>
-          ) : (
-            <span className="text-[10px] text-muted-foreground italic">Link unavailable</span>
-          )}
+
+            {!hasDirectJobUrl && (
+              <>
+                <p className="text-[11px] text-muted-foreground">Direct job posting unavailable</p>
+                <p className="text-[11px] text-muted-foreground">Direct job page unavailable</p>
+                {canCopySearchLink && (
+                  <button
+                    onClick={handleCopySearchLink}
+                    className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-foreground transition-colors hover:bg-muted"
+                  >
+                    {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {copied ? 'Copied' : 'Copy search link'}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
+
+        {onDismiss && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDismiss(job.id);
+            }}
+            className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+            title="Dismiss this listing"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
-    </a>
+    </article>
   );
 }
