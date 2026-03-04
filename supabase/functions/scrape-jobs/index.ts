@@ -106,6 +106,28 @@ Deno.serve(async (req) => {
   }
 });
 
+// ---- Keyword Expansion ----
+
+function expandKeywords(keywords: string[]): string[] {
+  const expanded = new Set(keywords.map(k => k.toLowerCase()));
+  // Add common abbreviations
+  for (const kw of keywords) {
+    const lower = kw.toLowerCase();
+    if (lower.includes('venture capital')) {
+      expanded.add(lower.replace('venture capital', 'vc'));
+    }
+    if (lower.includes('vc')) {
+      expanded.add(lower.replace('vc', 'venture capital'));
+    }
+  }
+  // Always include 'vc' and 'venture capital' as standalone matches
+  if (keywords.some(k => k.toLowerCase().includes('venture capital') || k.toLowerCase().includes('vc'))) {
+    expanded.add('vc');
+    expanded.add('venture capital');
+  }
+  return [...expanded];
+}
+
 // ---- RSS Feed Support ----
 
 function isRssFeedUrl(url: string): boolean {
