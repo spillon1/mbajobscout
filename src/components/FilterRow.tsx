@@ -1,4 +1,3 @@
-import { JobType } from '@/types/jobs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckboxFilter } from '@/components/CheckboxFilter';
 import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
@@ -8,12 +7,8 @@ export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
 export type JobStatus = 'any' | 'open' | 'closed';
 
 interface FilterRowProps {
-  selectedType: JobType | 'any';
-  onTypeChange: (type: JobType | 'any') => void;
   listedPeriod: ListedPeriod;
   onListedPeriodChange: (period: ListedPeriod) => void;
-  jobStatus: JobStatus;
-  onJobStatusChange: (status: JobStatus) => void;
   selectedCompanies: string[];
   onCompaniesChange: (companies: string[]) => void;
   selectedTitles: string[];
@@ -28,13 +23,6 @@ interface FilterRowProps {
   allSources: string[];
 }
 
-const TYPE_OPTIONS: { value: JobType | 'any'; label: string }[] = [
-  { value: 'any', label: 'All Types' },
-  { value: 'full-time', label: 'Full Time' },
-  { value: 'internship', label: 'Internship' },
-  { value: 'graduate', label: 'Graduate' },
-];
-
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
   { value: 'any', label: 'Any Time' },
   { value: '1d', label: 'Past 24 Hours' },
@@ -44,19 +32,9 @@ const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
   { value: '6m', label: 'Past 6 Months' },
 ];
 
-const STATUS_OPTIONS: { value: JobStatus; label: string }[] = [
-  { value: 'any', label: 'Any Status' },
-  { value: 'open', label: 'Open' },
-  { value: 'closed', label: 'Closed' },
-];
-
 export function FilterRow({
-  selectedType,
-  onTypeChange,
   listedPeriod,
   onListedPeriodChange,
-  jobStatus,
-  onJobStatusChange,
   selectedCompanies,
   onCompaniesChange,
   selectedTitles,
@@ -82,38 +60,12 @@ export function FilterRow({
         onChange={onSourcesChange}
       />
 
-      <Select value={selectedType} onValueChange={(v) => onTypeChange(v as JobType | 'any')}>
-        <SelectTrigger className="h-7 w-[130px] text-xs font-display bg-card border-border">
-          <SelectValue placeholder="Type" />
-        </SelectTrigger>
-        <SelectContent>
-          {TYPE_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value} className="text-xs">
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
       <Select value={listedPeriod} onValueChange={(v) => onListedPeriodChange(v as ListedPeriod)}>
         <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
           <SelectValue placeholder="Listed" />
         </SelectTrigger>
         <SelectContent>
           {LISTED_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value} className="text-xs">
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={jobStatus} onValueChange={(v) => onJobStatusChange(v as JobStatus)}>
-        <SelectTrigger className="h-7 w-[120px] text-xs font-display bg-card border-border">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          {STATUS_OPTIONS.map((opt) => (
             <SelectItem key={opt.value} value={opt.value} className="text-xs">
               {opt.label}
             </SelectItem>
