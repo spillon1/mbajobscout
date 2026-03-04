@@ -137,7 +137,7 @@ const Index = () => {
     filtered = filtered.filter((j) => enabledSources.includes(j.source));
 
     return filtered;
-  }, [jobs, selectedCompanies, selectedTitles, filterKeywords, sources]);
+  }, [jobs, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources]);
 
   const filteredJobs = useMemo(() => {
     if (selectedType === 'any') return baseFilteredJobs;
