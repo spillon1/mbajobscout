@@ -499,22 +499,30 @@ function parseStructuredCards(
     // Split the content by backslashes and newlines to get fields
     const fields = content
       .split(/\\+|\n/)
-      .map(s => s.trim())
+      .map(s => s.replace(/\*\*/g, '').trim())
       .filter(s => s.length > 0 && !s.startsWith('![') && !s.startsWith('['));
 
-    // We expect at least: Title, Company, Type
-    if (fields.length < 3) continue;
+    // We expect at least: Title, Company, Type or Title, Company, Location
+    if (fields.length < 2) continue;
 
-    // Fields are typically: [Title, Company, Type, "Posted", Date]
+    // Fields are typically: [Title, Company, Type/Location, "Posted X ago"]
     const title = fields[0];
     const company = fields[1];
-    const typeStr = fields[2];
+    const typeStr = fields[2] || '';
 
-    // Find date field (contains a year or month name)
-    const dateStr = fields.find(f =>
-      /\b(20\d{2})\b/.test(f) ||
-      /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(f)
-    ) || '';
+    // Find date field: "Posted X days ago" or contains a year/month
+    let dateStr = '';
+    const postedField = fields.find(f => /posted\s+\d+\s*(hour|day|week|month)s?\s*ago/i.test(f));
+    if (postedField) {
+      const m = postedField.match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+      if (m) dateStr = m[1];
+    }
+    if (!dateStr) {
+      dateStr = fields.find(f =>
+        /\b(20\d{2})\b/.test(f) ||
+        /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(f)
+      ) || '';
+    }
 
     const fullText = `${title} ${company} ${typeStr}`.toLowerCase();
 
@@ -525,7 +533,7 @@ function parseStructuredCards(
     if (!matchesKeyword) continue;
 
     // Skip non-job entries (page headers, newsletter, etc.)
-    const skipWords = ['newsletter', 'subscribe', 'terms', 'sign in', 'cookie'];
+    const skipWords = ['newsletter', 'subscribe', 'terms', 'sign in', 'cookie', 'trusted resource', 'playbook'];
     if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
 
     let type = 'full-time';
@@ -534,16 +542,19 @@ function parseStructuredCards(
     else if (typeLower.includes('graduate') || typeLower.includes('grad')) type = 'graduate';
     else if (typeLower.includes('other')) type = 'full-time';
 
+    // Extract location from fields if present
+    const locationField = fields.find(f => /,\s*[A-Z]{2}\b/.test(f) || /london|england|new york|remote/i.test(f));
+
     jobs.push({
       id: crypto.randomUUID(),
       title,
       company,
-      location: 'London, UK',
+      location: locationField || 'London, UK',
       type,
       source: source.name,
       sourceUrl: source.url,
       url,
-      postedDate: dateStr,
+      postedDate: dateStr || 'Scraped just now',
     });
   }
 
