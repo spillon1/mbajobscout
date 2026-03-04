@@ -557,19 +557,23 @@ async function scrapeOcc12Twenty(
 ): Promise<any[]> {
   const email = Deno.env.get('OCC_EMAIL');
   const password = Deno.env.get('OCC_PASSWORD');
+  const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
 
   if (!email || !password) {
     console.error('OCC credentials not configured (OCC_EMAIL / OCC_PASSWORD)');
     throw new Error('OCC credentials not configured');
   }
 
-  // Extract base domain from source URL
+  if (!firecrawlKey) {
+    console.error('FIRECRAWL_API_KEY not configured for OCC scraping');
+    throw new Error('Firecrawl API key not configured');
+  }
+
   const urlObj = new URL(source.url);
   const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
+  console.log(`OCC: Starting authenticated scrape of ${baseUrl}...`);
 
-  console.log(`OCC: Logging in to ${baseUrl}...`);
-
-  // Step 1: GET login page to obtain cookies and any anti-forgery token
+  // Step 1: GET login page for cookies + verification token
   const loginPageRes = await fetch(`${baseUrl}/login`, {
     method: 'GET',
     redirect: 'manual',
@@ -579,10 +583,9 @@ async function scrapeOcc12Twenty(
   });
 
   let cookies = extractSetCookies(loginPageRes.headers);
+  const loginHtml = await loginPageRes.text();
   console.log(`OCC: Login page status ${loginPageRes.status}, cookies: ${cookies.length}`);
 
-  // Look for __RequestVerificationToken in the page HTML
-  const loginHtml = await loginPageRes.text();
   let verificationToken = '';
   const tokenMatch = loginHtml.match(/name="__RequestVerificationToken"[^>]*value="([^"]+)"/);
   if (tokenMatch) {
@@ -590,7 +593,7 @@ async function scrapeOcc12Twenty(
     console.log('OCC: Found verification token');
   }
 
-  // Step 2: POST login form
+  // Step 2: POST login
   const formBody = new URLSearchParams();
   formBody.set('UserName', email);
   formBody.set('Password', password);
@@ -598,13 +601,12 @@ async function scrapeOcc12Twenty(
     formBody.set('__RequestVerificationToken', verificationToken);
   }
 
-  const cookieHeader = cookies.join('; ');
   const loginRes = await fetch(`${baseUrl}/Account/Login`, {
     method: 'POST',
     redirect: 'manual',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie': cookieHeader,
+      'Cookie': cookies.join('; '),
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       'Referer': `${baseUrl}/login`,
     },
@@ -612,243 +614,223 @@ async function scrapeOcc12Twenty(
   });
 
   console.log(`OCC: Login POST status ${loginRes.status}`);
-
-  // Merge new cookies from login response
   const loginCookies = extractSetCookies(loginRes.headers);
-  const allCookies = mergeCookies(cookies, loginCookies);
-  const sessionCookie = allCookies.join('; ');
+  let allCookies = mergeCookies(cookies, loginCookies);
 
-  // Follow redirect if needed
-  const redirectUrl = loginRes.headers.get('location');
-  if (redirectUrl) {
-    console.log(`OCC: Redirecting to ${redirectUrl}`);
-    const followRes = await fetch(
-      redirectUrl.startsWith('http') ? redirectUrl : `${baseUrl}${redirectUrl}`,
-      {
-        method: 'GET',
-        redirect: 'manual',
-        headers: {
-          'Cookie': sessionCookie,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-      }
-    );
+  // Follow redirect chain to collect all session cookies
+  let nextUrl = loginRes.headers.get('location');
+  let redirectCount = 0;
+  while (nextUrl && redirectCount < 5) {
+    redirectCount++;
+    const fullUrl = nextUrl.startsWith('http') ? nextUrl : `${baseUrl}${nextUrl}`;
+    console.log(`OCC: Following redirect ${redirectCount}: ${fullUrl}`);
+    const followRes = await fetch(fullUrl, {
+      method: 'GET',
+      redirect: 'manual',
+      headers: {
+        'Cookie': allCookies.join('; '),
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    });
     const followCookies = extractSetCookies(followRes.headers);
-    const finalCookies = mergeCookies(allCookies, followCookies);
-    return await fetchOccJobs(baseUrl, finalCookies.join('; '), source, keywords, location);
+    allCookies = mergeCookies(allCookies, followCookies);
+    nextUrl = followRes.headers.get('location');
   }
 
-  return await fetchOccJobs(baseUrl, sessionCookie, source, keywords, location);
+  const sessionCookie = allCookies.join('; ');
+  console.log(`OCC: Session established with ${allCookies.length} cookies`);
+
+  // Step 3: Use Firecrawl to render the SPA with our session cookies
+  const searchQuery = keywords[0] || 'venture';
+  const scrapeUrl = `${baseUrl}/jobPostings#/jobPostings/index?tab=all&quickSearch=${encodeURIComponent(searchQuery)}`;
+  console.log(`OCC: Scraping with Firecrawl: ${scrapeUrl}`);
+
+  const firecrawlRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${firecrawlKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url: scrapeUrl,
+      formats: ['markdown', 'html'],
+      waitFor: 10000,
+      headers: {
+        'Cookie': sessionCookie,
+      },
+    }),
+  });
+
+  const firecrawlData = await firecrawlRes.json();
+  if (!firecrawlRes.ok) {
+    console.error('OCC: Firecrawl scrape failed:', JSON.stringify(firecrawlData));
+    throw new Error(firecrawlData.error || `Firecrawl HTTP ${firecrawlRes.status}`);
+  }
+
+  const markdown = firecrawlData.data?.markdown || firecrawlData.markdown || '';
+  const html = firecrawlData.data?.html || firecrawlData.html || '';
+  console.log(`OCC: Firecrawl returned ${markdown.length} chars markdown, ${html.length} chars HTML`);
+
+  // Log preview for debugging
+  console.log(`OCC markdown preview: ${markdown.substring(0, 1000)}`);
+
+  // Check if we're still on login page
+  if (markdown.includes('You must be logged in') || markdown.includes('login-page') || html.includes('login-page')) {
+    console.error('OCC: Firecrawl rendered the login page - session cookies not accepted');
+    throw new Error('OCC authentication failed - cookies not accepted by Firecrawl rendering');
+  }
+
+  // Parse jobs from the rendered content
+  const jobs = parseOcc12TwentyJobs(markdown, html, source, baseUrl);
+  console.log(`OCC: Parsed ${jobs.length} jobs from rendered page`);
+  return jobs;
 }
 
-async function fetchOccJobs(
-  baseUrl: string,
-  sessionCookie: string,
+function parseOcc12TwentyJobs(
+  markdown: string,
+  html: string,
   source: { name: string; url: string },
-  keywords: string[],
-  location: string
-): Promise<any[]> {
-  const allJobs: any[] = [];
-  const searchCity = location.split(',')[0]?.trim().toLowerCase() || '';
+  baseUrl: string
+): any[] {
+  const jobs: any[] = [];
 
-  // Build search query from keywords
-  const searchQuery = keywords[0] || 'venture capital';
+  // Pattern 1: Markdown links with job titles
+  // 12twenty renders job cards - look for patterns like [Job Title](url) or **Job Title**
+  const linkPattern = /\[([^\]]{5,200})\]\((\/jobPostings[^\s)]*|https?:\/\/[^\s)]*jobPosting[^\s)]*)\)/g;
+  let match;
+  while ((match = linkPattern.exec(markdown)) !== null) {
+    const title = match[1].replace(/\*\*/g, '').trim();
+    let url = match[2];
+    if (url.startsWith('/')) url = `${baseUrl}${url}`;
 
-  // 12twenty uses an API endpoint for job postings
-  // Try common API patterns
-  const apiEndpoints = [
-    `/api/jobPostings?tab=all&quickSearch=${encodeURIComponent(searchQuery)}&pageSize=100&page=1`,
-    `/api/jobpostings/search?quickSearch=${encodeURIComponent(searchQuery)}&pageSize=100`,
-    `/jobPostings/GetJobPostings?tab=all&quickSearch=${encodeURIComponent(searchQuery)}&pageSize=100`,
-  ];
+    if (title.length < 5 || /sign in|log in|menu|filter|search|cookie/i.test(title)) continue;
 
-  let jobsData: any = null;
+    // Look for company/location in the lines after the title
+    const afterText = markdown.substring(match.index + match[0].length, match.index + match[0].length + 500);
+    const afterLines = afterText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-  for (const endpoint of apiEndpoints) {
-    try {
-      console.log(`OCC: Trying API endpoint: ${endpoint}`);
-      const res = await fetch(`${baseUrl}${endpoint}`, {
-        method: 'GET',
-        headers: {
-          'Cookie': sessionCookie,
-          'Accept': 'application/json, text/plain, */*',
-          'X-Requested-With': 'XMLHttpRequest',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-      });
+    let company = 'Unknown';
+    let jobLocation = 'Cambridge, UK';
 
-      console.log(`OCC: API ${endpoint} status ${res.status}`);
+    for (const line of afterLines.slice(0, 5)) {
+      // Skip UI elements
+      if (/apply|save|bookmark|share|view|detail/i.test(line) && line.length < 20) continue;
+      if (line.startsWith('[') || line.startsWith('!')) continue;
 
-      if (res.ok) {
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('json')) {
-          jobsData = await res.json();
-          console.log(`OCC: Got JSON response, keys: ${JSON.stringify(Object.keys(jobsData || {}))}`);
-          break;
-        } else {
-          // Got HTML back - might be the SPA page, try to extract job data
-          const html = await res.text();
-          console.log(`OCC: Got HTML response (${html.length} chars)`);
-
-          // Check if we're still on login page
-          if (html.includes('You must be logged in') || html.includes('login-page')) {
-            console.log('OCC: Still on login page - authentication failed');
-            throw new Error('OCC login failed - check credentials');
-          }
-        }
-      } else if (res.status === 401 || res.status === 403) {
-        console.log('OCC: Auth rejected on API endpoint');
+      if (company === 'Unknown' && line.length > 1 && line.length < 100) {
+        company = line.replace(/\*\*/g, '').trim();
+        continue;
       }
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('login failed')) throw err;
-      console.log(`OCC: Endpoint ${endpoint} failed: ${err}`);
-    }
-  }
-
-  // If no API endpoint worked, try scraping the SPA page directly
-  if (!jobsData) {
-    console.log('OCC: API endpoints failed, trying to scrape the job postings page');
-    try {
-      const pageRes = await fetch(`${baseUrl}/jobPostings`, {
-        method: 'GET',
-        headers: {
-          'Cookie': sessionCookie,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-      });
-
-      if (pageRes.ok) {
-        const html = await pageRes.text();
-        if (html.includes('You must be logged in') || html.includes('login-page')) {
-          throw new Error('OCC login failed - check credentials');
-        }
-        console.log(`OCC: Got job postings page (${html.length} chars)`);
-
-        // Try to extract embedded JSON data from the SPA
-        const jsonMatches = html.match(/var\s+(?:jobPostings|initialData|pageData)\s*=\s*(\{[\s\S]*?\});/);
-        if (jsonMatches) {
-          try {
-            jobsData = JSON.parse(jsonMatches[1]);
-            console.log('OCC: Extracted embedded JSON data');
-          } catch { /* ignore parse error */ }
-        }
-
-        // If still no data, try to find ng-init or data attributes
-        if (!jobsData) {
-          // Parse job listings from HTML table/cards
-          const jobs = parseOccHtmlJobs(html, source, searchCity);
-          if (jobs.length > 0) return jobs;
-        }
+      if (company !== 'Unknown' && /[A-Z][a-z]+,?\s*[A-Z]/.test(line)) {
+        jobLocation = line.replace(/\*\*/g, '').trim();
+        break;
       }
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('login failed')) throw err;
-      console.log(`OCC: Page scrape failed: ${err}`);
     }
-  }
-
-  if (!jobsData) {
-    console.log('OCC: Could not retrieve job data from any endpoint');
-    return [];
-  }
-
-  // Parse the JSON response - 12twenty typically returns { items: [...], totalCount: N }
-  const items = jobsData.items || jobsData.data || jobsData.results || jobsData.jobPostings || 
-                (Array.isArray(jobsData) ? jobsData : []);
-
-  console.log(`OCC: Processing ${items.length} job items`);
-
-  for (const item of items) {
-    const title = item.title || item.jobTitle || item.positionTitle || '';
-    const company = item.companyName || item.company || item.employer || item.organizationName || 'Unknown';
-    let jobLocation = item.location || item.city || item.jobLocation || '';
-    
-    if (typeof jobLocation === 'object') {
-      jobLocation = [jobLocation.city, jobLocation.state, jobLocation.country].filter(Boolean).join(', ');
-    }
-
-    if (!title) continue;
-
-    // Location filter
-    if (searchCity && jobLocation && !jobLocation.toLowerCase().includes(searchCity)) {
-      // Don't filter out if location is empty - might still be relevant
-      if (jobLocation) continue;
-    }
-
-    const jobUrl = item.url || item.applyUrl || item.jobUrl || 
-                   `${baseUrl}/jobPostings#/jobPostings/details/${item.id || item.jobPostingId || ''}`;
 
     let type = 'full-time';
     const titleLower = title.toLowerCase();
     if (titleLower.includes('intern') && !titleLower.includes('internal')) type = 'internship';
     else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
 
-    let postedDate = 'Scraped just now';
-    if (item.postDate || item.postedDate || item.createdDate || item.approvedDate) {
-      const dateStr = item.postDate || item.postedDate || item.createdDate || item.approvedDate;
-      const d = new Date(dateStr);
-      if (!isNaN(d.getTime())) {
-        postedDate = d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      }
+    if (!jobs.some(j => j.title === title && j.company === company)) {
+      jobs.push({
+        id: crypto.randomUUID(),
+        title: title.slice(0, 200),
+        company,
+        location: jobLocation,
+        type,
+        source: source.name,
+        sourceUrl: source.url,
+        url,
+        postedDate: 'Scraped just now',
+      });
     }
-
-    const salary = item.salary || item.compensationDescription || item.salaryRange || undefined;
-
-    const description = (item.description || item.jobDescription || item.summary || '')
-      .replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 500) || undefined;
-
-    allJobs.push({
-      id: crypto.randomUUID(),
-      title: title.slice(0, 200),
-      company,
-      location: jobLocation || 'Cambridge, UK',
-      type,
-      source: source.name,
-      sourceUrl: source.url,
-      url: jobUrl,
-      postedDate,
-      salary,
-      description,
-    });
   }
 
-  console.log(`OCC: Parsed ${allJobs.length} jobs`);
-  return allJobs;
-}
+  // Pattern 2: If no markdown links found, try parsing HTML directly
+  if (jobs.length === 0 && html) {
+    console.log('OCC: No markdown links found, trying HTML parsing');
 
-function parseOccHtmlJobs(
-  html: string,
-  source: { name: string; url: string },
-  searchCity: string
-): any[] {
-  const jobs: any[] = [];
+    // 12twenty job cards typically have structured elements
+    const cardPatterns = [
+      /<a[^>]*href="([^"]*jobPosting[^"]*)"[^>]*>([^<]+)<\/a>/gi,
+      /<[^>]*class="[^"]*job-title[^"]*"[^>]*>([^<]+)/gi,
+      /<td[^>]*>([^<]{5,200})<\/td>/gi,
+    ];
 
-  // Try to find job listing elements in HTML
-  // 12twenty renders job cards with title, company, location
-  const jobCardPattern = /<div[^>]*class="[^"]*job-posting[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/g;
-  let match;
+    for (const pattern of cardPatterns) {
+      let htmlMatch;
+      while ((htmlMatch = pattern.exec(html)) !== null) {
+        const title = (htmlMatch[2] || htmlMatch[1]).trim();
+        const url = htmlMatch[1]?.startsWith('/') ? `${baseUrl}${htmlMatch[1]}` :
+                    htmlMatch[1]?.startsWith('http') ? htmlMatch[1] : '';
 
-  while ((match = jobCardPattern.exec(html)) !== null) {
-    const card = match[1];
-    const titleMatch = card.match(/<(?:h\d|a|span)[^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)/i);
-    const companyMatch = card.match(/<(?:span|div)[^>]*class="[^"]*company[^"]*"[^>]*>([^<]+)/i);
-    const locationMatch = card.match(/<(?:span|div)[^>]*class="[^"]*location[^"]*"[^>]*>([^<]+)/i);
+        if (title.length < 5 || title.length > 200) continue;
+        if (/sign in|log in|menu|cookie|navigation|header|footer/i.test(title)) continue;
 
-    if (titleMatch) {
-      const title = titleMatch[1].trim();
-      const company = companyMatch ? companyMatch[1].trim() : 'Unknown';
-      const jobLocation = locationMatch ? locationMatch[1].trim() : '';
+        if (!jobs.some(j => j.title === title)) {
+          jobs.push({
+            id: crypto.randomUUID(),
+            title,
+            company: 'Unknown',
+            location: 'Cambridge, UK',
+            type: 'full-time',
+            source: source.name,
+            sourceUrl: source.url,
+            url: url || source.url,
+            postedDate: 'Scraped just now',
+          });
+        }
+      }
+      if (jobs.length > 0) break;
+    }
+  }
 
-      if (searchCity && jobLocation && !jobLocation.toLowerCase().includes(searchCity)) continue;
+  // Pattern 3: Try to find structured text blocks (title + company + location patterns)
+  if (jobs.length === 0) {
+    console.log('OCC: Trying block-based markdown parsing');
+    const lines = markdown.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Look for bold titles or heading-like patterns
+      const boldMatch = line.match(/^\*\*(.{5,200})\*\*$/);
+      const headingMatch = line.match(/^#{1,4}\s+(.{5,200})$/);
+      const title = boldMatch?.[1] || headingMatch?.[1];
+
+      if (!title) continue;
+      if (/sign in|log in|menu|filter|search|cookie|navigation/i.test(title)) continue;
+
+      let company = 'Unknown';
+      let jobLocation = 'Cambridge, UK';
+
+      // Next lines might have company and location
+      if (i + 1 < lines.length && !lines[i + 1].startsWith('*') && !lines[i + 1].startsWith('#')) {
+        company = lines[i + 1].replace(/\*\*/g, '').trim();
+      }
+      if (i + 2 < lines.length) {
+        const possibleLoc = lines[i + 2].replace(/\*\*/g, '').trim();
+        if (/[A-Z][a-z]+/.test(possibleLoc) && possibleLoc.length < 100) {
+          jobLocation = possibleLoc;
+        }
+      }
+
+      let type = 'full-time';
+      const titleLower = title.toLowerCase();
+      if (titleLower.includes('intern') && !titleLower.includes('internal')) type = 'internship';
+      else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
+
+      const hash = Array.from(new TextEncoder().encode(title)).reduce((a, b) => ((a << 5) - a + b) | 0, 0);
 
       jobs.push({
         id: crypto.randomUUID(),
         title: title.slice(0, 200),
         company,
-        location: jobLocation || 'Cambridge, UK',
-        type: 'full-time',
+        location: jobLocation,
+        type,
         source: source.name,
         sourceUrl: source.url,
-        url: source.url,
+        url: `${source.url}#job-${Math.abs(hash)}`,
         postedDate: 'Scraped just now',
       });
     }
