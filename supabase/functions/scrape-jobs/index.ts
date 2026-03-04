@@ -101,10 +101,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Total jobs found: ${results.length}`);
+    // Filter out jobs older than 6 months
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const filteredResults = results.filter(job => {
+      if (!job.postedDate || job.postedDate === 'Scraped just now') return true;
+      const parsed = tryParseDate(job.postedDate);
+      if (!parsed) return true; // Keep if we can't parse the date
+      return parsed >= sixMonthsAgo;
+    });
+
+    console.log(`Total jobs found: ${filteredResults.length} (filtered from ${results.length})`);
 
     return new Response(
-      JSON.stringify({ success: true, jobs: results, sourceStatuses }),
+      JSON.stringify({ success: true, jobs: filteredResults, sourceStatuses }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
