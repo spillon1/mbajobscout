@@ -2144,7 +2144,7 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
 
     let type = 'full-time';
     const fullText = `${title} ${company}`.toLowerCase();
-    if (fullText.includes('intern') && !fullText.includes('internal')) type = 'internship';
+    if (fullText.includes('intern') && !fullText.includes('internal') && !fullText.includes('international')) type = 'internship';
     else if (fullText.includes('graduate') || fullText.includes('entry level')) type = 'graduate';
 
     let salary: string | undefined;
@@ -2153,7 +2153,14 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
 
     let postedDate = 'Scraped just now';
     const timeMatch = content.match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
-    if (timeMatch) postedDate = timeMatch[1];
+    if (timeMatch) {
+      postedDate = timeMatch[1];
+    } else {
+      // Time info often appears after the link in surrounding markdown text
+      const afterLink = markdown.substring(match.index! + match[0].length, match.index! + match[0].length + 200);
+      const afterTimeMatch = afterLink.match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+      if (afterTimeMatch) postedDate = afterTimeMatch[1];
+    }
 
     if (jobs.some(j => j.title === title && j.company === company)) continue;
 
