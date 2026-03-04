@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
     console.log(`Total jobs found: ${dedupedResults.length} (filtered from ${results.length})`);
 
     return new Response(
-      JSON.stringify({ success: true, jobs: filteredResults, sourceStatuses }),
+      JSON.stringify({ success: true, jobs: dedupedResults, sourceStatuses }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
