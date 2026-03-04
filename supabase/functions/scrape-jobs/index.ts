@@ -503,7 +503,7 @@ function parseStructuredCards(
     // Split the content by backslashes and newlines to get fields
     const fields = content
       .split(/\\+|\n/)
-      .map(s => s.replace(/\*\*/g, '').trim())
+      .map(s => s.replace(/\*\*/g, '').replace(/^\s*[-•]\s*/, '').trim())
       .filter(s => s.length > 0 && s !== ',' && !s.startsWith('![') && !s.startsWith('['));
 
     // We expect at least: Title, Company
