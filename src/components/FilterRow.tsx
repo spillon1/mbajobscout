@@ -201,7 +201,7 @@ export function FilterRow({
             {isSearching ? (
               <span className="flex items-center gap-1.5">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Scraping
+                Searching
               </span>
             ) : (
               'Find jobs'
