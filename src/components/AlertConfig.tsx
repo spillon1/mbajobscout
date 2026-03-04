@@ -185,7 +185,7 @@ export function AlertConfig({ keywords, location, sourceNames }: AlertConfigProp
           </button>
           <button
             onClick={handleTestAlert}
-            disabled={testing || !alertId}
+            disabled={testing}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border text-foreground hover:bg-muted transition-colors disabled:opacity-50"
           >
             {testing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}

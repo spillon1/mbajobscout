@@ -34,32 +34,31 @@ Deno.serve(async (req) => {
 
     // Get active alert config
     const { data: alerts, error: alertsError } = await supabase
-      .from('job_alerts')
-      .select('*')
-      .eq('enabled', true)
-      .limit(10);
+    let alertRecipients: any[] = [];
 
-    const activeAlerts = alerts && alerts.length > 0 ? alerts : null;
+    if (isTestMode) {
+      // Test mode: send to any saved alert, even if disabled
+      const { data } = await supabase
+        .from('job_alerts')
+        .select('*')
+        .limit(10);
+      alertRecipients = data || [];
+    } else {
+      // Production: only enabled alerts
+      const { data } = await supabase
+        .from('job_alerts')
+        .select('*')
+        .eq('enabled', true)
+        .limit(10);
+      alertRecipients = data || [];
+    }
 
-    if (!activeAlerts) {
-      // In test mode, try any alert (even disabled)
-      if (isTestMode) {
-        const { data: anyAlert } = await supabase
-          .from('job_alerts')
-          .select('*')
-          .limit(1)
-          .single();
-        if (anyAlert) {
-          activeAlerts?.push(anyAlert) || (alerts as any[])?.push(anyAlert);
-        }
-      }
-      if (!activeAlerts || activeAlerts.length === 0) {
-        console.log('No active alerts configured');
-        return new Response(
-          JSON.stringify({ success: true, message: 'No active alerts' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    if (alertRecipients.length === 0) {
+      console.log('No alerts configured');
+      return new Response(
+        JSON.stringify({ success: true, message: 'No alerts configured', count: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Get jobs
@@ -143,7 +142,7 @@ Deno.serve(async (req) => {
 
     // Send to all active alert recipients
     let totalSent = 0;
-    for (const alert of (activeAlerts || [])) {
+    for (const alert of alertRecipients) {
       const emailResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
