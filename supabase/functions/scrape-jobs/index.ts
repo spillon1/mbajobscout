@@ -237,6 +237,166 @@ async function scrapeGoogleJobsPages(
   return allJobs;
 }
 
+// ---- Venture5 Scraper (with Load More actions) ----
+
+async function scrapeVenture5(
+  apiKey: string,
+  source: { name: string; url: string },
+  searchLocation: string
+): Promise<any[]> {
+  const searchCity = searchLocation.split(',')[0]?.trim().toLowerCase();
+  console.log(`Venture5: scraping with Load More actions, filtering for: ${searchCity}`);
+
+  // Use Firecrawl actions to click "Load more listings" multiple times
+  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url: source.url,
+      formats: ['markdown'],
+      onlyMainContent: true,
+      waitFor: 3000,
+      actions: [
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: 'text="Load more listings"' },
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: 'text="Load more listings"' },
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: 'text="Load more listings"' },
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: 'text="Load more listings"' },
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: 'text="Load more listings"' },
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: 'text="Load more listings"' },
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: 'text="Load more listings"' },
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: 'text="Load more listings"' },
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: 'text="Load more listings"' },
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'click', selector: 'text="Load more listings"' },
+        { type: 'wait', milliseconds: 2000 },
+        { type: 'scrape' },
+      ],
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    console.error('Venture5 scrape failed:', data);
+    throw new Error(data.error || `HTTP ${response.status}`);
+  }
+
+  const markdown = data.data?.markdown || data.markdown || '';
+  console.log(`Venture5 markdown length: ${markdown.length}`);
+  // Log first 500 chars for debugging
+  console.log(`Venture5 markdown preview: ${markdown.substring(0, 500)}`);
+
+  return parseVenture5Jobs(markdown, source, searchCity);
+}
+
+function parseVenture5Jobs(
+  markdown: string,
+  source: { name: string; url: string },
+  searchCity: string
+): any[] {
+  const jobs: any[] = [];
+
+  // Venture5 job rows appear as linked blocks like:
+  // [Title\nCompany](https://venture5.com/jobs/slug) followed by location and date text
+  const linkPattern = /\[([^\]]+)\]\((https?:\/\/(?:www\.)?venture5\.com\/jobs\/[^\s)]+)\)/g;
+  let match;
+  
+  while ((match = linkPattern.exec(markdown)) !== null) {
+    const content = match[1];
+    const url = match[2];
+    
+    // Split content by newlines to get title and company
+    const parts = content.split(/\n/).map(s => s.trim()).filter(s => s.length > 0);
+    if (parts.length < 1) continue;
+    
+    const title = parts[0].replace(/\*\*/g, '').trim();
+    const company = parts.length >= 2 ? parts[1].replace(/\*\*/g, '').trim() : 'Unknown';
+    
+    // Skip non-job entries
+    if (title.length < 5 || title.length > 200) continue;
+    const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about'];
+    if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
+    
+    // Look at text AFTER the link for location and date
+    const afterIdx = match.index + match[0].length;
+    const afterText = markdown.substring(afterIdx, afterIdx + 300);
+    
+    // Extract location - typically appears as "City, Country/Region" before "Posted"
+    let jobLocation = '';
+    
+    // Try "City, Region" pattern before Posted
+    const locMatch = afterText.match(/^\s*([A-Z][\w\s]+,\s*[\w\s]+?)(?:\s+Posted|\s*$)/m);
+    if (locMatch) {
+      jobLocation = locMatch[1].trim();
+    }
+    
+    // Also try just a city name
+    if (!jobLocation) {
+      const cityMatch = afterText.match(/^\s*(London|New York|San Francisco|Washington|Berlin|Paris|Singapore|Boston|Remote|Cambridge|Oxford|Dubai|Hong Kong|Amsterdam|Toronto|Sydney|Tokyo|Chicago|Los Angeles|Mumbai)[\s,]/im);
+      if (cityMatch) {
+        // Get the full location string
+        const fullLocMatch = afterText.match(new RegExp(cityMatch[1] + '[,\\s]+[\\w\\s]+?(?=\\s+Posted|\\s*$)', 'im'));
+        jobLocation = fullLocMatch ? fullLocMatch[0].trim() : cityMatch[1];
+      }
+    }
+    
+    // Filter by search location
+    if (searchCity) {
+      if (jobLocation) {
+        const locLower = jobLocation.toLowerCase();
+        if (!locLower.includes(searchCity)) {
+          console.log(`Venture5: skipping "${title}" at "${company}" - location "${jobLocation}" doesn't match "${searchCity}"`);
+          continue;
+        }
+      } else {
+        // No location found - skip since we can't confirm it matches
+        console.log(`Venture5: skipping "${title}" - no location extracted`);
+        continue;
+      }
+    }
+    
+    // Extract posted date
+    let postedDate = 'Scraped just now';
+    const dateMatch = afterText.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+    if (dateMatch) postedDate = dateMatch[1];
+    
+    // Determine job type
+    let type = 'full-time';
+    const fullText = `${title} ${company}`.toLowerCase();
+    if (fullText.includes('intern') && !fullText.includes('internal')) type = 'internship';
+    else if (fullText.includes('graduate') || fullText.includes('entry level') || fullText.includes('visiting analyst')) type = 'graduate';
+    
+    // Avoid duplicates
+    if (jobs.some(j => j.title === title && j.company === company)) continue;
+    
+    jobs.push({
+      id: crypto.randomUUID(),
+      title,
+      company,
+      location: jobLocation,
+      type,
+      source: source.name,
+      sourceUrl: source.url,
+      url,
+      postedDate,
+    });
+  }
+  
+  console.log(`Venture5 parser found ${jobs.length} jobs matching location: ${searchCity}`);
+  return jobs;
+}
+
 // ---- Date Parsing Helper ----
 
 function tryParseDate(dateStr: string): Date | null {
