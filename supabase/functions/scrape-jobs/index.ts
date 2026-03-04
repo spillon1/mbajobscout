@@ -336,87 +336,81 @@ function parseVenture5Jobs(
 ): any[] {
   const jobs: any[] = [];
 
-  const blocks = markdown
-    .split(/\n(?=- \[)/)
-    .map((b) => b.trim())
-    .filter((b) => b.startsWith('- ['));
+  // Find venture5 job URLs and parse the listing content around each URL
+  const urlPattern = /\]\((https?:\/\/(?:www\.)?venture5\.com\/(?:job\/[^\s)]+|\?post_type=job_listing[^\s)]+))\)/g;
+  let urlMatch;
 
-  for (const block of blocks) {
-    const urlMatch = block.match(/\]\((https?:\/\/(?:www\.)?venture5\.com\/(?:job\/[^\s)]+|\?post_type=job_listing[^\s)]+))\)/i);
-    if (!urlMatch) continue;
+  while ((urlMatch = urlPattern.exec(markdown)) !== null) {
     const url = urlMatch[1];
 
-    const boldMatches = [...block.matchAll(/\*\*([^*\n]+)\*\*/g)].map((m) => cleanVenture5Text(m[1]));
-    const linkTitleMatch = block.match(/\[([^\]\n]+)\]\(https?:\/\/(?:www\.)?venture5\.com\/(?:job\/[^\s)]+|\?post_type=job_listing[^\s)]+)\)/i);
+    // Proven extraction block: content before URL carries title/company/location for most listings
+    const beforeUrl = markdown.substring(Math.max(0, urlMatch.index - 700), urlMatch.index);
+    const blockStart = beforeUrl.lastIndexOf('- [');
+    if (blockStart < 0) continue;
 
-    const title = (boldMatches[0] || cleanVenture5Text(linkTitleMatch?.[1] || '')).trim();
-    if (title.length < 3 || title.length > 200) continue;
-
-    // Clean markdown block into readable lines for metadata extraction
-    const plainLines = block
-      .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    const content = beforeUrl.substring(blockStart + 2);
+    const textContent = content
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
       .replace(/\*\*/g, '')
-      .replace(/\\+/g, ' ')
-      .replace(/\]\(https?:\/\/[^)]+\)/g, '')
-      .replace(/\[/g, '')
-      .split('\n')
-      .map((line) => cleanVenture5Text(line))
-      .filter(Boolean);
+      .replace(/\\/g, '')
+      .replace(/- Posted/g, 'Posted')
+      .trim();
 
-    // Company: prefer second bold line, fallback to first non-title/non-date/non-location line
-    let company = (boldMatches[1] || '').trim();
-    if (!company) {
-      const companyCandidate = plainLines.find((line) => {
-        const lower = line.toLowerCase();
-        if (lower === title.toLowerCase()) return false;
-        if (/(posted\s+)?\d+\s*(hour|day|week|month)s?\s*ago/i.test(lower)) return false;
-        if (/(london|england|united kingdom|\buk\b)/i.test(lower)) return false;
-        if (lower.includes('search completed') || lower.includes('matching records')) return false;
-        return line.length > 1;
-      });
-      company = companyCandidate || 'Unknown';
+    const parts = textContent
+      .split(/\n/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && s !== '[' && s !== ',' && s !== '-');
+
+    if (parts.length < 2) continue;
+
+    const title = parts[0].replace(/^\[/, '').trim();
+    const company = parts[1].trim();
+
+    if (title.length < 3 || title.length > 200) continue;
+    const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about', 'latest news'];
+    if (skipWords.some((w) => title.toLowerCase().includes(w))) continue;
+
+    let jobLocation = '';
+    for (const part of parts) {
+      if (/london|england|uk|united kingdom/i.test(part) && !part.includes('Posted')) {
+        jobLocation = part;
+        break;
+      }
     }
 
-    // Location extraction
-    const locationCandidate = plainLines.find(
-      (line) => /(london|england|united kingdom|\buk\b)/i.test(line) && !/posted/i.test(line)
-    ) || '';
+    if (searchCity && !jobLocation) continue;
+    if (searchCity && jobLocation && !jobLocation.toLowerCase().includes(searchCity)) continue;
 
-    if (searchCity && (!locationCandidate || !locationCandidate.toLowerCase().includes(searchCity))) {
-      continue;
-    }
-
-    // Posted date extraction: support both "Posted 6 days ago" and plain "6 days ago"
+    // Capture posted date from a wider neighborhood around URL (before + after)
     let postedDate = 'Scraped just now';
-    const relativeDateMatch =
-      block.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i) ||
-      block.match(/\b(\d+\s*(?:hour|day|week|month)s?\s*ago)\b/i);
+    const aroundUrl = markdown.substring(
+      Math.max(0, urlMatch.index - 700),
+      Math.min(markdown.length, urlMatch.index + 350)
+    );
 
-    if (relativeDateMatch) {
-      postedDate = relativeDateMatch[1];
+    const rawDateMatch =
+      aroundUrl.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i) ||
+      aroundUrl.match(/\b(\d+\s*(?:hour|day|week|month)s?\s*ago)\b/i);
+
+    if (rawDateMatch) {
+      postedDate = rawDateMatch[1];
     } else {
-      const absoluteDateMatch = block.match(/\b([A-Za-z]+\s+\d{1,2},?\s+\d{4})\b/);
+      const absoluteDateMatch = aroundUrl.match(/\b([A-Za-z]+\s+\d{1,2},?\s+\d{4})\b/);
       if (absoluteDateMatch) postedDate = absoluteDateMatch[1];
     }
 
-    // Determine job type
     let type = 'full-time';
     const fullText = `${title} ${company}`.toLowerCase();
     if (fullText.includes('intern') && !fullText.includes('internal')) type = 'internship';
     else if (fullText.includes('graduate') || fullText.includes('entry level') || fullText.includes('visiting analyst')) type = 'graduate';
 
-    // Skip non-job entries
-    const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about', 'latest news'];
-    if (skipWords.some((w) => title.toLowerCase().includes(w))) continue;
-
-    // Avoid duplicates
     if (jobs.some((j) => j.url === url || (j.title === title && j.company === company))) continue;
 
     jobs.push({
       id: crypto.randomUUID(),
       title,
       company,
-      location: locationCandidate,
+      location: jobLocation,
       type,
       source: source.name,
       sourceUrl: source.url,
@@ -427,14 +421,6 @@ function parseVenture5Jobs(
 
   console.log(`Venture5 parser found ${jobs.length} jobs matching location: ${searchCity}`);
   return jobs;
-}
-
-function cleanVenture5Text(value: string): string {
-  return value
-    .replace(/^[-•]\s*/, '')
-    .replace(/^\[+|\]+$/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
 }
 
 // ---- Date Parsing Helper ----
