@@ -1,7 +1,7 @@
 import { Job, JobSource } from '@/types/jobs';
 
 export const DEFAULT_SOURCES: (JobSource & { status?: 'connected' | 'error' | 'checking' | 'unknown' })[] = [
-  { id: '2', name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/', enabled: true, status: 'unknown' },
+  { id: '2', name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/search/?keywords=%22venture+capital%22&location=London', enabled: true, status: 'unknown' },
   { id: '4', name: 'John Gannon Blog', url: 'https://johngannonblog.com/?feed=job_feed&job_types&search_location=London&job_categories&search_keywords', enabled: true, status: 'unknown' },
   { id: '5', name: 'Startup & VC', url: 'https://www.startupandvc.com/venture-capital-jobs', enabled: true, status: 'unknown' },
   { id: '6', name: 'eFinancialCareers', url: 'https://www.efinancialcareers.co.uk/jobs/%22venture-capital%22/in-london%2C-uk?q=%22venture+capital%22&location=London%2C+UK&latitude=51.50721&longitude=-0.12758&countryCode=GB&locationPrecision=City&radius=40&radiusUnit=km&pageSize=15&currencyCode=GBP&language=en&includeUnspecifiedSalary=true&enableVectorSearch=true', enabled: true, status: 'unknown' },
