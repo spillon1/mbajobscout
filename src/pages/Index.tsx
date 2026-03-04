@@ -48,13 +48,9 @@ const Index = () => {
   const allCompanies = useMemo(() => [...new Set(MOCK_JOBS.map((j) => j.company))].sort(), []);
   const allTitles = useMemo(() => [...new Set(MOCK_JOBS.map((j) => j.title))].sort(), []);
 
-  const filteredJobs = useMemo(() => {
+  // Jobs filtered by everything EXCEPT type (for stable stat counts)
+  const baseFilteredJobs = useMemo(() => {
     let jobs = MOCK_JOBS;
-
-    if (selectedType !== 'any') {
-      jobs = jobs.filter((j) => j.type === selectedType);
-    }
-
 
     if (selectedCompanies.length > 0) {
       jobs = jobs.filter((j) => selectedCompanies.includes(j.company));
@@ -75,14 +71,19 @@ const Index = () => {
     jobs = jobs.filter((j) => enabledSources.includes(j.source));
 
     return jobs;
-  }, [selectedType, selectedCompanies, selectedTitles, filterKeywords, sources]);
+  }, [selectedCompanies, selectedTitles, filterKeywords, sources]);
+
+  const filteredJobs = useMemo(() => {
+    if (selectedType === 'any') return baseFilteredJobs;
+    return baseFilteredJobs.filter((j) => j.type === selectedType);
+  }, [baseFilteredJobs, selectedType]);
 
   const stats = useMemo(() => ({
-    total: filteredJobs.length,
-    fullTime: filteredJobs.filter((j) => j.type === 'full-time').length,
-    internship: filteredJobs.filter((j) => j.type === 'internship').length,
-    graduate: filteredJobs.filter((j) => j.type === 'graduate').length,
-  }), [filteredJobs]);
+    total: baseFilteredJobs.length,
+    fullTime: baseFilteredJobs.filter((j) => j.type === 'full-time').length,
+    internship: baseFilteredJobs.filter((j) => j.type === 'internship').length,
+    graduate: baseFilteredJobs.filter((j) => j.type === 'graduate').length,
+  }), [baseFilteredJobs]);
 
   return (
     <div className="min-h-screen bg-background bg-grid">
