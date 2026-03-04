@@ -628,6 +628,9 @@ async function scrapeIndeed(
     required: ['jobs'],
   };
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s client timeout
+
   const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
     method: 'POST',
     headers: {
@@ -636,12 +639,15 @@ async function scrapeIndeed(
     },
     body: JSON.stringify({
       url: searchUrl,
-      formats: ['extract', 'html'],
+      formats: ['extract'],
       extract: { schema: jsonSchema },
-      waitFor: 5000,
-      timeout: 60000,
+      waitFor: 2000,
+      timeout: 20000,
     }),
+    signal: controller.signal,
   });
+
+  clearTimeout(timeoutId);
 
   const data = await response.json();
   if (!response.ok) {
