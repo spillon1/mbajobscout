@@ -56,6 +56,7 @@ const Index = () => {
           prev.map((s) => ({
             ...s,
             status: (result.sourceStatuses[s.name]?.status as any) || s.status,
+            statusMessage: result.sourceStatuses[s.name]?.error || (result.sourceStatuses[s.name]?.status === 'connected' ? 'Scraped successfully' : undefined),
           }))
         );
       }
