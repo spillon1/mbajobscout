@@ -331,32 +331,61 @@ async function scrapeVenture5(
   return await enrichVenture5PostedDates(parsedJobs, searchCity);
 }
 
-async function enrichVenture5PostedDates(jobs: any[], searchCity: string): Promise<any[]> {
+async function enrichVenture5PostedDates(jobs: any[], _searchCity: string): Promise<any[]> {
   const missingDateJobs = jobs.filter((j) => !j.postedDate || j.postedDate === 'Scraped just now');
   if (missingDateJobs.length === 0) return jobs;
 
-  try {
-    const rssUrl = `https://venture5.com/?feed=job_feed&job_types=freelance%2Cfull-time%2Cinternship%2Cpart-time%2Ctemporary&search_location=${encodeURIComponent(searchCity)}&job_categories&search_keywords`;
-    const response = await fetch(rssUrl);
-    if (!response.ok) return jobs;
+  const recoveredDates = new Map<string, string>();
+  const batchSize = 6;
 
-    const xml = await response.text();
-    const rssItems = parseRssItems(xml);
+  for (let i = 0; i < missingDateJobs.length; i += batchSize) {
+    const batch = missingDateJobs.slice(i, i + batchSize);
+    const results = await Promise.allSettled(
+      batch.map(async (job) => {
+        const postedDate = await fetchVenture5PostedDate(job.url);
+        return { key: normalizeVenture5Url(job.url), postedDate };
+      })
+    );
 
-    const dateByUrl = new Map<string, string>();
-    for (const item of rssItems) {
-      const key = normalizeVenture5Url(item.link);
-      if (key && item.pubDate) dateByUrl.set(key, item.pubDate);
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value.postedDate) {
+        recoveredDates.set(result.value.key, result.value.postedDate);
+      }
     }
+  }
 
-    return jobs.map((job) => {
-      if (job.postedDate && job.postedDate !== 'Scraped just now') return job;
-      const rssDate = dateByUrl.get(normalizeVenture5Url(job.url));
-      return rssDate ? { ...job, postedDate: rssDate } : job;
+  console.log(`Venture5 date enrichment resolved ${recoveredDates.size}/${missingDateJobs.length} missing dates`);
+
+  return jobs
+    .map((job) => {
+      const recovered = recoveredDates.get(normalizeVenture5Url(job.url));
+      return recovered ? { ...job, postedDate: recovered } : job;
+    })
+    .filter((job) => job.postedDate && job.postedDate !== 'Scraped just now');
+}
+
+async function fetchVenture5PostedDate(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'user-agent': 'Mozilla/5.0 (compatible; VCScoutBot/1.0)',
+      },
     });
+
+    if (!response.ok) return null;
+
+    const html = await response.text();
+
+    const relativeMatch = html.match(/Posted\s*(\d+\s*(?:hour|day|week|month|year)s?\s*ago)/i);
+    if (relativeMatch) return relativeMatch[1];
+
+    const absoluteMatch = html.match(/Posted\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})/i);
+    if (absoluteMatch) return absoluteMatch[1];
+
+    return null;
   } catch (err) {
-    console.error('Venture5 RSS date enrichment failed:', err);
-    return jobs;
+    console.error('Venture5 posted-date fetch failed:', err);
+    return null;
   }
 }
 
