@@ -27,16 +27,10 @@ export function getOutboundUrl(externalUrl?: string | null): string | null {
   return `/out?u=${encodeURIComponent(cleaned)}`;
 }
 
-/** Check if a URL is a Google search URL (not a direct job posting). */
+/** Check if a URL is blocked (no longer blocks Google search URLs — /out redirector handles CSP). */
 export function isBlockedUrl(url?: string | null): boolean {
   if (!url) return true;
-
-  try {
-    const parsed = new URL(url);
-    return parsed.hostname.includes('google.com') && parsed.pathname.includes('/search');
-  } catch {
-    return url.includes('google.com/search');
-  }
+  return false;
 }
 
 /** Get a safe job URL, returning null if blocked. */
