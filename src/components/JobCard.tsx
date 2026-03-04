@@ -47,10 +47,10 @@ export function JobCard({ job }: { job: Job }) {
               <MapPin className="h-3.5 w-3.5" />
               {job.location}
             </span>
-            {job.postedDate && (
+            {formatPostedDate(job.postedDate) && (
               <span className="flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
-                {job.postedDate}
+                <Calendar className="h-3.5 w-3.5" />
+                {formatPostedDate(job.postedDate)}
               </span>
             )}
             {job.salary && (
