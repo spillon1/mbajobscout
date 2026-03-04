@@ -755,7 +755,7 @@ function parseIndeedJobs(
         source: source.name,
         sourceUrl: source.url,
         url,
-        postedDate: postedDate || undefined,
+        postedDate: postedDate ? convertRelativeDate(postedDate) : undefined,
         description: description || undefined,
         salary: salary || undefined,
       });
@@ -793,7 +793,7 @@ function parseIndeedJobs(
           source: source.name,
           sourceUrl: source.url,
           url,
-          postedDate: postedDate || undefined,
+        postedDate: postedDate ? convertRelativeDate(postedDate) : undefined,
           description: description || undefined,
           salary: salary || undefined,
         });
@@ -824,7 +824,7 @@ function parseIndeedJobs(
           source: source.name,
           sourceUrl: source.url,
           url,
-          postedDate: postedDate || undefined,
+          postedDate: postedDate ? convertRelativeDate(postedDate) : undefined,
           salary: salary || undefined,
         });
       }
@@ -869,22 +869,25 @@ function extractIndeedCardDetails(context: string, fallbackCity: string) {
   }
 
   // Posted date — Indeed uses various patterns
+  // Only match strong signals: explicit "X days ago" patterns, not vague "today"/"just posted"
   const datePatterns = [
     /data-testid="[^"]*date[^"]*"[^>]*>([^<]+)/i,
     /class="[^"]*date[^"]*"[^>]*>([^<]+)/i,
-    /class="[^"]*result-footer[^"]*"[\s\S]*?(\d+\+?\s*(?:day|hour|week|month)s?\s*ago|just posted|today|posted\s+\d+)/i,
+    /class="[^"]*result-footer[^"]*"[\s\S]*?(\d+\+?\s*(?:day|hour|week|month)s?\s*ago)/i,
     />(Posted\s+\d+\+?\s*(?:day|hour|week|month)s?\s*ago)<\//i,
     />(\d+\+?\s*(?:day|hour|week|month)s?\s*ago)<\//i,
-    />(just posted|today)<\//i,
-    /(\d+\+?\s*(?:day|hour|week|month)s?\s*ago|just posted|today)/i,
   ];
   for (const pat of datePatterns) {
     const dm = context.match(pat);
     if (dm) {
       const raw = (dm[1] || dm[0]).replace(/<[^>]*>/g, '').trim();
-      // Clean up "Posted 5 days ago" → "5 days ago", "PostedPosted 30+ days ago" → "30+ days ago"
-      postedDate = raw.replace(/^(posted\s*)+/i, '').trim();
-      if (postedDate) break;
+      const cleaned = raw.replace(/^(posted\s*)+/i, '').trim();
+      // Skip vague dates like "today" or "just posted" — these are unreliable from Indeed
+      if (/^(today|just\s*posted|just\s*now)$/i.test(cleaned)) continue;
+      if (cleaned) {
+        postedDate = cleaned;
+        break;
+      }
     }
   }
 
@@ -1019,9 +1022,12 @@ function parseGlassdoorJobs(
       // Stop if we hit another job listing link
       if (/\[.{5,200}\]\(.*\/job-listing\//.test(nextLine)) break;
 
-      // Location
-      if (/london|uk|england|united kingdom|remote|hybrid/i.test(nextLine) && nextLine.length < 100) {
-        jobLocation = nextLine.replace(/[*\[\]]/g, '').trim();
+      // Skip lines containing URLs (these are not location data)
+      if (/https?:\/\/|glassdoor\.co\.uk/i.test(nextLine)) continue;
+
+      // Location — must be a short plain-text line, no markdown links
+      if (!jobLocation.includes(',') && /london|uk|england|united kingdom|remote|hybrid/i.test(nextLine) && nextLine.length < 60 && !nextLine.includes('](')) {
+        jobLocation = nextLine.replace(/[*\[\]]/g, '').replace(/^[-–•·]\s*/, '').trim();
       }
 
       // Date
@@ -1030,8 +1036,8 @@ function parseGlassdoorJobs(
         postedDate = convertRelativeDate(dateMatch[1]);
       }
 
-      // Salary
-      const salaryMatch = nextLine.match(/[£$€]\s?[\d,]+(?:\s?[-–]\s?[£$€]?\s?[\d,]+)?(?:\s?(?:k|K|pa|p\.a\.|per annum|per year))?/);
+      // Salary — prefer £ for UK site
+      const salaryMatch = nextLine.match(/£\s?[\d,]+(?:\s?[-–]\s?£?\s?[\d,]+)?(?:\s?(?:k|K|pa|p\.a\.|per annum|per year))?/);
       if (salaryMatch) salary = salaryMatch[0];
     }
 

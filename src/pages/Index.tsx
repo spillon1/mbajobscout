@@ -27,7 +27,7 @@ const isOccSource = (value: string): boolean => /occ\s*\(cambridge\)|12twenty/i.
 import { Job, JobType, JobSource } from '@/types/jobs';
 import { DEFAULT_SOURCES, DEFAULT_KEYWORDS } from '@/data/jobData';
 import { FilterBar } from '@/components/FilterBar';
-import { FilterRow, ListedPeriod, JobStatus, SortOption } from '@/components/FilterRow';
+import { FilterRow, ListedPeriod, JobStatus, SortOption, DatePostedFilter } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
 import { KeywordBar } from '@/components/KeywordBar';
@@ -70,6 +70,7 @@ const Index = () => {
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [filterKeywords, setFilterKeywords] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+  const [datePostedFilter, setDatePostedFilter] = useState<DatePostedFilter>('all');
 
   useEffect(() => {
     setSources((prev) => prev.filter((s) => !isOccSource(`${s.name} ${s.url}`)));
@@ -189,8 +190,15 @@ const Index = () => {
       });
     }
 
+    // Date posted filter
+    if (datePostedFilter === 'with-date') {
+      filtered = filtered.filter((j) => j.postedDate && j.postedDate !== 'Scraped just now');
+    } else if (datePostedFilter === 'without-date') {
+      filtered = filtered.filter((j) => !j.postedDate || j.postedDate === 'Scraped just now');
+    }
+
     return filtered;
-  }, [jobs, dismissedIds, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, location]);
+  }, [jobs, dismissedIds, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, location, datePostedFilter]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -268,6 +276,8 @@ const Index = () => {
           onListedPeriodChange={setListedPeriod}
           sortBy={sortBy}
           onSortByChange={setSortBy}
+          datePostedFilter={datePostedFilter}
+          onDatePostedFilterChange={setDatePostedFilter}
           selectedCompanies={selectedCompanies}
           onCompaniesChange={setSelectedCompanies}
           selectedTitles={selectedTitles}

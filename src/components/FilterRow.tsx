@@ -6,12 +6,15 @@ import { SlidersHorizontal } from 'lucide-react';
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
 export type JobStatus = 'any' | 'open' | 'closed';
 export type SortOption = 'date-desc' | 'date-asc' | 'company-asc' | 'title-asc';
+export type DatePostedFilter = 'all' | 'with-date' | 'without-date';
 
 interface FilterRowProps {
   listedPeriod: ListedPeriod;
   onListedPeriodChange: (period: ListedPeriod) => void;
   sortBy: SortOption;
   onSortByChange: (sort: SortOption) => void;
+  datePostedFilter: DatePostedFilter;
+  onDatePostedFilterChange: (filter: DatePostedFilter) => void;
   selectedCompanies: string[];
   onCompaniesChange: (companies: string[]) => void;
   selectedTitles: string[];
@@ -42,11 +45,19 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'title-asc', label: 'Title A–Z' },
 ];
 
+const DATE_POSTED_OPTIONS: { value: DatePostedFilter; label: string }[] = [
+  { value: 'all', label: 'All Roles' },
+  { value: 'with-date', label: 'With Date' },
+  { value: 'without-date', label: 'Without Date' },
+];
+
 export function FilterRow({
   listedPeriod,
   onListedPeriodChange,
   sortBy,
   onSortByChange,
+  datePostedFilter,
+  onDatePostedFilterChange,
   selectedCompanies,
   onCompaniesChange,
   selectedTitles,
@@ -78,6 +89,19 @@ export function FilterRow({
         </SelectTrigger>
         <SelectContent>
           {LISTED_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value} className="text-xs">
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={datePostedFilter} onValueChange={(v) => onDatePostedFilterChange(v as DatePostedFilter)}>
+        <SelectTrigger className="h-7 w-[130px] text-xs font-display bg-card border-border">
+          <SelectValue placeholder="Date Posted" />
+        </SelectTrigger>
+        <SelectContent>
+          {DATE_POSTED_OPTIONS.map((opt) => (
             <SelectItem key={opt.value} value={opt.value} className="text-xs">
               {opt.label}
             </SelectItem>
