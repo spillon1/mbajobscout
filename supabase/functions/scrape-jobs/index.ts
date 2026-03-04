@@ -581,6 +581,26 @@ function matchesUserKeywords(title: string, company: string, description: string
   });
 }
 
+function isLikelyVcRole(title: string, company: string, description: string | undefined, keywords: string[]): boolean {
+  const text = ` ${title} ${company} ${description || ''} `.toLowerCase();
+
+  // Strong VC signals
+  if (/\bvc\b|venture\s+capital|ventures?\b|pre-?seed|seed\s+stage|series\s+[abc]|early[-\s]?stage|startup|start-up/i.test(text)) {
+    return true;
+  }
+
+  // Fallback: any meaningful keyword token appears in title/company
+  const keywordTokens = Array.from(new Set(
+    keywords
+      .map(normalizeKeyword)
+      .flatMap((kw) => kw.split(/[^a-z0-9]+/))
+      .filter((t) => t.length > 2 && !['intern', 'internship', 'graduate', 'role', 'roles', 'jobs', 'london'].includes(t))
+  ));
+
+  const titleCompany = ` ${title} ${company} `.toLowerCase();
+  return keywordTokens.some((token) => titleCompany.includes(token));
+}
+
 function pickPrimaryEfcKeyword(keywords: string[]): string {
   const cleaned = keywords.map(normalizeKeyword).filter(Boolean);
   const preferred = cleaned.find((kw) => kw.includes('venture capital'));
