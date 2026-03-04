@@ -500,7 +500,7 @@ function tryParseDate(dateStr: string): Date | null {
   if (!dateStr || dateStr === 'Scraped just now') return null;
   
   // Handle relative dates like "5 days ago", "2 weeks ago"
-  const relMatch = dateStr.match(/(\d+)\s*(hour|day|week|month)s?\s*ago/i);
+  const relMatch = dateStr.match(/(\d+)\s*(hour|day|week|month|year)s?\s*ago/i);
   if (relMatch) {
     const num = parseInt(relMatch[1]);
     const unit = relMatch[2].toLowerCase();
@@ -509,6 +509,7 @@ function tryParseDate(dateStr: string): Date | null {
     else if (unit === 'day') d.setDate(d.getDate() - num);
     else if (unit === 'week') d.setDate(d.getDate() - num * 7);
     else if (unit === 'month') d.setMonth(d.getMonth() - num);
+    else if (unit === 'year') d.setFullYear(d.getFullYear() - num);
     return d;
   }
 
