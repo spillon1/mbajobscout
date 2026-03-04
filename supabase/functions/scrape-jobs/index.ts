@@ -1451,7 +1451,7 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /ventures?\b/,           // "Octopus Ventures", "BlackRock Ventures"
     /growth\s+equity/,
     /growth\s+debt/,
-    /private\s+equity/,
+    
     /pre-?seed|seed\s+(stage|fund)/,
     /series\s+[a-d]/,
     /early[-\s]?stage/,
