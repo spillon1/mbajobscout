@@ -142,6 +142,9 @@ Deno.serve(async (req) => {
     // Send to all active alert recipients
     let totalSent = 0;
     for (const alert of alertRecipients) {
+      // In sandbox mode (onboarding@resend.dev), Resend only delivers to the account owner
+      const recipientEmail = isTestMode ? 'spillon@gmail.com' : alert.email;
+
       const emailResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -150,7 +153,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           from: 'VCScout <onboarding@resend.dev>',
-          to: [alert.email],
+          to: [recipientEmail],
           subject: `${subjectPrefix}⚡ ${newJobs.length} VC job${newJobs.length === 1 ? '' : 's'} found`,
           html,
         }),
