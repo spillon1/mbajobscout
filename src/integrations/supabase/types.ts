@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      scraped_jobs: {
+        Row: {
+          company: string
+          description: string | null
+          id: string
+          location: string
+          posted_date: string | null
+          salary: string | null
+          scraped_at: string
+          source: string
+          source_url: string
+          title: string
+          type: string
+          url: string
+        }
+        Insert: {
+          company?: string
+          description?: string | null
+          id?: string
+          location?: string
+          posted_date?: string | null
+          salary?: string | null
+          scraped_at?: string
+          source: string
+          source_url: string
+          title: string
+          type?: string
+          url: string
+        }
+        Update: {
+          company?: string
+          description?: string | null
+          id?: string
+          location?: string
+          posted_date?: string | null
+          salary?: string | null
+          scraped_at?: string
+          source?: string
+          source_url?: string
+          title?: string
+          type?: string
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
