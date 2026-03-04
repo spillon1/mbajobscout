@@ -9,7 +9,6 @@ import { KeywordBar } from '@/components/KeywordBar';
 import { Briefcase, Zap } from 'lucide-react';
 
 const Index = () => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('London, United Kingdom');
   const [sources, setSources] = useState<JobSource[]>(DEFAULT_SOURCES);
   const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
@@ -56,15 +55,6 @@ const Index = () => {
       jobs = jobs.filter((j) => j.type === selectedType);
     }
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      jobs = jobs.filter(
-        (j) =>
-          j.title.toLowerCase().includes(q) ||
-          j.company.toLowerCase().includes(q) ||
-          j.description?.toLowerCase().includes(q)
-      );
-    }
 
     if (selectedCompanies.length > 0) {
       jobs = jobs.filter((j) => selectedCompanies.includes(j.company));
@@ -85,7 +75,7 @@ const Index = () => {
     jobs = jobs.filter((j) => enabledSources.includes(j.source));
 
     return jobs;
-  }, [searchQuery, selectedType, selectedCompanies, selectedTitles, selectedKeywords, sources]);
+  }, [selectedType, selectedCompanies, selectedTitles, selectedKeywords, sources]);
 
   const stats = useMemo(() => ({
     total: filteredJobs.length,
@@ -122,10 +112,8 @@ const Index = () => {
 
       {/* Main */}
       <main className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
-        {/* Search bar */}
+        {/* Location & Scrape */}
         <FilterBar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
           location={location}
           onLocationChange={setLocation}
           onSearch={handleSearch}
