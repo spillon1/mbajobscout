@@ -703,22 +703,25 @@ function parseStructuredCards(
     const title = fields[0];
     const company = fields[1];
 
-    // Find location field (city name — typically 3rd field for Startup & VC)
-    // Look for known city/location patterns
-    const locationField = fields.find(f => {
-      const fl = f.toLowerCase();
-      return /^(london|new york|san francisco|boston|berlin|paris|amsterdam|singapore|hong kong|dubai|remote|cambridge|oxford|los angeles|chicago|mumbai|toronto|sydney|tokyo)/i.test(fl)
-        || /,\s*[A-Z]{2}\b/.test(f);
-    });
-    const jobLocation = locationField || '';
+    // Startup & VC cards always include location as the 3rd field; use that directly.
+    // For other sources, keep heuristic detection.
+    const isStartupVcSource = /startup\s*&?\s*vc/i.test(source.name) || source.url.includes('startupandvc.com');
+    const rawLocation = isStartupVcSource
+      ? (fields[2] || '')
+      : (fields.find(f => {
+          const fl = f.toLowerCase();
+          return /^(london|new york|san francisco|boston|berlin|paris|amsterdam|singapore|hong kong|dubai|remote|cambridge|oxford|los angeles|chicago|mumbai|toronto|sydney|tokyo)/i.test(fl)
+            || /,\s*[A-Z]{2}\b/.test(f);
+        }) || '');
+
+    const jobLocation = rawLocation.replace(/,$/, '').trim();
 
     // Filter by user's search location if provided
     if (searchLocation) {
       const searchCity = searchLocation.split(',')[0].trim().toLowerCase();
       if (searchCity) {
-        if (!jobLocation) continue; // No location detected — skip
-        const locLower = jobLocation.toLowerCase();
-        if (!locLower.includes(searchCity)) continue;
+        if (!jobLocation) continue;
+        if (!jobLocation.toLowerCase().includes(searchCity)) continue;
       }
     }
 
