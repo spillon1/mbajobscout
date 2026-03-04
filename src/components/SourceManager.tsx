@@ -24,7 +24,7 @@ const statusConfig: Record<ConnectionStatus, { icon: typeof CheckCircle2; classN
   unknown: { icon: HelpCircle, className: 'text-muted-foreground', label: 'Not yet scraped' },
 };
 
-export function SourceManager({ sources, onToggleSource, onAddSource, onRemoveSource }: SourceManagerProps) {
+export function SourceManager({ sources, onToggleSource, onToggleAll, onAddSource, onRemoveSource }: SourceManagerProps) {
   const [newName, setNewName] = useState('');
   const [newUrl, setNewUrl] = useState('');
   const [showAdd, setShowAdd] = useState(false);
