@@ -3,22 +3,23 @@ import { JobSource } from '@/types/jobs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Globe, Trash2, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Plus, Globe, Trash2, CheckCircle2, AlertCircle, Loader2, HelpCircle } from 'lucide-react';
 
 export type ConnectionStatus = 'connected' | 'error' | 'checking' | 'unknown';
 
 interface SourceManagerProps {
-  sources: (JobSource & { status?: ConnectionStatus })[];
+  sources: JobSource[];
   onToggleSource: (id: string) => void;
   onAddSource: (name: string, url: string) => void;
   onRemoveSource: (id: string) => void;
 }
 
 const statusConfig: Record<ConnectionStatus, { icon: typeof CheckCircle2; className: string; label: string }> = {
-  connected: { icon: CheckCircle2, className: 'text-success', label: 'Connected' },
-  error: { icon: AlertCircle, className: 'text-destructive', label: 'Error' },
-  checking: { icon: Loader2, className: 'text-warning animate-spin', label: 'Checking...' },
-  unknown: { icon: AlertCircle, className: 'text-muted-foreground', label: 'Not tested' },
+  connected: { icon: CheckCircle2, className: 'text-success', label: 'Successfully scraped' },
+  error: { icon: AlertCircle, className: 'text-destructive', label: 'Scrape failed' },
+  checking: { icon: Loader2, className: 'text-warning animate-spin', label: 'Scraping...' },
+  unknown: { icon: HelpCircle, className: 'text-muted-foreground', label: 'Not yet scraped' },
 };
 
 export function SourceManager({ sources, onToggleSource, onAddSource, onRemoveSource }: SourceManagerProps) {
@@ -74,8 +75,12 @@ export function SourceManager({ sources, onToggleSource, onAddSource, onRemoveSo
 
       <div className="space-y-1 max-h-64 overflow-y-auto">
         {sources.map((source) => {
-          const status = source.status || 'unknown';
+          const status = (source.status || 'unknown') as ConnectionStatus;
           const StatusIcon = statusConfig[status].icon;
+          const tooltipText = source.statusMessage
+            ? `${statusConfig[status].label}: ${source.statusMessage}`
+            : statusConfig[status].label;
+
           return (
             <div
               key={source.id}
@@ -87,11 +92,19 @@ export function SourceManager({ sources, onToggleSource, onAddSource, onRemoveSo
                   onCheckedChange={() => onToggleSource(source.id)}
                   className="scale-75"
                 />
-                <span title={statusConfig[status].label}>
-                  <StatusIcon
-                    className={`h-3.5 w-3.5 shrink-0 ${statusConfig[status].className}`}
-                  />
-                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-help">
+                      <StatusIcon
+                        className={`h-3.5 w-3.5 shrink-0 ${statusConfig[status].className}`}
+                      />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[250px] text-xs">
+                    <p className="font-semibold">{source.name}</p>
+                    <p className={status === 'error' ? 'text-destructive' : ''}>{tooltipText}</p>
+                  </TooltipContent>
+                </Tooltip>
                 <span className={`text-sm truncate ${source.enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {source.name}
                 </span>
