@@ -581,24 +581,31 @@ function matchesUserKeywords(title: string, company: string, description: string
   });
 }
 
-function isLikelyVcRole(title: string, company: string, description: string | undefined, keywords: string[]): boolean {
+function isLikelyVcRole(title: string, company: string, description: string | undefined): boolean {
   const text = ` ${title} ${company} ${description || ''} `.toLowerCase();
 
-  // Strong VC signals
-  if (/\bvc\b|venture\s+capital|ventures?\b|pre-?seed|seed\s+stage|series\s+[abc]|early[-\s]?stage|startup|start-up/i.test(text)) {
-    return true;
-  }
+  // Strong VC signals in title, company, or description
+  const vcPatterns = [
+    /venture\s+capital/,
+    /\bvc\b/,
+    /ventures?\b/,           // "Octopus Ventures", "BlackRock Ventures"
+    /growth\s+equity/,
+    /growth\s+debt/,
+    /private\s+equity/,
+    /pre-?seed|seed\s+(stage|fund)/,
+    /series\s+[a-d]/,
+    /early[-\s]?stage/,
+    /startup|start-up/,
+    /portfolio\s+(company|companies|management|monitoring|controller|principal|manager|analyst)/,
+    /fund\s+(admin|management|of\s+funds|raising|operations|accounting|controller)/,
+    /limited\s+partner|general\s+partner|\blp\b|\bgp\b/,
+    /carried\s+interest|co-?invest/,
+    /deal\s+(flow|sourcing|origination)/,
+    /investment\s+(analyst|associate|manager|director|principal|partner|team)/,
+    /investor\s+relations/,
+  ];
 
-  // Fallback: any meaningful keyword token appears in title/company
-  const keywordTokens = Array.from(new Set(
-    keywords
-      .map(normalizeKeyword)
-      .flatMap((kw) => kw.split(/[^a-z0-9]+/))
-      .filter((t) => t.length > 2 && !['intern', 'internship', 'graduate', 'role', 'roles', 'jobs', 'london', 'capital', 'equity', 'finance', 'financial'].includes(t))
-  ));
-
-  const titleCompany = ` ${title} ${company} `.toLowerCase();
-  return keywordTokens.some((token) => titleCompany.includes(token));
+  return vcPatterns.some(pattern => pattern.test(text));
 }
 
 function pickPrimaryEfcKeyword(keywords: string[]): string {
