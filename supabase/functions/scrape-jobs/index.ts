@@ -1454,8 +1454,18 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bat\s+(a\s+)?vc\b/i,
     /\b(for|within)\s+(a\s+)?vc\b/i,
     /\binvestment\s+banking\b/i,       // IB roles are never VC
+    /\binvestment\s+bank\b/i,
     /\bmanagement\s+consult/i,         // consulting roles
     /\burgent\s+search\b/i,            // recruitment agency spam pattern
+    /\bsoftware\s+engineer/i,          // engineering roles
+    /\bengineer(?:ing)?\b/i,           // all engineering
+    /\bdeveloper\b/i,                  // software dev
+    /\bstrategic\s+advisory/i,         // advisory/IB
+    /\bcapital\s+markets?\b/i,         // capital markets roles
+    /\bevent\s+(operations|manager|lead|coordinator|director)/i, // event roles
+    /\bbusiness\s+development\b/i,     // BD roles (not VC-specific)
+    /\breal\s+estate\b/i,             // real estate roles
+    /\bm&a\b/i,                       // M&A / IB
   ];
   if (hardExclude.some(p => p.test(titleLower))) return false;
 
@@ -1470,15 +1480,27 @@ function isLikelyVcRole(title: string, company: string, description: string | un
   ];
   const isRecruitmentAgency = recruitmentAgencies.some(p => p.test(companyLower));
 
+  // Known fund services / fintech companies (not actual VC funds)
+  const fundServicesCompanies = [
+    /\bss&c\b/i, /\bcarta\b/i, /\bcitco\b/i, /\bjuniper\s+square/i,
+    /\bprivate\s+equity\s+insights/i, /\bpreqin\b/i, /\bpitchbook\b/i,
+    /\bstate\s+street\b/i, /\bnt\s+global/i, /\bnorthern\s+trust/i,
+  ];
+  const isFundServices = fundServicesCompanies.some(p => p.test(companyLower));
+
   // ── Tier 1a: Ultra-strong VC signals → pass even for recruitment agencies ──
-  // These are so VC-specific that even a recruiter posting them is posting a real VC role
+  // But NOT if the title also contains non-VC role indicators (e.g. software engineer)
+  // (hard exclusions above already caught those, so these are safe)
   const ultraStrongVcPatterns = [
     /deal\s+(flow|sourcing|origination)/,
     /carried\s+interest/,
-    /limited\s+partner|general\s+partner|\blp\b|\bgp\b/,
     /co-?invest/,
   ];
   if (ultraStrongVcPatterns.some(p => p.test(titleLower))) return true;
+
+  // "limited partner" / "general partner" as role context (not product names)
+  // Only pass if not at a fund services/fintech company
+  if (/limited\s+partner|general\s+partner|\blp\b|\bgp\b/.test(titleLower) && !isFundServices) return true;
 
   // ── Tier 1b: Strong VC signals in TITLE → pass unless recruitment agency ──
   const titleVcPatterns = [
@@ -1489,9 +1511,7 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /investment\s+(analyst|associate|manager|director|principal|partner)/,
   ];
   if (titleVcPatterns.some(p => p.test(titleLower))) {
-    // Recruitment agencies get blocked for these weaker VC signals
-    // (they often append "- Venture Capital" to generic roles)
-    if (isRecruitmentAgency) return false;
+    if (isRecruitmentAgency || isFundServices) return false;
     return true;
   }
 
@@ -1511,7 +1531,7 @@ function isLikelyVcRole(title: string, company: string, description: string | un
   if (nonVcRoles.some(p => p.test(titleLower))) return false;
 
   // ── Tier 2: company looks like a VC fund + title is a fund-type role ──
-  if (!isRecruitmentAgency) {
+  if (!isRecruitmentAgency && !isFundServices) {
     const companyVcPatterns = [
       /venture(s|\s+capital|\s+partners?)\b/,
       /\bcapital\b/,
