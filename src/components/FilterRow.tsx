@@ -86,74 +86,76 @@ export function FilterRow({
   allSources,
 }: FilterRowProps) {
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-      <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider mr-1">Filters:</span>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider mr-1">Filters:</span>
 
-      <CheckboxFilter
-        label="Sources"
-        options={allSources}
-        selected={selectedSources}
-        onChange={onSourcesChange}
-      />
+        <CheckboxFilter
+          label="Sources"
+          options={allSources}
+          selected={selectedSources}
+          onChange={onSourcesChange}
+        />
 
-      <Select value={listedPeriod} onValueChange={(v) => onListedPeriodChange(v as ListedPeriod)}>
-        <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
-          <SelectValue placeholder="Listed" />
-        </SelectTrigger>
-        <SelectContent>
-          {LISTED_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value} className="text-xs">
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        <Select value={listedPeriod} onValueChange={(v) => onListedPeriodChange(v as ListedPeriod)}>
+          <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
+            <SelectValue placeholder="Listed" />
+          </SelectTrigger>
+          <SelectContent>
+            {LISTED_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      <Select value={datePostedFilter} onValueChange={(v) => onDatePostedFilterChange(v as DatePostedFilter)}>
-        <SelectTrigger className="h-7 w-[130px] text-xs font-display bg-card border-border">
-          <SelectValue placeholder="Date Posted" />
-        </SelectTrigger>
-        <SelectContent>
-          {DATE_POSTED_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value} className="text-xs">
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        <Select value={datePostedFilter} onValueChange={(v) => onDatePostedFilterChange(v as DatePostedFilter)}>
+          <SelectTrigger className="h-7 w-[130px] text-xs font-display bg-card border-border">
+            <SelectValue placeholder="Date Posted" />
+          </SelectTrigger>
+          <SelectContent>
+            {DATE_POSTED_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      <CheckboxFilter
-        label="Seniority"
-        options={SENIORITY_OPTIONS.map(s => SENIORITY_LABELS[s])}
-        selected={selectedSeniorities.map(s => SENIORITY_LABELS[s])}
-        onChange={(labels) => {
-          const reversed = Object.fromEntries(Object.entries(SENIORITY_LABELS).map(([k, v]) => [v, k]));
-          onSenioritiesChange(labels.map(l => reversed[l] as Seniority));
-        }}
-      />
+        <CheckboxFilter
+          label="Seniority"
+          options={SENIORITY_OPTIONS.map(s => SENIORITY_LABELS[s])}
+          selected={selectedSeniorities.map(s => SENIORITY_LABELS[s])}
+          onChange={(labels) => {
+            const reversed = Object.fromEntries(Object.entries(SENIORITY_LABELS).map(([k, v]) => [v, k]));
+            onSenioritiesChange(labels.map(l => reversed[l] as Seniority));
+          }}
+        />
 
-      <CheckboxFilter
-        label="Companies"
-        options={allCompanies}
-        selected={selectedCompanies}
-        onChange={onCompaniesChange}
-      />
+        <CheckboxFilter
+          label="Companies"
+          options={allCompanies}
+          selected={selectedCompanies}
+          onChange={onCompaniesChange}
+        />
 
-      <CheckboxFilter
-        label="Titles"
-        options={allTitles}
-        selected={selectedTitles}
-        onChange={onTitlesChange}
-      />
+        <CheckboxFilter
+          label="Titles"
+          options={allTitles}
+          selected={selectedTitles}
+          onChange={onTitlesChange}
+        />
 
-      <CustomKeywordFilter
-        customKeywords={filterKeywords}
-        onAddKeyword={onAddFilterKeyword}
-        onRemoveKeyword={onRemoveFilterKeyword}
-      />
+        <CustomKeywordFilter
+          customKeywords={filterKeywords}
+          onAddKeyword={onAddFilterKeyword}
+          onRemoveKeyword={onRemoveFilterKeyword}
+        />
+      </div>
 
-      <div className="ml-auto flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5">
         <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">Sort:</span>
         <Select value={sortBy} onValueChange={(v) => onSortByChange(v as SortOption)}>
           <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
