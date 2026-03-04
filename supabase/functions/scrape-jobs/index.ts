@@ -504,15 +504,31 @@ function parseStructuredCards(
     const fields = content
       .split(/\\+|\n/)
       .map(s => s.replace(/\*\*/g, '').trim())
-      .filter(s => s.length > 0 && !s.startsWith('![') && !s.startsWith('['));
+      .filter(s => s.length > 0 && s !== ',' && !s.startsWith('![') && !s.startsWith('['));
 
-    // We expect at least: Title, Company, Type or Title, Company, Location
+    // We expect at least: Title, Company
     if (fields.length < 2) continue;
 
-    // Fields are typically: [Title, Company, Type/Location, "Posted X ago"]
     const title = fields[0];
     const company = fields[1];
-    const typeStr = fields[2] || '';
+
+    // Find location field (city name — typically 3rd field for Startup & VC)
+    // Look for known city/location patterns
+    const locationField = fields.find(f => {
+      const fl = f.toLowerCase();
+      return /^(london|new york|san francisco|boston|berlin|paris|amsterdam|singapore|hong kong|dubai|remote|cambridge|oxford|los angeles|chicago|mumbai|toronto|sydney|tokyo)/i.test(fl)
+        || /,\s*[A-Z]{2}\b/.test(f);
+    });
+    const jobLocation = locationField || '';
+
+    // For Startup & VC scraping all jobs page: filter to London only
+    if (source.url.includes('startupandvc.com/venture-capital-jobs') && !source.url.includes('/locations/')) {
+      const locLower = jobLocation.toLowerCase();
+      if (!locLower.includes('london') && locLower !== '') continue;
+    }
+
+    // Find type field
+    const typeField = fields.find(f => /full.time|part.time|internship|other|graduate/i.test(f)) || '';
 
     // Find date field: "Posted X days ago" or contains a year/month
     let dateStr = '';
@@ -528,7 +544,7 @@ function parseStructuredCards(
       ) || '';
     }
 
-    const fullText = `${title} ${company} ${typeStr}`.toLowerCase();
+    const fullText = `${title} ${company} ${typeField}`.toLowerCase();
 
     // For VC-specific job boards, all listings are relevant — skip keyword filtering
     const isVcSource = /startup\s*&?\s*vc|venture5|venturecapitalcareers|john\s*gannon/i.test(source.name);
@@ -544,19 +560,16 @@ function parseStructuredCards(
     if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
 
     let type = 'full-time';
-    const typeLower = typeStr.toLowerCase();
+    const typeLower = typeField.toLowerCase();
     if (typeLower.includes('intern')) type = 'internship';
     else if (typeLower.includes('graduate') || typeLower.includes('grad')) type = 'graduate';
     else if (typeLower.includes('other')) type = 'full-time';
-
-    // Extract location from fields if present
-    const locationField = fields.find(f => /,\s*[A-Z]{2}\b/.test(f) || /london|england|new york|remote/i.test(f));
 
     jobs.push({
       id: crypto.randomUUID(),
       title,
       company,
-      location: locationField || 'London, UK',
+      location: jobLocation || 'London, UK',
       type,
       source: source.name,
       sourceUrl: source.url,
