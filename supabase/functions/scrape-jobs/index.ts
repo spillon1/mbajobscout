@@ -1462,7 +1462,7 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /carried\s+interest|co-?invest/,
     /deal\s+(flow|sourcing|origination)/,
     /investment\s+(analyst|associate|manager|director|principal|partner|team)/,
-    /investor\s+relations/,
+    
   ];
 
   return vcPatterns.some(pattern => pattern.test(text));
