@@ -286,6 +286,11 @@ function parseJobsFromMarkdown(
   keywords: string[],
   location: string
 ): any[] {
+  // Google Jobs has a specific format
+  if (isGoogleJobsUrl(source.url)) {
+    return parseGoogleJobs(markdown, source);
+  }
+
   // Try structured card parsing first (e.g. Startup & VC format)
   const cardJobs = parseStructuredCards(markdown, source, keywords);
   if (cardJobs.length > 0) return cardJobs;
