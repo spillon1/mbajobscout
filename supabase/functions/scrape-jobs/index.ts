@@ -316,7 +316,7 @@ function parseJobsFromMarkdown(
 
 /**
  * Parse structured card-style listings (e.g. Startup & VC).
- * Pattern: [![](img)\\\nTitle\\\nCompany\\\nType\\\nPosted\\\nDate](url)
+ * Pattern: [![](img) content fields separated by \\ or newlines ](url)
  */
 function parseStructuredCards(
   markdown: string,
@@ -325,15 +325,36 @@ function parseStructuredCards(
 ): any[] {
   const jobs: any[] = [];
 
-  // Match card blocks: [![...](...)\\\n...\\\n...](url)
-  const cardPattern = /\[!\[.*?\]\(.*?\)\\\s*\\\s*(.+?)\\\s*\\\s*(.+?)\\\s*\\\s*(.+?)\\\s*\\\s*Posted\s*\\\s*\\\s*(.+?)\]\((https?:\/\/[^\s)]+)\)/g;
+  // Match card blocks: [![...](...)...](job-url)
+  // Use dotAll via [\s\S] to span multiple lines
+  const cardPattern = /\[!\[[^\]]*\]\([^)]*\)([\s\S]*?)\]\((https?:\/\/[^\s)]+)\)/g;
 
   let match;
   while ((match = cardPattern.exec(markdown)) !== null) {
-    const [, title, company, typeStr, dateStr, url] = match;
-    const cleanTitle = title.trim();
-    const cleanCompany = company.trim();
-    const fullText = `${cleanTitle} ${cleanCompany} ${typeStr}`.toLowerCase();
+    const content = match[1];
+    const url = match[2];
+
+    // Split the content by backslashes and newlines to get fields
+    const fields = content
+      .split(/\\+|\n/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && !s.startsWith('![') && !s.startsWith('['));
+
+    // We expect at least: Title, Company, Type
+    if (fields.length < 3) continue;
+
+    // Fields are typically: [Title, Company, Type, "Posted", Date]
+    const title = fields[0];
+    const company = fields[1];
+    const typeStr = fields[2];
+
+    // Find date field (contains a year or month name)
+    const dateStr = fields.find(f =>
+      /\b(20\d{2})\b/.test(f) ||
+      /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(f)
+    ) || '';
+
+    const fullText = `${title} ${company} ${typeStr}`.toLowerCase();
 
     const matchesKeyword = keywords.length === 0 || keywords.some(kw =>
       fullText.includes(kw.toLowerCase())
@@ -341,21 +362,26 @@ function parseStructuredCards(
 
     if (!matchesKeyword) continue;
 
+    // Skip non-job entries (page headers, newsletter, etc.)
+    const skipWords = ['newsletter', 'subscribe', 'terms', 'sign in', 'cookie'];
+    if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
+
     let type = 'full-time';
-    const typeLower = typeStr.toLowerCase().trim();
+    const typeLower = typeStr.toLowerCase();
     if (typeLower.includes('intern')) type = 'internship';
     else if (typeLower.includes('graduate') || typeLower.includes('grad')) type = 'graduate';
+    else if (typeLower.includes('other')) type = 'full-time';
 
     jobs.push({
       id: crypto.randomUUID(),
-      title: cleanTitle,
-      company: cleanCompany,
+      title,
+      company,
       location: 'London, UK',
       type,
       source: source.name,
       sourceUrl: source.url,
       url,
-      postedDate: dateStr.trim(),
+      postedDate: dateStr,
     });
   }
 
