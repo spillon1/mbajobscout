@@ -249,7 +249,7 @@ function isGoogleJobsUrl(url: string): boolean {
 
 // ---- Google Jobs Pagination ----
 
-const GOOGLE_JOBS_PAGES = 5; // Scrape 5 pages (~50 results per page)
+const GOOGLE_JOBS_PAGES = 10; // Scrape 10 pages (~10 results per page)
 
 async function scrapeGoogleJobsPages(
   apiKey: string,
@@ -1704,7 +1704,7 @@ async function scrapeRssFeed(
   location: string
 ): Promise<any[]> {
   const allItems: Array<{ title: string; link: string; description: string; pubDate: string }> = [];
-  const MAX_PAGES = 10;
+  const MAX_PAGES = 15;
   const baseUrl = source.url;
 
   // WordPress RSS feeds default to 10 items — paginate with &paged=N
@@ -2410,7 +2410,7 @@ function parseInnovatorsRoomJobs(
 
 // ---- LinkedIn Jobs Guest API Scraper ----
 
-const LINKEDIN_PAGES = 4; // 25 jobs per page
+const LINKEDIN_PAGES = 10; // 25 jobs per page
 
 async function scrapeLinkedIn(
   apiKey: string,
