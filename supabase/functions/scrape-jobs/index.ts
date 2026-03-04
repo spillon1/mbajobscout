@@ -105,16 +105,31 @@ Deno.serve(async (req) => {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     const filteredResults = results.filter(job => {
+      // Remove junk/generic entries
+      const titleLower = job.title.toLowerCase();
+      const junkTitles = ['venture capital jobs in london', 'venture capital careers', "the vc industry's trusted resource", 'filters and topics', 'search results', 'united states'];
+      if (junkTitles.includes(titleLower)) return false;
+      if (job.company === 'Unknown' && job.title.length < 10) return false;
+
+      // Age filter
       if (!job.postedDate || job.postedDate === 'Scraped just now') return true;
       const parsed = tryParseDate(job.postedDate);
-      if (!parsed) return true; // Keep if we can't parse the date
+      if (!parsed) return true;
       return parsed >= sixMonthsAgo;
     });
 
-    console.log(`Total jobs found: ${filteredResults.length} (filtered from ${results.length})`);
+    // Deduplicate by url
+    const seen = new Set<string>();
+    const dedupedResults = filteredResults.filter(job => {
+      if (seen.has(job.url)) return false;
+      seen.add(job.url);
+      return true;
+    });
+
+    console.log(`Total jobs found: ${dedupedResults.length} (filtered from ${results.length})`);
 
     return new Response(
-      JSON.stringify({ success: true, jobs: filteredResults, sourceStatuses }),
+      JSON.stringify({ success: true, jobs: dedupedResults, sourceStatuses }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
