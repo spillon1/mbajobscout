@@ -62,6 +62,19 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
       }
     } catch (err: unknown) {
       if (isEmailNotConfirmedError(err)) {
+        // If auto-confirm is now enabled, retrying sign-up may immediately create a session.
+        const { data: retrySignup, error: retryError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin },
+        });
+
+        if (!retryError && retrySignup.session) {
+          toast({ title: 'Signed in successfully' });
+          onSuccess();
+          return;
+        }
+
         try {
           await supabase.auth.resend({ type: 'signup', email });
         } catch {
@@ -70,7 +83,7 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
         onClose();
         toast({
           title: 'Email verification needed',
-          description: 'We re-sent your confirmation link. Please verify your email, then sign in again.',
+          description: 'We re-sent your confirmation link. If it still does not arrive, try signing up with a different email.',
         });
         return;
       }
