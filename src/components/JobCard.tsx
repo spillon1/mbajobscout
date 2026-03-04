@@ -4,7 +4,12 @@ import { ExternalLink, Building2, MapPin, Clock, DollarSign } from 'lucide-react
 
 export function JobCard({ job }: { job: Job }) {
   return (
-    <div className="group border border-border rounded-md p-4 bg-card hover:border-primary/40 hover:glow-primary transition-all duration-200 animate-slide-in">
+    <a
+      href={job.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block group border border-border rounded-md p-4 bg-card hover:border-primary/40 hover:glow-primary transition-all duration-200 animate-slide-in cursor-pointer"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -37,18 +42,13 @@ export function JobCard({ job }: { job: Job }) {
             )}
           </div>
           {job.description && (
-            <p className="mt-2 text-sm text-secondary-foreground/70 line-clamp-2">{job.description}</p>
+            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{job.description}</p>
           )}
         </div>
-        <a
-          href={job.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 p-2 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-        >
+        <div className="shrink-0 p-2 rounded-md text-muted-foreground group-hover:text-primary transition-colors">
           <ExternalLink className="h-4 w-4" />
-        </a>
+        </div>
       </div>
-    </div>
+    </a>
   );
 }
