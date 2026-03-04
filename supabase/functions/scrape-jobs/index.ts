@@ -391,12 +391,11 @@ function parseVenture5Jobs(
     if (searchCity && !jobLocation) continue;
     if (searchCity && jobLocation && !jobLocation.toLowerCase().includes(searchCity)) continue;
     
-    // Extract posted date
+    // Extract posted date - search the raw content block, not just cleaned parts
     let postedDate = 'Scraped just now';
-    const dateText = parts.find(p => /posted\s+\d+/i.test(p));
-    if (dateText) {
-      const m = dateText.match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
-      if (m) postedDate = m[1];
+    const rawDateMatch = content.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+    if (rawDateMatch) {
+      postedDate = rawDateMatch[1];
     }
     
     // Determine job type
