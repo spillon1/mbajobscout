@@ -767,7 +767,7 @@ function parseStructuredCards(
       id: crypto.randomUUID(),
       title,
       company,
-      location: jobLocation || 'London, UK',
+      location: jobLocation,
       type,
       source: source.name,
       sourceUrl: source.url,
