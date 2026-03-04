@@ -1,4 +1,27 @@
 import { useState, useMemo, useEffect } from 'react';
+
+/** Parse freetext posted date into a Date for sorting. Unknown dates → now (appear first). */
+function parsePostedDate(dateStr?: string): Date {
+  if (!dateStr || dateStr === 'Scraped just now' || dateStr === 'Mock data') return new Date();
+
+  // Relative: "5 days ago", "2 weeks ago"
+  const rel = dateStr.match(/(\d+)\s*(hour|day|week|month)s?\s*ago/i);
+  if (rel) {
+    const n = parseInt(rel[1]);
+    const unit = rel[2].toLowerCase();
+    const d = new Date();
+    if (unit === 'hour') d.setHours(d.getHours() - n);
+    else if (unit === 'day') d.setDate(d.getDate() - n);
+    else if (unit === 'week') d.setDate(d.getDate() - n * 7);
+    else if (unit === 'month') d.setMonth(d.getMonth() - n);
+    return d;
+  }
+
+  const parsed = new Date(dateStr);
+  if (!isNaN(parsed.getTime())) return parsed;
+
+  return new Date(); // fallback: treat as recent
+}
 import { Job, JobType, JobSource } from '@/types/jobs';
 import { DEFAULT_SOURCES, DEFAULT_KEYWORDS } from '@/data/jobData';
 import { FilterBar } from '@/components/FilterBar';
