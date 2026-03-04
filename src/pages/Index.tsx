@@ -315,6 +315,16 @@ const Index = () => {
           allCompanies={allCompanies}
           allTitles={allTitles}
           allSources={allSources}
+          onClearFilters={() => {
+            setListedPeriod('any');
+            setDatePostedFilter('all');
+            setSelectedSeniorities([]);
+            setSelectedCompanies([]);
+            setSelectedTitles([]);
+            setSelectedSources([]);
+            setFilterKeywords([]);
+            setSelectedType('any');
+          }}
         />
 
         {/* Stats - clickable filters */}
