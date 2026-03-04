@@ -88,6 +88,15 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Indeed UK: dedicated scraper with Firecrawl
+        if (source.url.includes('indeed.com')) {
+          const indeedJobs = await scrapeIndeed(apiKey, source, keywords, location);
+          results.push(...indeedJobs);
+          sourceStatuses[source.name] = { status: 'connected', count: indeedJobs.length };
+          console.log(`Found ${indeedJobs.length} jobs from Indeed UK`);
+          continue;
+        }
+
         // Otherwise use Firecrawl
         const scrapeUrl = source.url;
         const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
@@ -546,6 +555,181 @@ function tryParseDate(dateStr: string): Date | null {
 function isRssFeedUrl(url: string): boolean {
   const lower = url.toLowerCase();
   return lower.includes('/feed') || lower.includes('feed=') || lower.includes('.rss') || lower.includes('.xml') || lower.includes('format=xml');
+}
+
+// ---- Indeed UK Scraper ----
+
+async function scrapeIndeed(
+  apiKey: string,
+  source: { name: string; url: string },
+  keywords: string[],
+  location: string
+): Promise<any[]> {
+  // Build the Indeed search URL with keywords and location
+  const searchCity = location.split(',')[0]?.trim() || 'London';
+  const searchQuery = keywords[0] || 'venture capital';
+  
+  // Use the source URL directly if it already has query params, otherwise build one
+  let searchUrl = source.url;
+  if (!searchUrl.includes('?q=') && !searchUrl.includes('&q=')) {
+    searchUrl = `https://uk.indeed.com/jobs?q=${encodeURIComponent('"' + searchQuery + '"')}&l=${encodeURIComponent(searchCity)}`;
+  }
+  
+  console.log(`Indeed: scraping URL: ${searchUrl}`);
+
+  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url: searchUrl,
+      formats: ['markdown', 'html'],
+      waitFor: 5000,
+      timeout: 60000,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    console.error('Indeed: Firecrawl scrape failed:', JSON.stringify(data));
+    throw new Error(data.error || `Firecrawl HTTP ${response.status}`);
+  }
+
+  const markdown = data.data?.markdown || data.markdown || '';
+  const html = data.data?.html || data.html || '';
+  console.log(`Indeed: got ${markdown.length} chars markdown, ${html.length} chars HTML`);
+  console.log(`Indeed markdown preview: ${markdown.substring(0, 1500)}`);
+
+  return parseIndeedJobs(markdown, html, source, searchCity);
+}
+
+function parseIndeedJobs(
+  markdown: string,
+  html: string,
+  source: { name: string; url: string },
+  searchCity: string
+): any[] {
+  const jobs: any[] = [];
+
+  // Indeed markdown typically has job cards with title links, company, location, and snippets
+  // Pattern: [Job Title](url) followed by company and location info
+  
+  // Try markdown link pattern first
+  const linkPattern = /\[([^\]]{5,200})\]\((https?:\/\/[^\s)]*indeed[^\s)]*|\/[^\s)]*)\)/g;
+  let match;
+  while ((match = linkPattern.exec(markdown)) !== null) {
+    const title = match[1].replace(/\*\*/g, '').trim();
+    let url = match[2];
+    
+    // Skip non-job links
+    if (/sign in|log in|menu|filter|search|cookie|privacy|terms|post your|find salaries|company reviews/i.test(title)) continue;
+    if (title.length < 5 || title.length > 200) continue;
+    
+    // Make relative URLs absolute
+    if (url.startsWith('/')) url = `https://uk.indeed.com${url}`;
+    
+    // Skip pagination, filter, and navigation links
+    if (/\/companies|\/salaries|\/career|\/hiring|\/about|\/accessibility/i.test(url)) continue;
+
+    // Extract company and location from lines after the title
+    const afterText = markdown.substring(match.index + match[0].length, match.index + match[0].length + 500);
+    const afterLines = afterText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+    let company = 'Unknown';
+    let jobLocation = searchCity;
+    let salary = '';
+    let postedDate = '';
+    let description = '';
+
+    for (const line of afterLines.slice(0, 8)) {
+      if (line.startsWith('[') || line.startsWith('!') || line.startsWith('#')) continue;
+      if (/apply now|easily apply|save this job|not interested/i.test(line)) continue;
+      
+      // Company name (usually first non-link line)
+      if (company === 'Unknown' && line.length > 1 && line.length < 80 && !line.includes('£') && !line.includes('$') && !line.includes('ago')) {
+        company = line.replace(/\*\*/g, '').replace(/^\d+(\.\d+)?\s*/, '').trim();
+        if (company.length < 2) company = 'Unknown';
+        continue;
+      }
+      
+      // Location detection
+      if (/london|manchester|birmingham|cambridge|oxford|edinburgh|bristol|remote|hybrid/i.test(line) && line.length < 100) {
+        jobLocation = line.replace(/\*\*/g, '').trim();
+        continue;
+      }
+      
+      // Salary
+      if (/£[\d,]+|£\d+k|\$[\d,]+/i.test(line)) {
+        salary = line.replace(/\*\*/g, '').trim();
+        continue;
+      }
+      
+      // Posted date
+      if (/(\d+\+?\s*(day|hour|week|month)s?\s*ago|just posted|today)/i.test(line)) {
+        postedDate = line.replace(/\*\*/g, '').trim();
+        continue;
+      }
+      
+      // Description snippet
+      if (line.length > 30 && !description) {
+        description = line.replace(/\*\*/g, '').trim().substring(0, 300);
+      }
+    }
+
+    // Determine job type
+    let type = 'full-time';
+    const titleLower = title.toLowerCase();
+    if (titleLower.includes('intern') && !titleLower.includes('internal')) type = 'internship';
+    else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
+
+    if (!jobs.some(j => j.title === title && j.company === company)) {
+      jobs.push({
+        id: crypto.randomUUID(),
+        title: title.slice(0, 200),
+        company,
+        location: jobLocation,
+        type,
+        source: source.name,
+        sourceUrl: source.url,
+        url,
+        postedDate: postedDate || 'Scraped just now',
+        description: description || undefined,
+        salary: salary || undefined,
+      });
+    }
+  }
+
+  // Fallback: try to parse from HTML if markdown yielded nothing
+  if (jobs.length === 0 && html) {
+    console.log('Indeed: No markdown links found, trying HTML parsing');
+    const htmlPattern = /<a[^>]*href="([^"]*)"[^>]*class="[^"]*jcs-JobTitle[^"]*"[^>]*>(?:<[^>]*>)*([^<]+)/gi;
+    let htmlMatch;
+    while ((htmlMatch = htmlPattern.exec(html)) !== null) {
+      let url = htmlMatch[1];
+      const title = htmlMatch[2].trim();
+      if (url.startsWith('/')) url = `https://uk.indeed.com${url}`;
+      if (title.length < 5) continue;
+
+      if (!jobs.some(j => j.title === title)) {
+        jobs.push({
+          id: crypto.randomUUID(),
+          title,
+          company: 'Unknown',
+          location: searchCity,
+          type: 'full-time',
+          source: source.name,
+          sourceUrl: source.url,
+          url,
+          postedDate: 'Scraped just now',
+        });
+      }
+    }
+  }
+
+  console.log(`Indeed parser found ${jobs.length} jobs`);
+  return jobs;
 }
 
 // ---- OCC / 12twenty Authenticated Scraper ----
