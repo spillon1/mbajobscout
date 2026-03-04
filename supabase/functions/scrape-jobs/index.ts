@@ -905,7 +905,11 @@ async function scrapeGlassdoor(
 ): Promise<any[]> {
   const searchCity = location.split(',')[0]?.trim() || 'London';
 
-  console.log(`Glassdoor: scraping URL: ${source.url}`);
+  // Always use the targeted search URL regardless of what the client sends
+  // Glassdoor redirects generic URLs to homepage
+  const glassdoorSearchUrl = 'https://www.glassdoor.co.uk/Job/jobs.htm?sc.occupationParam=%22venture+capital%22&sc.locationSeoString=London%2C+England+%28UK%29&locId=2671300&locT=C';
+
+  console.log(`Glassdoor: scraping URL: ${glassdoorSearchUrl}`);
 
   const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
     method: 'POST',
@@ -914,11 +918,11 @@ async function scrapeGlassdoor(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      url: source.url,
+      url: glassdoorSearchUrl,
       formats: ['markdown'],
-      onlyMainContent: true,
-      waitFor: 8000,
-      timeout: 90000,
+      onlyMainContent: false,
+      waitFor: 10000,
+      timeout: 120000,
     }),
   });
 
