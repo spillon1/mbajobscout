@@ -90,7 +90,7 @@ export function FilterBar({ location, onLocationChange, onSearch, isSearching }:
           </div>
         )}
       </div>
-      <Button onClick={onSearch} disabled={isSearching} size="sm" className="font-display text-[10px] uppercase tracking-wider h-8">
+      <Button onClick={onSearch} disabled={isSearching} size="sm" className="font-display text-[10px] uppercase tracking-wider h-8 px-6">
         {isSearching ? (
           <span className="flex items-center gap-1.5">
             <Loader2 className="h-3 w-3 animate-spin" />
