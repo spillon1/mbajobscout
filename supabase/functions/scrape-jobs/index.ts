@@ -408,7 +408,7 @@ function parseJobsFromMarkdown(
 ): any[] {
   // Google Jobs has a specific format
   if (isGoogleJobsUrl(source.url)) {
-    return parseGoogleJobs(markdown, source);
+    return parseGoogleJobs(markdown, source, location);
   }
 
   // Try structured card parsing first (e.g. Startup & VC format)
