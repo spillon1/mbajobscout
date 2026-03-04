@@ -594,7 +594,7 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     keywords
       .map(normalizeKeyword)
       .flatMap((kw) => kw.split(/[^a-z0-9]+/))
-      .filter((t) => t.length > 2 && !['intern', 'internship', 'graduate', 'role', 'roles', 'jobs', 'london'].includes(t))
+      .filter((t) => t.length > 2 && !['intern', 'internship', 'graduate', 'role', 'roles', 'jobs', 'london', 'capital', 'equity', 'finance', 'financial'].includes(t))
   ));
 
   const titleCompany = ` ${title} ${company} `.toLowerCase();
