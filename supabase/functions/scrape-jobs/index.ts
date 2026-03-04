@@ -1442,13 +1442,29 @@ function matchesUserKeywords(title: string, company: string, description: string
 }
 
 function isLikelyVcRole(title: string, company: string, description: string | undefined): boolean {
+  const titleLower = title.toLowerCase();
   const text = ` ${title} ${company} ${description || ''} `.toLowerCase();
+
+  // Negative signals: roles AT VC-backed companies, not at VC funds themselves
+  const excludePatterns = [
+    /vc[\s-]*backed/i,
+    /venture[\s-]*backed/i,
+    /\bat\s+(a\s+)?vc\b/i,           // "at VC backed startup", "at a VC"
+    /\b(for|within)\s+(a\s+)?vc\b/i,  // "for a VC backed company"
+    /portfolio\s+company\s+role/i,
+  ];
+  if (excludePatterns.some(p => p.test(titleLower))) return false;
+
+  // Exclude recruitment agency roles that just reference "VC Fund" in the title
+  // e.g. "Marketing Executive - VC Fund" posted by a recruitment agency
+  const agencyTitlePattern = /^(?!.*(analyst|associate|partner|principal|director|vp|vice president|manager|head of|investment|portfolio|fund\s+(?:admin|operations|accounting|controller))).*-\s*vc\s+fund\s*$/i;
+  if (agencyTitlePattern.test(titleLower)) return false;
 
   // Strong VC signals in title, company, or description
   const vcPatterns = [
     /venture\s+capital/,
     /\bvc\b/,
-    /ventures?\b/,           // "Octopus Ventures", "BlackRock Ventures"
+    /ventures?\b/,
     /growth\s+equity/,
     /growth\s+debt/,
     
