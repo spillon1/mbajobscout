@@ -55,9 +55,10 @@ Deno.serve(async (req) => {
         // Google Jobs: paginate multiple pages
         if (isGoogleJobsUrl(source.url)) {
           const googleJobs = await scrapeGoogleJobsPages(apiKey, keywords, location, source);
-          results.push(...googleJobs);
-          sourceStatuses[source.name] = { status: 'connected', count: googleJobs.length };
-          console.log(`Found ${googleJobs.length} total jobs from Google Jobs (paginated)`);
+          const vcGoogleJobs = googleJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
+          results.push(...vcGoogleJobs);
+          sourceStatuses[source.name] = { status: 'connected', count: vcGoogleJobs.length };
+          console.log(`Found ${vcGoogleJobs.length} VC-relevant jobs from Google Jobs (filtered from ${googleJobs.length})`);
           continue;
         }
 
@@ -1452,27 +1453,49 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /venture[\s-]*backed/i,
     /\bat\s+(a\s+)?vc\b/i,
     /\b(for|within)\s+(a\s+)?vc\b/i,
+    /\binvestment\s+banking\b/i,       // IB roles are never VC
+    /\bmanagement\s+consult/i,         // consulting roles
+    /\burgent\s+search\b/i,            // recruitment agency spam pattern
   ];
   if (hardExclude.some(p => p.test(titleLower))) return false;
 
-  // ── Tier 1: strong VC signals in TITLE → pass immediately ──
-  // These are so specific that even if the role title sounds generic, the VC context is clear
+  // Known recruitment agencies
+  const recruitmentAgencies = [
+    /\bfram\s+search\b/i, /\b3search\b/i, /\bmarks?\s+sattin\b/i,
+    /\bheidrick/i, /\brodrigues/i, /\bper,?\s+private\s+equity/i,
+    /\bselby\s+jennings/i, /\bphaidon\s+international/i,
+    /\bgreen\s+recruitment/i, /\bpearse\s+partners/i,
+    /\brobert\s+(half|walters)\b/i, /\bmichael\s+page\b/i,
+    /\bmorgan\s+mckinley\b/i, /\banderson\s+quigley/i,
+  ];
+  const isRecruitmentAgency = recruitmentAgencies.some(p => p.test(companyLower));
+
+  // ── Tier 1a: Ultra-strong VC signals → pass even for recruitment agencies ──
+  // These are so VC-specific that even a recruiter posting them is posting a real VC role
+  const ultraStrongVcPatterns = [
+    /deal\s+(flow|sourcing|origination)/,
+    /carried\s+interest/,
+    /limited\s+partner|general\s+partner|\blp\b|\bgp\b/,
+    /co-?invest/,
+  ];
+  if (ultraStrongVcPatterns.some(p => p.test(titleLower))) return true;
+
+  // ── Tier 1b: Strong VC signals in TITLE → pass unless recruitment agency ──
   const titleVcPatterns = [
     /venture\s+capital/,
     /\bvc\s+(fund|firm|analyst|associate|partner|principal|director|investment)/,
-    /deal\s+(flow|sourcing|origination)/,
-    /carried\s+interest/,
     /fund\s+(admin|management|of\s+funds|raising|operations|accounting|controller)/,
     /portfolio\s+(management|monitoring|controller|principal|manager|analyst)/,
-    /limited\s+partner|general\s+partner|\blp\b|\bgp\b/,
-    /co-?invest/,
     /investment\s+(analyst|associate|manager|director|principal|partner)/,
   ];
-  if (titleVcPatterns.some(p => p.test(titleLower))) return true;
+  if (titleVcPatterns.some(p => p.test(titleLower))) {
+    // Recruitment agencies get blocked for these weaker VC signals
+    // (they often append "- Venture Capital" to generic roles)
+    if (isRecruitmentAgency) return false;
+    return true;
+  }
 
-  // ── Soft exclusions: block generic non-VC roles ONLY when no Tier 1 signal was found ──
-  // These roles sometimes exist at VC funds, but without a VC signal in the title
-  // they're overwhelmingly startup/corporate roles that pollute results
+  // ── Soft exclusions: block generic non-VC roles ──
   const nonVcRoles = [
     /\bb2b\b/i, /\bsales\s+(dev|representative|exec)/i,
     /\bbdr\b/i, /\bsdr\b/i,
@@ -1483,16 +1506,9 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bgrowth\s+specialist/i, /\bgrowth\s+marketing/i,
     /\bgrowth\s+hacker/i,
     /\bfounding\s+(business|sales|marketing|product|engineer)/i,
+    /\bprivate\s+equity\s+(analyst|associate)\b/i,  // pure PE roles at recruiters
   ];
   if (nonVcRoles.some(p => p.test(titleLower))) return false;
-
-  // Known recruitment agencies — block from weaker Tier 2/3 signals only
-  const recruitmentAgencies = [
-    /\bfram\s+search\b/i, /\b3search\b/i, /\bmarks?\s+sattin\b/i,
-    /\bheidrick/i, /\brodrigues/i, /\bper,?\s+private\s+equity/i,
-    /\bselby\s+jennings/i, /\bphaidon\s+international/i,
-  ];
-  const isRecruitmentAgency = recruitmentAgencies.some(p => p.test(companyLower));
 
   // ── Tier 2: company looks like a VC fund + title is a fund-type role ──
   if (!isRecruitmentAgency) {
