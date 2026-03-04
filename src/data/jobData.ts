@@ -8,7 +8,7 @@ export const DEFAULT_SOURCES: (JobSource & { status?: 'connected' | 'error' | 'c
   { id: '7', name: 'Venture5', url: 'https://venture5.com/jobs/', enabled: true, status: 'unknown' },
   
   { id: '9', name: 'Indeed UK', url: 'https://uk.indeed.com/jobs?q=%22venture+capital%22&l=London%2C+Greater+London', enabled: true, status: 'unknown' },
-  { id: '10', name: 'Glassdoor UK', url: 'https://www.glassdoor.co.uk/Job/index.htm', enabled: true, status: 'unknown' },
+  { id: '10', name: 'Glassdoor UK', url: 'https://www.glassdoor.co.uk/Job/jobs.htm?sc.occupationParam=%22venture+capital%22&sc.locationSeoString=London%2C+England+%28UK%29&locId=2671300&locT=C', enabled: true, status: 'unknown' },
 ];
 
 export const MANUAL_SOURCES: JobSource[] = [

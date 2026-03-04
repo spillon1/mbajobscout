@@ -97,6 +97,15 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Glassdoor UK: dedicated scraper with Firecrawl extract
+        if (source.url.includes('glassdoor.co.uk')) {
+          const glassdoorJobs = await scrapeGlassdoor(apiKey, source, keywords, location);
+          results.push(...glassdoorJobs);
+          sourceStatuses[source.name] = { status: 'connected', count: glassdoorJobs.length };
+          console.log(`Found ${glassdoorJobs.length} jobs from Glassdoor UK`);
+          continue;
+        }
+
         // Otherwise use Firecrawl
         const scrapeUrl = source.url;
         const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
@@ -669,8 +678,21 @@ function convertRelativeDate(relStr: string): string | undefined {
   if (!relStr) return undefined;
   const lower = relStr.toLowerCase().trim();
 
-  if (lower === 'just posted' || lower === 'today') {
+  if (lower === 'just posted' || lower === 'today' || lower === 'just now') {
     return new Date().toISOString();
+  }
+
+  // Handle compact formats like "30d+", "24h", "2d", "1w"
+  const compactMatch = lower.match(/^(\d+)\+?\s*(h|d|w|m)$/);
+  if (compactMatch) {
+    const n = parseInt(compactMatch[1]);
+    const unit = compactMatch[2];
+    const d = new Date();
+    if (unit === 'h') d.setHours(d.getHours() - n);
+    else if (unit === 'd') d.setDate(d.getDate() - n);
+    else if (unit === 'w') d.setDate(d.getDate() - n * 7);
+    else if (unit === 'm') d.setMonth(d.getMonth() - n);
+    return d.toISOString();
   }
 
   const match = lower.match(/(\d+)\+?\s*(hour|day|week|month)s?\s*ago/i);
@@ -871,6 +893,168 @@ function extractIndeedCardDetails(context: string, fallbackCity: string) {
   }
 
   return { company, jobLocation, salary, postedDate, description };
+}
+
+// ---- Glassdoor UK Scraper ----
+
+async function scrapeGlassdoor(
+  apiKey: string,
+  source: { name: string; url: string },
+  keywords: string[],
+  location: string
+): Promise<any[]> {
+  const searchCity = location.split(',')[0]?.trim() || 'London';
+
+  console.log(`Glassdoor: scraping URL: ${source.url}`);
+
+  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url: source.url,
+      formats: ['markdown'],
+      onlyMainContent: true,
+      waitFor: 8000,
+      timeout: 90000,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    console.error('Glassdoor: Firecrawl scrape failed:', JSON.stringify(data));
+    throw new Error(data.error || `Firecrawl HTTP ${response.status}`);
+  }
+
+  const markdown = data.data?.markdown || data.markdown || '';
+  console.log(`Glassdoor: got ${markdown.length} chars markdown`);
+  console.log(`Glassdoor markdown preview: ${markdown.substring(0, 800)}`);
+
+  return parseGlassdoorJobs(markdown, source, searchCity);
+}
+
+function parseGlassdoorJobs(
+  markdown: string,
+  source: { name: string; url: string },
+  searchCity: string
+): any[] {
+  const jobs: any[] = [];
+
+  // Glassdoor markdown typically shows job cards with titles, companies, locations, and dates
+  // Pattern: job titles appear as links or bold text, followed by company/location/date info
+  
+  // Split into lines and look for job-like patterns
+  const lines = markdown.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Only match links that point to actual job listings (job-listing URL pattern)
+    const linkMatch = line.match(/\[([^\]]{5,200})\]\(((?:\/job-listing\/|https:\/\/www\.glassdoor\.co\.uk\/job-listing\/)[^\s)]+)\)/);
+
+    if (!linkMatch) continue;
+    let title = linkMatch[1].replace(/\*\*/g, '').trim();
+    let jobUrl = linkMatch[2];
+
+    if (title.length < 3) continue;
+
+    // Skip navigation/junk
+    if (/sign in|log in|menu|filter|search|cookie|salary estimate|glassdoor|privacy|terms|jobs in|salaries in|employee reviews/i.test(title)) continue;
+
+    if (jobUrl.startsWith('/')) jobUrl = `https://www.glassdoor.co.uk${jobUrl}`;
+    if (!jobUrl) jobUrl = source.url;
+
+    // Extract company from Glassdoor URL slug: /job-listing/{title-slug}-{company-slug}-JV_IC...
+    let company = 'Unknown';
+    const slugMatch = jobUrl.match(/\/job-listing\/(.+)-JV_IC/);
+    if (slugMatch) {
+      const slug = slugMatch[1];
+      // The URL contains _KO{start},{end}_KE{start},{end} — KE range is the company
+      const keMatch = jobUrl.match(/_KO(\d+),(\d+)_KE(\d+),(\d+)/);
+      if (keMatch) {
+        const companyStart = parseInt(keMatch[3]);
+        const companyEnd = parseInt(keMatch[4]);
+        // Company is in the slug after the title portion
+        const parts = slug.split('-');
+        // Use the KE range to extract from the full slug
+        const fullTitle = slug.replace(/-/g, ' ');
+        // Actually extract company name from the URL slug by finding the segment after title
+        // Glassdoor format: {title-words}-{company-words}-JV_IC
+        // Title length in chars = KO end value, company starts at KE start
+        const titleCharLen = parseInt(keMatch[2]);
+        const allWords = parts;
+        let charCount = 0;
+        let companyStartIdx = 0;
+        for (let w = 0; w < allWords.length; w++) {
+          charCount += allWords[w].length + (w > 0 ? 1 : 0); // +1 for space
+          if (charCount >= titleCharLen) {
+            companyStartIdx = w + 1;
+            break;
+          }
+        }
+        if (companyStartIdx > 0 && companyStartIdx < allWords.length) {
+          company = allWords.slice(companyStartIdx).join(' ')
+            .replace(/\b\w/g, c => c.toUpperCase()); // Title case
+        }
+      }
+    }
+
+    let jobLocation = searchCity;
+    let postedDate: string | undefined;
+    let salary: string | undefined;
+
+    // Check next 5 lines for metadata
+    for (let j = 1; j <= 5 && i + j < lines.length; j++) {
+      const nextLine = lines[i + j];
+      if (!nextLine) continue;
+
+      // Stop if we hit another job listing link
+      if (/\[.{5,200}\]\(.*\/job-listing\//.test(nextLine)) break;
+
+      // Location
+      if (/london|uk|england|united kingdom|remote|hybrid/i.test(nextLine) && nextLine.length < 100) {
+        jobLocation = nextLine.replace(/[*\[\]]/g, '').trim();
+      }
+
+      // Date
+      const dateMatch = nextLine.match(/(\d+[hd]\+?|just now|today|\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+      if (dateMatch) {
+        postedDate = convertRelativeDate(dateMatch[1]);
+      }
+
+      // Salary
+      const salaryMatch = nextLine.match(/[£$€]\s?[\d,]+(?:\s?[-–]\s?[£$€]?\s?[\d,]+)?(?:\s?(?:k|K|pa|p\.a\.|per annum|per year))?/);
+      if (salaryMatch) salary = salaryMatch[0];
+    }
+
+    let type = 'full-time';
+    const tl = title.toLowerCase();
+    if (tl.includes('intern') && !tl.includes('internal')) type = 'internship';
+    else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
+
+    if (!jobs.some(j => j.title === title && j.company === company)) {
+      jobs.push({
+        id: crypto.randomUUID(),
+        title,
+        company,
+        location: jobLocation,
+        type,
+        source: source.name,
+        sourceUrl: source.url,
+        url: jobUrl,
+        postedDate,
+        salary,
+      });
+    }
+  }
+
+  console.log(`Glassdoor parser found ${jobs.length} jobs`);
+  if (jobs.length > 0) {
+    console.log(`Glassdoor sample: ${jobs.slice(0, 3).map(j => `${j.title} @ ${j.company}`).join(' | ')}`);
+  }
+  return jobs;
 }
 
 // ---- OCC / 12twenty Authenticated Scraper ----
