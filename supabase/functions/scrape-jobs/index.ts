@@ -689,8 +689,9 @@ function convertRelativeDate(relStr: string): string | undefined {
   if (!relStr) return undefined;
   const lower = relStr.toLowerCase().trim();
 
+  // Treat vague "today"/"just posted" as unknown — no reliable date
   if (lower === 'just posted' || lower === 'today' || lower === 'just now') {
-    return new Date().toISOString();
+    return undefined;
   }
 
   // Handle compact formats like "30d+", "24h", "2d", "1w"
