@@ -41,7 +41,7 @@ export async function scrapeJobs(
 
   // Replace saved rows for successfully scraped sources to prevent stale jobs from lingering
   const successfulSources = Object.entries(data.sourceStatuses || {})
-    .filter(([, status]) => status?.status === 'connected')
+    .filter(([, status]) => (status as { status?: string })?.status === 'connected')
     .map(([sourceName]) => sourceName);
 
   if (successfulSources.length > 0) {
