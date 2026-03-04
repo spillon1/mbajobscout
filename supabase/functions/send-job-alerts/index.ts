@@ -11,15 +11,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Parse body for test mode
-    let isTestMode = false;
-    try {
-      const body = await req.json();
-      isTestMode = body?.test === true;
-    } catch {
-      // no body is fine
-    }
-
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
     if (!RESEND_API_KEY) {
       return new Response(
@@ -32,27 +23,14 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get active alert config
-    let alertRecipients: any[] = [];
+    // Get enabled alerts
+    const { data: alertRecipients } = await supabase
+      .from('job_alerts')
+      .select('*')
+      .eq('enabled', true)
+      .limit(10);
 
-    if (isTestMode) {
-      // Test mode: send to any saved alert, even if disabled
-      const { data } = await supabase
-        .from('job_alerts')
-        .select('*')
-        .limit(10);
-      alertRecipients = data || [];
-    } else {
-      // Production: only enabled alerts
-      const { data } = await supabase
-        .from('job_alerts')
-        .select('*')
-        .eq('enabled', true)
-        .limit(10);
-      alertRecipients = data || [];
-    }
-
-    if (alertRecipients.length === 0) {
+    if (!alertRecipients || alertRecipients.length === 0) {
       console.log('No alerts configured');
       return new Response(
         JSON.stringify({ success: true, message: 'No alerts configured', count: 0 }),
@@ -60,90 +38,81 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get jobs
-    let newJobs: any[];
-    if (isTestMode) {
-      // Test mode: grab 10 most recent jobs regardless of alerted status
-      const { data, error } = await supabase
+    let totalSent = 0;
+
+    for (const alert of alertRecipients) {
+      // Find jobs scraped AFTER the last alert was sent
+      // If never alerted before, send everything from the last 24 hours
+      const since = alert.last_alerted_at || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+      const { data: newJobs, error } = await supabase
         .from('scraped_jobs')
         .select('*')
-        .order('scraped_at', { ascending: false })
-        .limit(10);
-      if (error) throw new Error(`Failed to fetch jobs: ${error.message}`);
-      newJobs = data || [];
-    } else {
-      // Production mode: only un-alerted jobs
-      const { data, error } = await supabase
-        .from('scraped_jobs')
-        .select('*')
-        .eq('alerted', false)
+        .gt('scraped_at', since)
         .order('scraped_at', { ascending: false });
-      if (error) throw new Error(`Failed to fetch jobs: ${error.message}`);
-      newJobs = data || [];
-    }
 
-    if (newJobs.length === 0) {
-      console.log('No jobs to alert about');
-      return new Response(
-        JSON.stringify({ success: true, message: 'No jobs found', count: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+      if (error) {
+        console.error(`Failed to fetch jobs for ${alert.email}:`, error.message);
+        continue;
+      }
 
-    console.log(`${isTestMode ? '[TEST] ' : ''}Found ${newJobs.length} jobs to send`);
+      if (!newJobs || newJobs.length === 0) {
+        console.log(`No new jobs since ${since} for ${alert.email}`);
+        // Still update last_alerted_at so we don't keep checking the same window
+        await supabase
+          .from('job_alerts')
+          .update({ last_alerted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq('id', alert.id);
+        continue;
+      }
 
-    // Build HTML email
-    const jobRows = newJobs.map(job => `
-      <tr>
-        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
-          <a href="${escapeHtml(job.url)}" style="color: #3b82f6; text-decoration: none; font-weight: 600; font-size: 15px;">
-            ${escapeHtml(job.title)}
-          </a>
-          <div style="color: #6b7280; font-size: 13px; margin-top: 4px;">
-            ${escapeHtml(job.company)} · ${escapeHtml(job.location)}
-            ${job.salary ? ` · <span style="color: #059669; font-weight: 500;">${escapeHtml(job.salary)}</span>` : ''}
-            ${job.posted_date ? ` · ${escapeHtml(job.posted_date)}` : ''}
-          </div>
-          <div style="margin-top: 4px;">
-            <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: ${job.type === 'internship' ? '#fef3c7' : job.type === 'graduate' ? '#dbeafe' : '#dcfce7'}; color: ${job.type === 'internship' ? '#92400e' : job.type === 'graduate' ? '#1e40af' : '#166534'};">
-              ${escapeHtml(job.type)}
-            </span>
-            <span style="color: #9ca3af; font-size: 11px; margin-left: 8px;">${escapeHtml(job.source)}</span>
-          </div>
-        </td>
-      </tr>
-    `).join('');
+      console.log(`Found ${newJobs.length} new jobs for ${alert.email} since ${since}`);
 
-    const subjectPrefix = isTestMode ? '[TEST] ' : '';
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <body style="margin: 0; padding: 0; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        <div style="max-width: 600px; margin: 0 auto; padding: 24px;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <h1 style="font-size: 20px; color: #111827; margin: 0;">
-              ⚡ VC<span style="color: #3b82f6;">SCOUT</span> ${isTestMode ? 'Test Alert' : 'Alert'}
-            </h1>
-            <p style="color: #6b7280; font-size: 14px; margin: 4px 0 0;">
-              ${newJobs.length} ${isTestMode ? 'sample' : 'new'} job${newJobs.length === 1 ? '' : 's'}
+      // Build HTML email
+      const jobRows = newJobs.map(job => `
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+            <a href="${escapeHtml(job.url)}" style="color: #3b82f6; text-decoration: none; font-weight: 600; font-size: 15px;">
+              ${escapeHtml(job.title)}
+            </a>
+            <div style="color: #6b7280; font-size: 13px; margin-top: 4px;">
+              ${escapeHtml(job.company)} · ${escapeHtml(job.location)}
+              ${job.salary ? ` · <span style="color: #059669; font-weight: 500;">${escapeHtml(job.salary)}</span>` : ''}
+              ${job.posted_date ? ` · ${escapeHtml(job.posted_date)}` : ''}
+            </div>
+            <div style="margin-top: 4px;">
+              <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: ${job.type === 'internship' ? '#fef3c7' : job.type === 'graduate' ? '#dbeafe' : '#dcfce7'}; color: ${job.type === 'internship' ? '#92400e' : job.type === 'graduate' ? '#1e40af' : '#166534'};">
+                ${escapeHtml(job.type)}
+              </span>
+              <span style="color: #9ca3af; font-size: 11px; margin-left: 8px;">${escapeHtml(job.source)}</span>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <body style="margin: 0; padding: 0; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="font-size: 20px; color: #111827; margin: 0;">
+                ⚡ VC<span style="color: #3b82f6;">SCOUT</span> Daily Alert
+              </h1>
+              <p style="color: #6b7280; font-size: 14px; margin: 4px 0 0;">
+                ${newJobs.length} new job${newJobs.length === 1 ? '' : 's'} since your last alert
+              </p>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              ${jobRows}
+            </table>
+            <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 24px;">
+              Sent by VCScout Job Aggregator
             </p>
           </div>
-          <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            ${jobRows}
-          </table>
-          <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 24px;">
-            ${isTestMode ? 'This is a test email from VCScout' : 'Sent by VCScout Job Aggregator'}
-          </p>
-        </div>
-      </body>
-      </html>
-    `;
-
-    // Send to all active alert recipients
-    let totalSent = 0;
-    for (const alert of alertRecipients) {
-      // In sandbox mode (onboarding@resend.dev), Resend only delivers to the account owner
-      const recipientEmail = isTestMode ? 'spillon@gmail.com' : alert.email;
+        </body>
+        </html>
+      `;
 
       const emailResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -153,8 +122,8 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           from: 'VCScout <onboarding@resend.dev>',
-          to: [recipientEmail],
-          subject: `${subjectPrefix}⚡ ${newJobs.length} VC job${newJobs.length === 1 ? '' : 's'} found`,
+          to: [alert.email],
+          subject: `⚡ ${newJobs.length} new VC job${newJobs.length === 1 ? '' : 's'} found`,
           html,
         }),
       });
@@ -167,24 +136,18 @@ Deno.serve(async (req) => {
       }
 
       console.log(`Email sent to ${alert.email}:`, emailData.id);
+
+      // Update last_alerted_at timestamp
+      await supabase
+        .from('job_alerts')
+        .update({ last_alerted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', alert.id);
+
       totalSent++;
     }
 
-    // Only mark as alerted in production mode
-    if (!isTestMode && newJobs.length > 0) {
-      const jobIds = newJobs.map(j => j.id);
-      const { error: updateError } = await supabase
-        .from('scraped_jobs')
-        .update({ alerted: true })
-        .in('id', jobIds);
-
-      if (updateError) {
-        console.error('Failed to mark jobs as alerted:', updateError);
-      }
-    }
-
     return new Response(
-      JSON.stringify({ success: true, count: newJobs.length, sent: totalSent, test: isTestMode }),
+      JSON.stringify({ success: true, sent: totalSent }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

@@ -1,0 +1,1 @@
+ALTER TABLE public.job_alerts ADD COLUMN IF NOT EXISTS last_alerted_at timestamp with time zone DEFAULT NULL;

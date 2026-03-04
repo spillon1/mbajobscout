@@ -21,6 +21,7 @@ export type Database = {
           enabled: boolean
           id: string
           keywords: string[]
+          last_alerted_at: string | null
           location: string
           source_names: string[]
           updated_at: string
@@ -32,6 +33,7 @@ export type Database = {
           enabled?: boolean
           id?: string
           keywords?: string[]
+          last_alerted_at?: string | null
           location?: string
           source_names?: string[]
           updated_at?: string
@@ -43,6 +45,7 @@ export type Database = {
           enabled?: boolean
           id?: string
           keywords?: string[]
+          last_alerted_at?: string | null
           location?: string
           source_names?: string[]
           updated_at?: string
