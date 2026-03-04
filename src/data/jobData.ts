@@ -10,13 +10,13 @@ export const DEFAULT_SOURCES: (JobSource & { status?: 'connected' | 'error' | 'c
   { id: '9', name: 'Indeed UK', url: 'https://uk.indeed.com/jobs?q=%22venture+capital%22&l=London%2C+Greater+London', enabled: true, status: 'unknown' },
   { id: '10', name: 'Glassdoor UK', url: 'https://www.glassdoor.co.uk/Job/jobs.htm?sc.occupationParam=%22venture+capital%22&sc.locationSeoString=London%2C+England+%28UK%29&locId=2671300&locT=C', enabled: true, status: 'unknown' },
   { id: '11', name: 'InnovatorsRoom', url: 'https://innovatorsroom.beehiiv.com/archive?tags=%F0%9F%92%B6+Junior+Investor+JobDrop', enabled: true, status: 'unknown' },
+  { id: '12', name: 'VC Careers', url: 'https://venturecapitalcareers.com/jobs/locations/london-eng-united-kingdom', enabled: true, status: 'unknown' },
 ];
 
 export const MANUAL_SOURCES: JobSource[] = [
   { id: 'm3', name: 'OCC (Cambridge)', url: 'https://cjbs-careers.12twenty.com/jobPostings#/jobPostings/index?tab=all&quickSearch=venture', enabled: false, manualOnly: true },
   { id: 'm1', name: 'MBA Exchange', url: 'https://www.mba-exchange.com/candidates/jobSearch_p.php', enabled: false, manualOnly: true },
   { id: 'm0', name: 'Google Jobs', url: 'https://www.google.com/search?udm=8&q=venture+capital+jobs+london', enabled: false, manualOnly: true },
-  { id: 'm2', name: 'VC Careers', url: 'https://venturecapitalcareers.com/jobs/locations/london-eng-united-kingdom', enabled: false, manualOnly: true },
 ];
 
 export const DEFAULT_KEYWORDS = [
