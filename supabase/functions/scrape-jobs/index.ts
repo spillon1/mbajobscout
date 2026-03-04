@@ -1443,45 +1443,87 @@ function matchesUserKeywords(title: string, company: string, description: string
 
 function isLikelyVcRole(title: string, company: string, description: string | undefined): boolean {
   const titleLower = title.toLowerCase();
-  const text = ` ${title} ${company} ${description || ''} `.toLowerCase();
+  const companyLower = company.toLowerCase();
+  const titleAndCompany = ` ${titleLower} ${companyLower} `;
+  const descLower = (description || '').toLowerCase();
 
-  // Negative signals: roles AT VC-backed companies, not at VC funds themselves
-  const excludePatterns = [
+  // ── Negative signals: exclude early ──
+  const excludeTitle = [
     /vc[\s-]*backed/i,
     /venture[\s-]*backed/i,
-    /\bat\s+(a\s+)?vc\b/i,           // "at VC backed startup", "at a VC"
-    /\b(for|within)\s+(a\s+)?vc\b/i,  // "for a VC backed company"
+    /\bat\s+(a\s+)?vc\b/i,
+    /\b(for|within)\s+(a\s+)?vc\b/i,
     /portfolio\s+company\s+role/i,
   ];
-  if (excludePatterns.some(p => p.test(titleLower))) return false;
+  if (excludeTitle.some(p => p.test(titleLower))) return false;
 
-  // Exclude recruitment agency roles that just reference "VC Fund" in the title
-  // e.g. "Marketing Executive - VC Fund" posted by a recruitment agency
-  const agencyTitlePattern = /^(?!.*(analyst|associate|partner|principal|director|vp|vice president|manager|head of|investment|portfolio|fund\s+(?:admin|operations|accounting|controller))).*-\s*vc\s+fund\s*$/i;
-  if (agencyTitlePattern.test(titleLower)) return false;
-
-  // Strong VC signals in title, company, or description
-  const vcPatterns = [
-    /venture\s+capital/,
-    /\bvc\b/,
-    /ventures?\b/,
-    /growth\s+equity/,
-    /growth\s+debt/,
-    
-    /pre-?seed|seed\s+(stage|fund)/,
-    /series\s+[a-d]/,
-    /early[-\s]?stage/,
-    
-    /portfolio\s+(company|companies|management|monitoring|controller|principal|manager|analyst)/,
-    /fund\s+(admin|management|of\s+funds|raising|operations|accounting|controller)/,
-    /limited\s+partner|general\s+partner|\blp\b|\bgp\b/,
-    /carried\s+interest|co-?invest/,
-    /deal\s+(flow|sourcing|origination)/,
-    /investment\s+(analyst|associate|manager|director|principal|partner|team)/,
-    
+  // Non-VC role titles that happen to appear on finance boards
+  const nonVcRoles = [
+    /\bb2b\b/i, /\bsales\s+(dev|representative|exec)/i,
+    /\bbdr\b/i, /\bsdr\b/i,
+    /\bmarketing\s+(executive|manager|specialist|coordinator|lead)\b/i,
+    /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
+    /\bquantitative\s+equity\s+researcher/i,
+    /\bequity\s+research/i,
+    /\bgrowth\s+specialist/i, /\bgrowth\s+marketing/i,
+    /\bgrowth\s+hacker/i,
+    /\bchief\s+of\s+staff\b/i,
+    /\bfounding\s+(business|sales|marketing|product|engineer)/i,
   ];
+  if (nonVcRoles.some(p => p.test(titleLower))) return false;
 
-  return vcPatterns.some(pattern => pattern.test(text));
+  // Known recruitment agencies — their listings reference VC but aren't VC fund roles
+  const recruitmentAgencies = [
+    /\bfram\s+search\b/i, /\b3search\b/i, /\bmarks?\s+sattin\b/i,
+    /\bheidrick/i, /\brodrigues/i, /\bper,?\s+private\s+equity/i,
+    /\bselby\s+jennings/i, /\bphaidon\s+international/i,
+    /\bbain\s+&?\s*company/i,
+  ];
+  const isRecruitmentAgency = recruitmentAgencies.some(p => p.test(companyLower));
+
+  // ── Positive signals ──
+  // Tier 1: strong VC signals in TITLE (high confidence)
+  const titleVcPatterns = [
+    /venture\s+capital/,
+    /\bvc\s+(fund|firm|analyst|associate|partner|principal|director|investment)/,
+    /deal\s+(flow|sourcing|origination)/,
+    /carried\s+interest/,
+    /fund\s+(admin|management|of\s+funds|raising|operations|accounting|controller)/,
+    /portfolio\s+(management|monitoring|controller|principal|manager|analyst)/,
+    /limited\s+partner|general\s+partner|\blp\b|\bgp\b/,
+    /co-?invest/,
+    /investment\s+(analyst|associate|manager|director|principal|partner)/,
+  ];
+  if (titleVcPatterns.some(p => p.test(titleLower))) return true;
+
+  // Tier 2: company name is clearly a VC fund (not a recruitment agency)
+  if (!isRecruitmentAgency) {
+    const companyVcPatterns = [
+      /venture(s|\s+capital|\s+partners?)\b/,
+      /\bcapital\b/,    // "Sequoia Capital", "Accel Capital"
+      /\bpartners?\b/,  // "Andreessen Partners"
+      /\bvc\b/,
+    ];
+    const companyIsVc = companyVcPatterns.some(p => p.test(companyLower));
+    if (companyIsVc) {
+      // Title must also look like a fund role (not a random role at a company named "X Capital")
+      const fundRoleTitles = /\b(analyst|associate|partner|principal|director|vp|vice\s+president|head|manager|controller|admin|investor\s+relations|investment|fund|portfolio|ir\b|fundrais)/i;
+      if (fundRoleTitles.test(titleLower)) return true;
+    }
+  }
+
+  // Tier 3: description-only signals (weakest — require multiple signals)
+  if (descLower) {
+    const descSignals = [
+      /venture\s+capital/, /\bvc\s+fund/, /deal\s+flow/, /carried\s+interest/,
+      /portfolio\s+companies/, /fund\s+raising/, /limited\s+partners?/,
+      /general\s+partners?/, /co-?investment/,
+    ];
+    const matchCount = descSignals.filter(p => p.test(descLower)).length;
+    if (matchCount >= 2 && !isRecruitmentAgency) return true;
+  }
+
+  return false;
 }
 
 function pickPrimaryEfcKeyword(keywords: string[]): string {
