@@ -39,7 +39,23 @@ export async function scrapeJobs(
     .map((j: any) => ({ ...j, type: j.type as JobType }))
     .filter(isValidJob);
 
-  // Save to database using upsert (deduplicate by url)
+  // Replace saved rows for successfully scraped sources to prevent stale jobs from lingering
+  const successfulSources = Object.entries(data.sourceStatuses || {})
+    .filter(([, status]) => status?.status === 'connected')
+    .map(([sourceName]) => sourceName);
+
+  if (successfulSources.length > 0) {
+    const { error: deleteError } = await supabase
+      .from('scraped_jobs')
+      .delete()
+      .in('source', successfulSources);
+
+    if (deleteError) {
+      console.error('Failed to clear old jobs for sources:', deleteError);
+    }
+  }
+
+  // Save fresh rows (deduplicated by URL)
   if (jobs.length > 0) {
     const rows = jobs.map((j) => ({
       title: j.title,

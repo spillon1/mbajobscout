@@ -109,24 +109,7 @@ const Index = () => {
       }
 
       if (result.success) {
-        setJobs((prev) => {
-          // Merge by URL and refresh existing entries so fields like postedDate get updated
-          const byKey = new Map(prev.map((j) => [j.url || `${j.title}|${j.company}`, j]));
-
-          for (const incoming of result.jobs) {
-            const key = incoming.url || `${incoming.title}|${incoming.company}`;
-            const existing = byKey.get(key);
-            byKey.set(key, {
-              ...existing,
-              ...incoming,
-              postedDate: incoming.postedDate || existing?.postedDate,
-              description: incoming.description ?? existing?.description,
-              salary: incoming.salary ?? existing?.salary,
-            });
-          }
-
-          return Array.from(byKey.values());
-        });
+        setJobs(result.jobs);
         setHasScraped(true);
         toast({
           title: 'Scrape complete',

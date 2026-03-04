@@ -136,6 +136,17 @@ Deno.serve(async (req) => {
       return true;
     });
 
+    // Update per-source counts based on final filtered result set
+    const finalSourceCounts: Record<string, number> = {};
+    for (const job of dedupedResults) {
+      finalSourceCounts[job.source] = (finalSourceCounts[job.source] || 0) + 1;
+    }
+    for (const [sourceName, status] of Object.entries(sourceStatuses)) {
+      if (status.status === 'connected') {
+        status.count = finalSourceCounts[sourceName] || 0;
+      }
+    }
+
     console.log(`Total jobs found: ${dedupedResults.length} (filtered from ${results.length})`);
 
     return new Response(
