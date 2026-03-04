@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Job, JobType, JobSource } from '@/types/jobs';
 import { DEFAULT_SOURCES, DEFAULT_KEYWORDS } from '@/data/jobData';
 import { FilterBar } from '@/components/FilterBar';
@@ -6,7 +6,7 @@ import { FilterRow, ListedPeriod, JobStatus } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
 import { KeywordBar } from '@/components/KeywordBar';
-import { scrapeJobs } from '@/lib/api/scrapeJobs';
+import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { Briefcase, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +19,18 @@ const Index = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [hasScraped, setHasScraped] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load saved jobs on mount
+  useEffect(() => {
+    loadSavedJobs().then((savedJobs) => {
+      if (savedJobs.length > 0) {
+        setJobs(savedJobs);
+        setHasScraped(true);
+      }
+      setIsLoading(false);
+    });
+  }, []);
 
   // Filters
   const [selectedType, setSelectedType] = useState<JobType | 'any'>('any');

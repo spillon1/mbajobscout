@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Job, JobSource } from '@/types/jobs';
+import { Job, JobSource, JobType } from '@/types/jobs';
 
 interface ScrapeResult {
   success: boolean;
@@ -34,9 +34,64 @@ export async function scrapeJobs(
     return { success: false, jobs: [], sourceStatuses: data.sourceStatuses || {}, error: data.error };
   }
 
+  const jobs: Job[] = (data.jobs || []).map((j: any) => ({
+    ...j,
+    type: j.type as JobType,
+  }));
+
+  // Save to database
+  if (jobs.length > 0) {
+    const rows = jobs.map((j) => ({
+      title: j.title,
+      company: j.company,
+      location: j.location,
+      type: j.type,
+      source: j.source,
+      source_url: j.sourceUrl,
+      url: j.url,
+      posted_date: j.postedDate || null,
+      description: j.description || null,
+      salary: j.salary || null,
+    }));
+
+    const { error: insertError } = await supabase
+      .from('scraped_jobs')
+      .insert(rows);
+
+    if (insertError) {
+      console.error('Failed to save jobs:', insertError);
+    }
+  }
+
   return {
     success: true,
-    jobs: data.jobs || [],
+    jobs,
     sourceStatuses: data.sourceStatuses || {},
   };
+}
+
+export async function loadSavedJobs(): Promise<Job[]> {
+  const { data, error } = await supabase
+    .from('scraped_jobs')
+    .select('*')
+    .order('scraped_at', { ascending: false });
+
+  if (error) {
+    console.error('Failed to load jobs:', error);
+    return [];
+  }
+
+  return (data || []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    company: row.company,
+    location: row.location,
+    type: row.type as JobType,
+    source: row.source,
+    sourceUrl: row.source_url,
+    url: row.url,
+    postedDate: row.posted_date || undefined,
+    description: row.description || undefined,
+    salary: row.salary || undefined,
+  }));
 }
