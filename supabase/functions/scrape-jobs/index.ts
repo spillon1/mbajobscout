@@ -209,7 +209,7 @@ async function scrapeGoogleJobsPages(
       }
 
       const markdown = data.data?.markdown || data.markdown || '';
-      const jobs = parseGoogleJobs(markdown, source);
+      const jobs = parseGoogleJobs(markdown, source, location);
       
       // Deduplicate against already found jobs
       const newJobs = jobs.filter(j => !allJobs.some(existing => existing.title === j.title && existing.company === j.company));
@@ -408,7 +408,7 @@ function parseJobsFromMarkdown(
 ): any[] {
   // Google Jobs has a specific format
   if (isGoogleJobsUrl(source.url)) {
-    return parseGoogleJobs(markdown, source);
+    return parseGoogleJobs(markdown, source, location);
   }
 
   // Try structured card parsing first (e.g. Startup & VC format)
@@ -644,12 +644,12 @@ function extractJobDetails(
 
 // ---- Google Jobs Parser ----
 
-function parseGoogleJobs(markdown: string, source: { name: string; url: string }): any[] {
+function parseGoogleJobs(markdown: string, source: { name: string; url: string }, searchLocation: string = ''): any[] {
   const jobs: any[] = [];
+  const searchCity = searchLocation.split(',')[0]?.trim().toLowerCase();
 
   // Google Jobs markdown contains blocks like:
   // [Title\\ \\ Company\\ \\ Location • via Source](url)
-  // Match linked blocks that contain job info separated by \\ 
   const linkPattern = /\[([^\]]*\\\\[^\]]*)\]\((https?:\/\/[^\s)]+)\)/g;
 
   let match;
@@ -657,7 +657,6 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
     const content = match[1];
     const url = match[2];
 
-    // Split by \\ separators
     const parts = content
       .split(/\\+\s*\\*/)
       .map(s => s.replace(/\\\\/g, '').trim())
@@ -668,32 +667,31 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
     const title = parts[0].trim();
     const company = parts.length >= 2 ? parts[1].trim() : 'Unknown';
     let jobLocation = parts.length >= 3 ? parts[2].trim() : 'London, UK';
-
-    // Clean "via Source" from location
     jobLocation = jobLocation.replace(/\s*•\s*via\s+.+$/i, '').trim() || 'London, UK';
 
-    // Skip non-job entries
     const skipWords = ['filter', 'menu', 'sign in', 'cookie', 'follow', 'saved jobs', 'ai mode', 'forums', 'images', 'news'];
     if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
     if (title.length < 5 || title.length > 300) continue;
 
-    // Determine type
+    // Enforce location filter from user search (e.g. London)
+    if (searchCity) {
+      const locationText = `${jobLocation} ${title} ${company}`.toLowerCase();
+      if (!locationText.includes(searchCity)) continue;
+    }
+
     let type = 'full-time';
     const fullText = `${title} ${company}`.toLowerCase();
     if (fullText.includes('intern') && !fullText.includes('internal')) type = 'internship';
     else if (fullText.includes('graduate') || fullText.includes('entry level')) type = 'graduate';
 
-    // Extract salary from nearby text
     let salary: string | undefined;
     const salaryMatch = content.match(/[£$€]\s?[\d,]+(?:\s?[-–]\s?[£$€]?\s?[\d,]+)?(?:\s?(?:k|K|pa|p\.a\.|per annum|per year|a year))?/);
     if (salaryMatch) salary = salaryMatch[0];
 
-    // Extract time ago
     let postedDate = 'Scraped just now';
     const timeMatch = content.match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
     if (timeMatch) postedDate = timeMatch[1];
 
-    // Deduplicate by title+company
     if (jobs.some(j => j.title === title && j.company === company)) continue;
 
     jobs.push({
@@ -710,6 +708,6 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
     });
   }
 
-  console.log(`Google Jobs parser found ${jobs.length} jobs`);
+  console.log(`Google Jobs parser found ${jobs.length} jobs for location: ${searchCity || 'any'}`);
   return jobs;
 }
