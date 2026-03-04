@@ -1455,7 +1455,7 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /pre-?seed|seed\s+(stage|fund)/,
     /series\s+[a-d]/,
     /early[-\s]?stage/,
-    /startup|start-up/,
+    
     /portfolio\s+(company|companies|management|monitoring|controller|principal|manager|analyst)/,
     /fund\s+(admin|management|of\s+funds|raising|operations|accounting|controller)/,
     /limited\s+partner|general\s+partner|\blp\b|\bgp\b/,
