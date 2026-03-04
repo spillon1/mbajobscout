@@ -1,18 +1,23 @@
 import { useState, useMemo } from 'react';
-import { JobType, JobSource } from '@/types/jobs';
-import { MOCK_JOBS, DEFAULT_SOURCES, DEFAULT_KEYWORDS } from '@/data/jobData';
+import { Job, JobType, JobSource } from '@/types/jobs';
+import { DEFAULT_SOURCES, DEFAULT_KEYWORDS } from '@/data/jobData';
 import { FilterBar } from '@/components/FilterBar';
 import { FilterRow, ListedPeriod, JobStatus } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
 import { KeywordBar } from '@/components/KeywordBar';
+import { scrapeJobs } from '@/lib/api/scrapeJobs';
 import { Briefcase, Zap } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
+  const { toast } = useToast();
   const [location, setLocation] = useState('London, United Kingdom');
   const [sources, setSources] = useState<JobSource[]>(DEFAULT_SOURCES);
   const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
   const [isSearching, setIsSearching] = useState(false);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [hasScraped, setHasScraped] = useState(false);
 
   // Filters
   const [selectedType, setSelectedType] = useState<JobType | 'any'>('any');
@@ -39,39 +44,80 @@ const Index = () => {
     setSources((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const handleSearch = () => {
+  const handleScrape = async () => {
     setIsSearching(true);
-    setTimeout(() => setIsSearching(false), 2000);
+    try {
+      const result = await scrapeJobs(sources, keywords, location);
+
+      // Update source statuses
+      if (result.sourceStatuses) {
+        setSources((prev) =>
+          prev.map((s) => ({
+            ...s,
+            status: (result.sourceStatuses[s.name]?.status as any) || s.status,
+          }))
+        );
+      }
+
+      if (result.success) {
+        setJobs((prev) => {
+          // Merge new jobs, avoiding duplicates by title+company
+          const existing = new Set(prev.map((j) => `${j.title}|${j.company}`));
+          const newJobs = result.jobs.filter((j) => !existing.has(`${j.title}|${j.company}`));
+          return [...prev, ...newJobs];
+        });
+        setHasScraped(true);
+        toast({
+          title: 'Scrape complete',
+          description: `Found ${result.jobs.length} jobs from ${Object.keys(result.sourceStatuses).length} sources`,
+        });
+      } else {
+        toast({
+          title: 'Scrape failed',
+          description: result.error || 'Unknown error',
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      console.error('Scrape error:', err);
+      toast({
+        title: 'Scrape error',
+        description: 'Failed to connect to scraping service',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSearching(false);
+    }
   };
 
-  // Derive unique companies and titles from all jobs
-  const allCompanies = useMemo(() => [...new Set(MOCK_JOBS.map((j) => j.company))].sort(), []);
-  const allTitles = useMemo(() => [...new Set(MOCK_JOBS.map((j) => j.title))].sort(), []);
+  // Derive unique companies and titles from scraped jobs
+  const allCompanies = useMemo(() => [...new Set(jobs.map((j) => j.company))].sort(), [jobs]);
+  const allTitles = useMemo(() => [...new Set(jobs.map((j) => j.title))].sort(), [jobs]);
 
   // Jobs filtered by everything EXCEPT type (for stable stat counts)
   const baseFilteredJobs = useMemo(() => {
-    let jobs = MOCK_JOBS;
+    let filtered = jobs;
 
     if (selectedCompanies.length > 0) {
-      jobs = jobs.filter((j) => selectedCompanies.includes(j.company));
+      filtered = filtered.filter((j) => selectedCompanies.includes(j.company));
     }
 
     if (selectedTitles.length > 0) {
-      jobs = jobs.filter((j) => selectedTitles.includes(j.title));
+      filtered = filtered.filter((j) => selectedTitles.includes(j.title));
     }
 
     if (filterKeywords.length > 0) {
-      jobs = jobs.filter((j) => {
+      filtered = filtered.filter((j) => {
         const text = `${j.title} ${j.description || ''} ${j.company}`.toLowerCase();
         return filterKeywords.some((kw) => text.includes(kw.toLowerCase()));
       });
     }
 
     const enabledSources = sources.filter((s) => s.enabled).map((s) => s.name);
-    jobs = jobs.filter((j) => enabledSources.includes(j.source));
+    filtered = filtered.filter((j) => enabledSources.includes(j.source));
 
-    return jobs;
-  }, [selectedCompanies, selectedTitles, filterKeywords, sources]);
+    return filtered;
+  }, [jobs, selectedCompanies, selectedTitles, filterKeywords, sources]);
 
   const filteredJobs = useMemo(() => {
     if (selectedType === 'any') return baseFilteredJobs;
@@ -117,7 +163,7 @@ const Index = () => {
         <FilterBar
           location={location}
           onLocationChange={setLocation}
-          onSearch={handleSearch}
+          onSearch={handleScrape}
           isSearching={isSearching}
         />
 
@@ -174,7 +220,13 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Job list */}
           <div className="lg:col-span-3 space-y-2">
-            {filteredJobs.length === 0 ? (
+            {!hasScraped ? (
+              <div className="border border-border rounded-md bg-card p-12 text-center">
+                <Zap className="h-8 w-8 text-primary mx-auto mb-3" />
+                <p className="font-display text-sm text-foreground mb-1">Ready to scrape</p>
+                <p className="text-xs text-muted-foreground">Configure your keywords, location, and sources, then click Scrape</p>
+              </div>
+            ) : filteredJobs.length === 0 ? (
               <div className="border border-border rounded-md bg-card p-12 text-center">
                 <Briefcase className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                 <p className="font-display text-sm text-muted-foreground">No jobs match your filters</p>
