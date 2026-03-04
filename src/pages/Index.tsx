@@ -33,6 +33,7 @@ import { SourceManager } from '@/components/SourceManager';
 import { KeywordBar } from '@/components/KeywordBar';
 import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
+import { AlertConfig } from '@/components/AlertConfig';
 import { Briefcase, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -387,6 +388,11 @@ const Index = () => {
 
           {/* Sidebar */}
           <div className="space-y-4">
+            <AlertConfig
+              keywords={keywords}
+              location={location}
+              sourceNames={sources.filter(s => s.enabled).map(s => s.name)}
+            />
             <SourceManager
               sources={sources}
               onToggleSource={handleToggleSource}

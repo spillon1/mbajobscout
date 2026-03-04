@@ -14,8 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      job_alerts: {
+        Row: {
+          created_at: string
+          email: string
+          enabled: boolean
+          id: string
+          keywords: string[]
+          location: string
+          source_names: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          enabled?: boolean
+          id?: string
+          keywords?: string[]
+          location?: string
+          source_names?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          enabled?: boolean
+          id?: string
+          keywords?: string[]
+          location?: string
+          source_names?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       scraped_jobs: {
         Row: {
+          alerted: boolean
           company: string
           description: string | null
           id: string
@@ -30,6 +64,7 @@ export type Database = {
           url: string
         }
         Insert: {
+          alerted?: boolean
           company?: string
           description?: string | null
           id?: string
@@ -44,6 +79,7 @@ export type Database = {
           url: string
         }
         Update: {
+          alerted?: boolean
           company?: string
           description?: string | null
           id?: string
