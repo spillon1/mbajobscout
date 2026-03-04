@@ -9,11 +9,11 @@ function parsePostedDate(dateStr?: string): Date {
     const n = parseInt(rel[1]);
     const unit = rel[2].toLowerCase();
     const d = new Date();
-    if (unit === 'hour') d.setHours(d.getHours() - n);
-    else if (unit === 'day') d.setDate(d.getDate() - n);
-    else if (unit === 'week') d.setDate(d.getDate() - n * 7);
-    else if (unit === 'month') d.setMonth(d.getMonth() - n);
-    else if (unit === 'year') d.setFullYear(d.getFullYear() - n);
+    if (unit === 'hour') d.setHours(d.getHours() - n);else
+    if (unit === 'day') d.setDate(d.getDate() - n);else
+    if (unit === 'week') d.setDate(d.getDate() - n * 7);else
+    if (unit === 'month') d.setMonth(d.getMonth() - n);else
+    if (unit === 'year') d.setFullYear(d.getFullYear() - n);
     return d;
   }
 
@@ -40,7 +40,7 @@ const Index = () => {
   const { toast } = useToast();
   const sourcesRef = useRef<HTMLDivElement>(null);
   const [sources, setSources] = useState<JobSource[]>(() =>
-    DEFAULT_SOURCES.filter((s) => !isOccSource(`${s.name} ${s.url}`))
+  DEFAULT_SOURCES.filter((s) => !isOccSource(`${s.name} ${s.url}`))
   );
   const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
   const [isSearching, setIsSearching] = useState(false);
@@ -80,7 +80,7 @@ const Index = () => {
 
   const handleToggleSource = (id: string) => {
     setSources((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s))
+    prev.map((s) => s.id === id ? { ...s, enabled: !s.enabled } : s)
     );
   };
 
@@ -90,9 +90,9 @@ const Index = () => {
 
   const handleAddSource = (name: string, url: string) => {
     setSources((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), name, url, enabled: true },
-    ]);
+    ...prev,
+    { id: crypto.randomUUID(), name, url, enabled: true }]
+    );
   };
 
   const handleRemoveSource = (id: string) => {
@@ -106,17 +106,17 @@ const Index = () => {
 
       if (result.sourceStatuses) {
         setSources((prev) =>
-          prev.map((s) => {
-            const sourceStatus = result.sourceStatuses[s.name];
-            return {
-              ...s,
-              status: (sourceStatus?.status as any) || s.status,
-              statusMessage: sourceStatus?.error || (sourceStatus?.status === 'connected'
-                ? `Scraped successfully (${sourceStatus?.count ?? 0} jobs found)`
-                : undefined),
-              lastJobCount: sourceStatus?.count ?? undefined,
-            };
-          })
+        prev.map((s) => {
+          const sourceStatus = result.sourceStatuses[s.name];
+          return {
+            ...s,
+            status: sourceStatus?.status as any || s.status,
+            statusMessage: sourceStatus?.error || (sourceStatus?.status === 'connected' ?
+            `Scraped successfully (${sourceStatus?.count ?? 0} jobs found)` :
+            undefined),
+            lastJobCount: sourceStatus?.count ?? undefined
+          };
+        })
         );
       }
 
@@ -126,13 +126,13 @@ const Index = () => {
         setHasScraped(true);
         toast({
           title: 'Scrape complete',
-          description: `Found ${result.jobs.length} jobs from ${Object.keys(result.sourceStatuses).length} sources`,
+          description: `Found ${result.jobs.length} jobs from ${Object.keys(result.sourceStatuses).length} sources`
         });
       } else {
         toast({
           title: 'Scrape failed',
           description: result.error || 'Unknown error',
-          variant: 'destructive',
+          variant: 'destructive'
         });
       }
     } catch (err) {
@@ -140,7 +140,7 @@ const Index = () => {
       toast({
         title: 'Scrape error',
         description: 'Failed to connect to scraping service',
-        variant: 'destructive',
+        variant: 'destructive'
       });
     } finally {
       setIsSearching(false);
@@ -197,11 +197,11 @@ const Index = () => {
     if (listedPeriod !== 'any') {
       const now = new Date();
       const cutoff = new Date();
-      if (listedPeriod === '1d') cutoff.setDate(now.getDate() - 1);
-      else if (listedPeriod === '1w') cutoff.setDate(now.getDate() - 7);
-      else if (listedPeriod === '1m') cutoff.setMonth(now.getMonth() - 1);
-      else if (listedPeriod === '3m') cutoff.setMonth(now.getMonth() - 3);
-      else if (listedPeriod === '6m') cutoff.setMonth(now.getMonth() - 6);
+      if (listedPeriod === '1d') cutoff.setDate(now.getDate() - 1);else
+      if (listedPeriod === '1w') cutoff.setDate(now.getDate() - 7);else
+      if (listedPeriod === '1m') cutoff.setMonth(now.getMonth() - 1);else
+      if (listedPeriod === '3m') cutoff.setMonth(now.getMonth() - 3);else
+      if (listedPeriod === '6m') cutoff.setMonth(now.getMonth() - 6);
       filtered = filtered.filter((j) => {
         const d = parsePostedDate(j.postedDate);
         return d >= cutoff;
@@ -219,21 +219,21 @@ const Index = () => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
     return [...typed].sort((a, b) => {
       switch (sortBy) {
-        case 'date-asc': {
-          const da = parsePostedDate(a.postedDate);
-          const db = parsePostedDate(b.postedDate);
-          return da.getTime() - db.getTime();
-        }
+        case 'date-asc':{
+            const da = parsePostedDate(a.postedDate);
+            const db = parsePostedDate(b.postedDate);
+            return da.getTime() - db.getTime();
+          }
         case 'company-asc':
           return a.company.localeCompare(b.company);
         case 'title-asc':
           return a.title.localeCompare(b.title);
         case 'date-desc':
-        default: {
-          const da = parsePostedDate(a.postedDate);
-          const db = parsePostedDate(b.postedDate);
-          return db.getTime() - da.getTime();
-        }
+        default:{
+            const da = parsePostedDate(a.postedDate);
+            const db = parsePostedDate(b.postedDate);
+            return db.getTime() - da.getTime();
+          }
       }
     });
   }, [baseFilteredJobs, selectedType, sortBy]);
@@ -242,7 +242,7 @@ const Index = () => {
     total: baseFilteredJobs.length,
     fullTime: baseFilteredJobs.filter((j) => j.type === 'full-time').length,
     internship: baseFilteredJobs.filter((j) => j.type === 'internship').length,
-    graduate: baseFilteredJobs.filter((j) => j.type === 'graduate').length,
+    graduate: baseFilteredJobs.filter((j) => j.type === 'graduate').length
   }), [baseFilteredJobs]);
 
   return (
@@ -259,7 +259,7 @@ const Index = () => {
                 VC<span className="text-primary">SCOUT</span>
               </h1>
               <p className="text-[10px] font-display text-muted-foreground uppercase tracking-widest">
-                Job Aggregator
+                London VC Job Aggregator   
               </p>
             </div>
           </div>
@@ -267,15 +267,15 @@ const Index = () => {
           <div className="flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground shrink-0">
             <button
               className="hover:text-foreground transition-colors"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            >
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              
               {stats.total} Jobs
             </button>
             <span className="h-3 w-px bg-border" />
             <button
               className="hover:text-foreground transition-colors"
-              onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            >
+              onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              
               {sources.filter((s) => s.enabled).length} Sources
             </button>
           </div>
@@ -317,76 +317,76 @@ const Index = () => {
             setSelectedType('any');
           }}
           onScrape={handleScrape}
-          isSearching={isSearching}
-        />
+          isSearching={isSearching} />
+        
 
         {/* Stats - clickable filters */}
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: 'Total', value: stats.total, color: 'text-foreground', type: 'any' as const },
-            { label: 'Full Time', value: stats.fullTime, color: 'text-primary', type: 'full-time' as const },
-            { label: 'Internship', value: stats.internship, color: 'text-warning', type: 'internship' as const },
-            { label: 'Graduate', value: stats.graduate, color: 'text-accent', type: 'graduate' as const },
-          ].map(({ label, value, color, type }) => {
+          { label: 'Total', value: stats.total, color: 'text-foreground', type: 'any' as const },
+          { label: 'Full Time', value: stats.fullTime, color: 'text-primary', type: 'full-time' as const },
+          { label: 'Internship', value: stats.internship, color: 'text-warning', type: 'internship' as const },
+          { label: 'Graduate', value: stats.graduate, color: 'text-accent', type: 'graduate' as const }].
+          map(({ label, value, color, type }) => {
             const isActive = selectedType === type;
             return (
               <button
                 key={label}
                 onClick={() => setSelectedType(isActive && type !== 'any' ? 'any' : type)}
                 className={`border rounded-md bg-card p-3 text-center transition-all cursor-pointer hover:glow-primary ${
-                  isActive ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'
-                }`}
-              >
+                isActive ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'}`
+                }>
+                
                 <div className={`font-display text-2xl font-bold ${color}`}>{value}</div>
                 <div className="font-display text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-              </button>
-            );
+              </button>);
+
           })}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Job list */}
           <div className="lg:col-span-3 space-y-2">
-            {isSearching ? (
-              <ScrapeProgress isSearching={isSearching} sourceCount={sources.filter(s => s.enabled).length} />
-            ) : !hasScraped ? (
-              <div className="border border-border rounded-md bg-card p-12 text-center">
+            {isSearching ?
+            <ScrapeProgress isSearching={isSearching} sourceCount={sources.filter((s) => s.enabled).length} /> :
+            !hasScraped ?
+            <div className="border border-border rounded-md bg-card p-12 text-center">
                 <Zap className="h-8 w-8 text-primary mx-auto mb-3" />
                 <p className="font-display text-sm text-foreground mb-1">Ready to scrape</p>
                 <p className="text-xs text-muted-foreground">Configure your sources, then click Scrape</p>
-              </div>
-            ) : filteredJobs.length === 0 ? (
-              <div className="border border-border rounded-md bg-card p-12 text-center">
+              </div> :
+            filteredJobs.length === 0 ?
+            <div className="border border-border rounded-md bg-card p-12 text-center">
                 <Briefcase className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                 <p className="font-display text-sm text-muted-foreground">No jobs match your filters</p>
-              </div>
-            ) : (
-              filteredJobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onDismiss={(id) => {
-                    setDismissedIds((prev) => new Set(prev).add(id));
-                    toast({
-                      title: 'Listing dismissed',
-                      description: job.title,
-                      action: (
-                        <button
-                          className="text-xs font-medium text-primary hover:underline"
-                          onClick={() => setDismissedIds((prev) => {
-                            const next = new Set(prev);
-                            next.delete(id);
-                            return next;
-                          })}
-                        >
+              </div> :
+
+            filteredJobs.map((job) =>
+            <JobCard
+              key={job.id}
+              job={job}
+              onDismiss={(id) => {
+                setDismissedIds((prev) => new Set(prev).add(id));
+                toast({
+                  title: 'Listing dismissed',
+                  description: job.title,
+                  action:
+                  <button
+                    className="text-xs font-medium text-primary hover:underline"
+                    onClick={() => setDismissedIds((prev) => {
+                      const next = new Set(prev);
+                      next.delete(id);
+                      return next;
+                    })}>
+                    
                           Undo
                         </button>
-                      ),
-                    });
-                  }}
-                />
-              ))
-            )}
+
+                });
+              }} />
+
+            )
+            }
           </div>
 
           {/* Sidebar */}
@@ -397,13 +397,13 @@ const Index = () => {
               onToggleSource={handleToggleSource}
               onToggleAll={handleToggleAll}
               onAddSource={handleAddSource}
-              onRemoveSource={handleRemoveSource}
-            />
+              onRemoveSource={handleRemoveSource} />
+            
           </div>
         </div>
       </main>
-    </div>
-  );
+    </div>);
+
 };
 
 export default Index;
