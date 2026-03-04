@@ -13,11 +13,9 @@ Deno.serve(async (req) => {
   try {
     // Parse body for test mode
     let isTestMode = false;
-    let testRecipientEmail: string | null = null;
     try {
       const body = await req.json();
       isTestMode = body?.test === true;
-      testRecipientEmail = body?.recipientEmail || null;
     } catch {
       // no body is fine
     }
@@ -144,8 +142,8 @@ Deno.serve(async (req) => {
     // Send to all active alert recipients
     let totalSent = 0;
     for (const alert of alertRecipients) {
-      // In test mode, use the provided recipient email; otherwise use the alert's email
-      const recipientEmail = isTestMode && testRecipientEmail ? testRecipientEmail : alert.email;
+      // In sandbox mode (onboarding@resend.dev), Resend only delivers to the account owner
+      const recipientEmail = isTestMode ? 'spillon@gmail.com' : alert.email;
 
       const emailResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',

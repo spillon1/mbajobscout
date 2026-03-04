@@ -94,7 +94,7 @@ export function AlertConfig({ keywords, location, sourceNames }: AlertConfigProp
     setTesting(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-job-alerts', {
-        body: { test: true, recipientEmail: email },
+        body: { test: true },
       });
       if (error) throw error;
 
