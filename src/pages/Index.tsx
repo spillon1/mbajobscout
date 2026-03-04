@@ -20,7 +20,7 @@ const Index = () => {
   const [jobStatus, setJobStatus] = useState<JobStatus>('any');
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [selectedTitles, setSelectedTitles] = useState<string[]>([]);
-  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
+  const [filterKeywords, setFilterKeywords] = useState<string[]>([]);
 
   const handleToggleSource = (id: string) => {
     setSources((prev) =>
@@ -64,10 +64,10 @@ const Index = () => {
       jobs = jobs.filter((j) => selectedTitles.includes(j.title));
     }
 
-    if (selectedKeywords.length > 0) {
+    if (filterKeywords.length > 0) {
       jobs = jobs.filter((j) => {
-        const text = `${j.title} ${j.description || ''}`.toLowerCase();
-        return selectedKeywords.some((kw) => text.includes(kw.toLowerCase()));
+        const text = `${j.title} ${j.description || ''} ${j.company}`.toLowerCase();
+        return filterKeywords.some((kw) => text.includes(kw.toLowerCase()));
       });
     }
 
@@ -75,7 +75,7 @@ const Index = () => {
     jobs = jobs.filter((j) => enabledSources.includes(j.source));
 
     return jobs;
-  }, [selectedType, selectedCompanies, selectedTitles, selectedKeywords, sources]);
+  }, [selectedType, selectedCompanies, selectedTitles, filterKeywords, sources]);
 
   const stats = useMemo(() => ({
     total: filteredJobs.length,
@@ -139,11 +139,11 @@ const Index = () => {
           onCompaniesChange={setSelectedCompanies}
           selectedTitles={selectedTitles}
           onTitlesChange={setSelectedTitles}
-          selectedKeywords={selectedKeywords}
-          onKeywordsChange={setSelectedKeywords}
+          filterKeywords={filterKeywords}
+          onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])}
+          onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))}
           allCompanies={allCompanies}
           allTitles={allTitles}
-          allKeywords={keywords}
         />
 
         {/* Stats */}
