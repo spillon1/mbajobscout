@@ -61,6 +61,15 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Venture5: use actions to click "Load more listings" and parse table rows
+        if (source.url.includes('venture5.com')) {
+          const venture5Jobs = await scrapeVenture5(apiKey, source, location);
+          results.push(...venture5Jobs);
+          sourceStatuses[source.name] = { status: 'connected', count: venture5Jobs.length };
+          console.log(`Found ${venture5Jobs.length} jobs from Venture5 (with Load More)`);
+          continue;
+        }
+
         // Otherwise use Firecrawl
         const scrapeUrl = source.url;
         const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
