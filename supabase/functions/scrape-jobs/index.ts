@@ -541,18 +541,79 @@ function isRssFeedUrl(url: string): boolean {
 
 // ---- eFinancialCareers Scraper ----
 
+function normalizeKeyword(keyword: string): string {
+  return keyword
+    .toLowerCase()
+    .replace(/["']/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function matchesUserKeywords(title: string, company: string, description: string | undefined, keywords: string[]): boolean {
   const text = ` ${title} ${company} ${description || ''} `.toLowerCase();
-  // Must match at least one user keyword (e.g. "venture capital", "vc")
-  return keywords.some(kw => {
-    const lower = kw.toLowerCase();
-    // For short keywords like "vc", require word boundary
-    if (lower.length <= 3) {
-      const re = new RegExp(`\\b${lower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-      return re.test(text);
+
+  return keywords.some((rawKw) => {
+    const kw = normalizeKeyword(rawKw);
+    if (!kw) return false;
+
+    // Exact phrase match first
+    if (text.includes(kw)) return true;
+
+    // Handle "vc" safely as a full token
+    if (kw === 'vc') {
+      return /\bvc\b/i.test(text);
     }
-    return text.includes(lower);
+
+    // Fuzzy token fallback for multi-word keywords (e.g. "venture capital internship")
+    const tokens = kw
+      .split(/[^a-z0-9]+/)
+      .filter((t) => t.length > 1 && !['job', 'jobs', 'role', 'roles', 'london', 'uk', 'united', 'kingdom'].includes(t));
+
+    if (tokens.length === 0) return false;
+
+    const matchedTokens = tokens.filter((token) => {
+      if (token === 'vc') return /\bvc\b/i.test(text);
+      return text.includes(token);
+    }).length;
+
+    // Require strong overlap, but not perfect phrase equality
+    return matchedTokens >= Math.min(2, tokens.length);
   });
+}
+
+function pickPrimaryEfcKeyword(keywords: string[]): string {
+  const cleaned = keywords.map(normalizeKeyword).filter(Boolean);
+  const preferred = cleaned.find((kw) => kw.includes('venture capital'));
+  return preferred || cleaned[0] || 'venture capital';
+}
+
+function buildEfcSearchUrl(sourceUrl: string, keywords: string[], location: string): string {
+  const city = (location.split(',')[0] || 'London').trim();
+  const keyword = pickPrimaryEfcKeyword(keywords);
+
+  const phraseForPath = encodeURIComponent(`"${keyword.replace(/\s+/g, '-')}"`);
+  const citySlug = encodeURIComponent(city.toLowerCase());
+  const q = encodeURIComponent(`"${keyword}"`);
+  const locationParam = encodeURIComponent(`${city}, UK`);
+
+  // Build a deterministic keyword/location URL from user search settings
+  const dynamicUrl = `https://www.efinancialcareers.co.uk/jobs/${phraseForPath}/in-${citySlug}%2C-uk?q=${q}&location=${locationParam}&radius=40&radiusUnit=km&pageSize=50&currencyCode=GBP&language=en&includeUnspecifiedSalary=true&enableVectorSearch=false`;
+
+  // If source already has keyword query, still force vector search off + larger page size
+  if (sourceUrl.includes('/jobs/') && sourceUrl.includes('q=')) {
+    try {
+      const existing = new URL(sourceUrl);
+      existing.searchParams.set('location', `${city}, UK`);
+      existing.searchParams.set('q', `"${keyword}"`);
+      existing.searchParams.set('pageSize', '50');
+      existing.searchParams.set('enableVectorSearch', 'false');
+      return existing.toString();
+    } catch {
+      return dynamicUrl;
+    }
+  }
+
+  return dynamicUrl;
 }
 
 async function scrapeEFinancialCareers(
@@ -563,11 +624,16 @@ async function scrapeEFinancialCareers(
 ): Promise<any[]> {
   const allJobs: any[] = [];
   const MAX_PAGES = 12;
-  // Disable vector search for more precise results
-  const baseUrl = source.url.replace('enableVectorSearch=true', 'enableVectorSearch=false');
+  const baseUrl = buildEfcSearchUrl(source.url, keywords, location);
 
   for (let page = 1; page <= MAX_PAGES; page++) {
-    const pageUrl = page === 1 ? baseUrl : `${baseUrl}&page=${page}`;
+    const pageUrlObj = new URL(baseUrl);
+    if (page > 1) {
+      pageUrlObj.searchParams.set('page', String(page));
+    } else {
+      pageUrlObj.searchParams.delete('page');
+    }
+    const pageUrl = pageUrlObj.toString();
     console.log(`eFinancialCareers page ${page}: ${pageUrl}`);
 
     try {
@@ -581,7 +647,7 @@ async function scrapeEFinancialCareers(
           url: pageUrl,
           formats: ['markdown'],
           onlyMainContent: true,
-          waitFor: 5000,
+          waitFor: 7000,
         }),
       });
 
@@ -610,11 +676,16 @@ async function scrapeEFinancialCareers(
     }
   }
 
-  // Filter using user's actual search keywords
-  const vcJobs = allJobs.filter(j => matchesUserKeywords(j.title, j.company, j.description, keywords));
-  console.log(`eFinancialCareers: ${vcJobs.length} keyword-matched jobs out of ${allJobs.length} total`);
+  // Filter using user's actual search keywords; if parser misses text context, keep original query results as fallback
+  const keywordMatchedJobs = allJobs.filter(j => matchesUserKeywords(j.title, j.company, j.description, keywords));
+  console.log(`eFinancialCareers: ${keywordMatchedJobs.length} keyword-matched jobs out of ${allJobs.length} total`);
 
-  return vcJobs;
+  if (keywordMatchedJobs.length === 0 && allJobs.length > 0) {
+    console.log('eFinancialCareers: no strict keyword matches, returning query-filtered results from source page');
+    return allJobs;
+  }
+
+  return keywordMatchedJobs;
 }
 
 function parseEFinancialCareersJobs(
