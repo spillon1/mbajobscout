@@ -257,8 +257,8 @@ async function scrapeVenture5(
     const actions: any[] = [
       { type: 'wait', milliseconds: 2000 },
     ];
-    // Click "Load more listings" up to 5 times (each loads ~10 jobs)
-    for (let i = 0; i < 5; i++) {
+    // Click "Load more listings" up to 10 times (each loads ~10 jobs)
+    for (let i = 0; i < 10; i++) {
       actions.push({ type: 'click', selector: 'a.load_more_jobs' });
       actions.push({ type: 'wait', milliseconds: 1500 });
     }
