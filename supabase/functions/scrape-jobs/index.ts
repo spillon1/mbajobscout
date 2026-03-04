@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
       if (job.company === 'Unknown' && job.title.length < 10) return false;
 
       // Age filter
-      if (job.source === 'Venture5' && (!job.postedDate || job.postedDate === 'Scraped just now')) return false;
+      // Don't drop Venture5 jobs without dates — they may still be valid recent postings
       if (!job.postedDate || job.postedDate === 'Scraped just now') return true;
       const parsed = tryParseDate(job.postedDate);
       if (!parsed) return true;
