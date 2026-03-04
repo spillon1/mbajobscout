@@ -2426,6 +2426,18 @@ async function scrapeLinkedIn(
   return allJobs;
 }
 
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ');
+}
+
 function parseLinkedInGuestJobs(
   html: string,
   markdown: string,
@@ -2453,9 +2465,9 @@ function parseLinkedInGuestJobs(
     let title = '';
     if (titleMatch[2] !== undefined) {
       url = titleMatch[1].trim();
-      title = titleMatch[2].replace(/<[^>]*>/g, '').trim();
+      title = decodeHtmlEntities(titleMatch[2].replace(/<[^>]*>/g, '').trim());
     } else {
-      title = titleMatch[1].replace(/<[^>]*>/g, '').trim();
+      title = decodeHtmlEntities(titleMatch[1].replace(/<[^>]*>/g, '').trim());
     }
 
     if (title.length < 3 || title.length > 200) continue;
@@ -2473,7 +2485,7 @@ function parseLinkedInGuestJobs(
     const companyMatch = card.match(/<h4[^>]*class="[^"]*base-search-card__subtitle[^"]*"[^>]*>([\s\S]*?)<\/h4>/i)
       || card.match(/<a[^>]*class="[^"]*hidden-nested-link[^"]*"[^>]*>([\s\S]*?)<\/a>/i);
     if (companyMatch) {
-      company = companyMatch[1].replace(/<[^>]*>/g, '').trim();
+      company = decodeHtmlEntities(companyMatch[1].replace(/<[^>]*>/g, '').trim());
     }
 
     // Location
