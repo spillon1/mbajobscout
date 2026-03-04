@@ -148,7 +148,7 @@ function isValidJob(job: Job): boolean {
 
 /** Parse freetext date strings into Date objects */
 function tryParseDate(dateStr: string): Date | null {
-  const rel = dateStr.match(/(\d+)\s*(hour|day|week|month)s?\s*ago/i);
+  const rel = dateStr.match(/(\d+)\s*(hour|day|week|month|year)s?\s*ago/i);
   if (rel) {
     const n = parseInt(rel[1]);
     const unit = rel[2].toLowerCase();
@@ -157,6 +157,7 @@ function tryParseDate(dateStr: string): Date | null {
     else if (unit === 'day') d.setDate(d.getDate() - n);
     else if (unit === 'week') d.setDate(d.getDate() - n * 7);
     else if (unit === 'month') d.setMonth(d.getMonth() - n);
+    else if (unit === 'year') d.setFullYear(d.getFullYear() - n);
     return d;
   }
   const parsed = new Date(dateStr);

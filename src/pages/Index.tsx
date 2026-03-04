@@ -5,7 +5,7 @@ function parsePostedDate(dateStr?: string): Date {
   if (!dateStr || dateStr === 'Scraped just now' || dateStr === 'Mock data') return new Date();
 
   // Relative: "5 days ago", "2 weeks ago"
-  const rel = dateStr.match(/(\d+)\s*(hour|day|week|month)s?\s*ago/i);
+  const rel = dateStr.match(/(\d+)\s*(hour|day|week|month|year)s?\s*ago/i);
   if (rel) {
     const n = parseInt(rel[1]);
     const unit = rel[2].toLowerCase();
@@ -14,6 +14,7 @@ function parsePostedDate(dateStr?: string): Date {
     else if (unit === 'day') d.setDate(d.getDate() - n);
     else if (unit === 'week') d.setDate(d.getDate() - n * 7);
     else if (unit === 'month') d.setMonth(d.getMonth() - n);
+    else if (unit === 'year') d.setFullYear(d.getFullYear() - n);
     return d;
   }
 
