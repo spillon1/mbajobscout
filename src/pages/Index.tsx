@@ -265,13 +265,18 @@ const Index = () => {
           </div>
 
           <div className="flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground shrink-0">
-            <span>{stats.total} jobs</span>
+            <button
+              className="hover:text-foreground transition-colors"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
+              {stats.total} Jobs
+            </button>
             <span className="h-3 w-px bg-border" />
             <button
-              className="lg:cursor-default hover:text-foreground lg:hover:text-muted-foreground transition-colors"
+              className="hover:text-foreground transition-colors"
               onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             >
-              {sources.filter((s) => s.enabled).length} sources
+              {sources.filter((s) => s.enabled).length} Sources
             </button>
           </div>
         </div>
