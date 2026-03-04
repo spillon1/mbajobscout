@@ -583,7 +583,7 @@ async function scrapeIndeed(
     },
     body: JSON.stringify({
       url: searchUrl,
-      formats: ['html'],
+      formats: ['html', 'markdown'],
       waitFor: 5000,
       timeout: 60000,
     }),
@@ -596,15 +596,25 @@ async function scrapeIndeed(
   }
 
   const html = data.data?.html || data.html || '';
-  console.log(`Indeed: got ${html.length} chars HTML`);
+  const markdown = data.data?.markdown || data.markdown || '';
+  console.log(`Indeed: got ${html.length} chars HTML, ${markdown.length} chars markdown`);
 
-  return parseIndeedJobs(html, source, searchCity);
+  // Debug: log date-related HTML snippets
+  const dateSnippets = html.match(/.{0,60}(ago|posted|date|ActivePosting).{0,60}/gi);
+  if (dateSnippets) {
+    console.log(`Indeed date snippets (first 5): ${JSON.stringify(dateSnippets.slice(0, 5))}`);
+  } else {
+    console.log('Indeed: NO date-related strings found in HTML');
+  }
+
+  return parseIndeedJobs(html, source, searchCity, markdown);
 }
 
 function parseIndeedJobs(
   html: string,
   source: { name: string; url: string },
-  searchCity: string
+  searchCity: string,
+  markdown?: string
 ): any[] {
   const jobs: any[] = [];
 
@@ -643,7 +653,7 @@ function parseIndeedJobs(
         source: source.name,
         sourceUrl: source.url,
         url,
-        postedDate: postedDate || 'Scraped just now',
+        postedDate: postedDate || undefined,
         description: description || undefined,
         salary: salary || undefined,
       });
@@ -681,7 +691,7 @@ function parseIndeedJobs(
           source: source.name,
           sourceUrl: source.url,
           url,
-          postedDate: postedDate || 'Scraped just now',
+          postedDate: postedDate || undefined,
           description: description || undefined,
           salary: salary || undefined,
         });
@@ -712,7 +722,7 @@ function parseIndeedJobs(
           source: source.name,
           sourceUrl: source.url,
           url,
-          postedDate: postedDate || 'Scraped just now',
+          postedDate: postedDate || undefined,
           salary: salary || undefined,
         });
       }
