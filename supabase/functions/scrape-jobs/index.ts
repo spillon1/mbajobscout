@@ -577,19 +577,34 @@ async function scrapeOcc12Twenty(
   const loginUrl = `${baseUrl}/login?ReturnUrl=%2FjobPostings`;
   console.log(`OCC: Using Firecrawl actions to login at ${loginUrl}`);
 
+  // The correct post-login URL with search query (SPA hash route)
   const jobsPageUrl = `${baseUrl}/jobPostings#/jobPostings/index?tab=all&quickSearch=${encodeURIComponent(searchQuery)}`;
+  console.log(`OCC: Target job listings URL: ${jobsPageUrl}`);
 
   const actions: any[] = [
-    { type: 'wait', milliseconds: 2000 },
+    { type: 'wait', milliseconds: 3000 },
+    // Fill login form
     { type: 'click', selector: '#UserName' },
     { type: 'write', text: email },
     { type: 'click', selector: '#Password' },
     { type: 'write', text: password },
     { type: 'click', selector: 'button.submit-login-form' },
-    { type: 'wait', milliseconds: 6000 },
-    // Dismiss any modal/interstitial and navigate to job postings
-    { type: 'executeJavascript', script: "document.querySelectorAll('button, a').forEach(function(el) { if (el.textContent.match(/save|continue|skip/i)) el.click(); }); setTimeout(function() { window.location.assign('" + jobsPageUrl + "'); }, 1000);" },
-    { type: 'wait', milliseconds: 10000 },
+    { type: 'wait', milliseconds: 8000 },
+    // After login, we may land on a profile update modal or the job postings page.
+    // Dismiss any modal (Save & Continue, Skip, etc.) and navigate to the search page.
+    { type: 'executeJavascript', script: `
+      // Try to dismiss any modal/interstitial
+      document.querySelectorAll('button, a, input[type=submit]').forEach(function(el) {
+        var t = (el.textContent || el.value || '').toLowerCase().trim();
+        if (t === 'save & continue' || t === 'save and continue' || t === 'skip' || t === 'continue' || t === 'close' || t === 'no' || t === 'dismiss') {
+          el.click();
+        }
+      });
+    ` },
+    { type: 'wait', milliseconds: 3000 },
+    // Now navigate to the job postings search page
+    { type: 'executeJavascript', script: `window.location.href = '${jobsPageUrl}';` },
+    { type: 'wait', milliseconds: 12000 },
     { type: 'scrape' },
   ];
 
@@ -604,7 +619,7 @@ async function scrapeOcc12Twenty(
       formats: ['markdown', 'html'],
       waitFor: 3000,
       actions,
-      timeout: 90000,
+      timeout: 120000,
     }),
   });
 
@@ -617,17 +632,32 @@ async function scrapeOcc12Twenty(
   let markdown = firecrawlData.data?.markdown || firecrawlData.markdown || '';
   let html = firecrawlData.data?.html || firecrawlData.html || '';
   console.log(`OCC: Firecrawl returned ${markdown.length} chars markdown, ${html.length} chars HTML`);
-  console.log(`OCC markdown preview: ${markdown.substring(0, 2000)}`);
+  console.log(`OCC markdown preview: ${markdown.substring(0, 3000)}`);
 
-  // Check if still on login page
-  if (markdown.includes('You must be logged in') || markdown.includes('Login to continue')) {
-    console.error('OCC: Still on login page after actions - login may have failed');
-    throw new Error('OCC login failed via Firecrawl actions - check credentials');
+  // Check if we landed on the job listings or still on login/modal
+  const hasJobContent = markdown.includes('Job') || markdown.includes('Internship') || markdown.includes('Application') || html.includes('jobPosting');
+  const isLoginPage = markdown.includes('You must be logged in') || markdown.includes('Login to continue');
+  const isProfileModal = markdown.includes('Help keep us up to date') || markdown.includes('Save & Continue');
+
+  if (isLoginPage) {
+    console.error('OCC: Still on login page - credentials may be wrong or reCAPTCHA blocked login');
+    throw new Error('OCC login failed - check credentials or reCAPTCHA is blocking');
+  }
+
+  if (isProfileModal) {
+    console.warn('OCC: Landed on profile update modal - navigation to job postings failed');
+    console.log('OCC: Attempting fallback - will try direct navigation without modal dismiss');
   }
 
   // Parse jobs from the rendered content
   const jobs = parseOcc12TwentyJobs(markdown, html, source, baseUrl);
   console.log(`OCC: Parsed ${jobs.length} jobs from rendered page`);
+
+  if (jobs.length === 0 && hasJobContent) {
+    console.log('OCC: Page seems to have job content but parser found nothing. Full markdown:');
+    console.log(markdown.substring(0, 5000));
+  }
+
   return jobs;
 }
 function parseOcc12TwentyJobs(
