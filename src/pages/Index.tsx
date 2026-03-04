@@ -150,8 +150,13 @@ const Index = () => {
   }, [jobs, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources]);
 
   const filteredJobs = useMemo(() => {
-    if (selectedType === 'any') return baseFilteredJobs;
-    return baseFilteredJobs.filter((j) => j.type === selectedType);
+    const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
+    // Sort newest-first by posted date
+    return [...typed].sort((a, b) => {
+      const da = parsePostedDate(a.postedDate);
+      const db = parsePostedDate(b.postedDate);
+      return db.getTime() - da.getTime();
+    });
   }, [baseFilteredJobs, selectedType]);
 
   const stats = useMemo(() => ({
