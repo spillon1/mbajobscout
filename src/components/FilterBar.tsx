@@ -55,7 +55,7 @@ export function FilterBar({ location, onLocationChange, onSearch, isSearching }:
 
   return (
     <div className="flex items-center gap-2">
-      <div ref={ref} className="relative w-52">
+      <div ref={ref} className="relative w-64">
         <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
           value={search}
