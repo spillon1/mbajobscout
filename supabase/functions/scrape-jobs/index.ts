@@ -2157,6 +2157,10 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
 
     if (jobs.some(j => j.title === title && j.company === company)) continue;
 
+    // Build a Google Jobs search URL with udm=8 using job title + company
+    const jobSearchQuery = encodeURIComponent(`${title} ${company}`);
+    const jobUrl = `https://www.google.com/search?udm=8&q=${jobSearchQuery}`;
+
     jobs.push({
       id: crypto.randomUUID(),
       title,
@@ -2165,7 +2169,7 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
       type,
       source: source.name,
       sourceUrl: source.url,
-      url,
+      url: jobUrl,
       salary,
       postedDate,
     });

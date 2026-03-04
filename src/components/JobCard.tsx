@@ -36,7 +36,7 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
     event.preventDefault();
     event.stopPropagation();
     const searchQuery = encodeURIComponent(`${job.title} ${job.company}`);
-    const searchLink = `https://www.google.com/search?q=${searchQuery}`;
+    const searchLink = `https://www.google.com/search?udm=8&q=${searchQuery}`;
     await navigator.clipboard.writeText(searchLink);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
