@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Job } from '@/types/jobs';
 import { JobTypeBadge } from './JobTypeBadge';
 import { ExternalLink, Building2, MapPin, Calendar, X, Copy, Check } from 'lucide-react';
-import { isBlockedUrl, openExternal } from '@/lib/urlSafety';
+import { isBlockedUrl, getOutboundUrl } from '@/lib/urlSafety';
 
 function formatPostedDate(dateStr?: string): string | null {
   if (!dateStr) return null;
@@ -29,14 +29,8 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
 
   const hasBlockedJobUrl = isBlockedUrl(job.jobUrl);
   const hasDirectJobUrl = !!job.jobUrl && !hasBlockedJobUrl;
+  const outboundUrl = hasDirectJobUrl ? getOutboundUrl(job.jobUrl) : null;
   const canCopySearchLink = !!job.sourceUrl;
-
-  const handleViewJob = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!hasDirectJobUrl) return;
-    openExternal(job.jobUrl);
-  };
 
   const handleCopySearchLink = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -85,19 +79,26 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
           )}
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleViewJob}
-              disabled={!hasDirectJobUrl}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors enabled:hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              View Job
-            </button>
+            {outboundUrl ? (
+              <a
+                href={outboundUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                View Job
+              </a>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground cursor-not-allowed opacity-50">
+                <ExternalLink className="h-3.5 w-3.5" />
+                View Job
+              </span>
+            )}
 
             {!hasDirectJobUrl && (
               <>
                 <p className="text-[11px] text-muted-foreground">Direct job posting unavailable</p>
-                <p className="text-[11px] text-muted-foreground">Direct job page unavailable</p>
                 {canCopySearchLink && (
                   <button
                     onClick={handleCopySearchLink}
