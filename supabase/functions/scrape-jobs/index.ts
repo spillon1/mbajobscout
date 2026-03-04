@@ -336,70 +336,70 @@ function parseVenture5Jobs(
 ): any[] {
   const jobs: any[] = [];
 
-  // Venture5 job URLs are like https://venture5.com/job/slug (note: /job/ not /jobs/)
-  // Pattern: [Title\nCompany](https://venture5.com/job/slug) Location Posted X ago
-  const linkPattern = /\[([^\]]+)\]\((https?:\/\/(?:www\.)?venture5\.com\/job\/[^\s)]+)\)/g;
+  // Venture5 filtered page format (list items):
+  // - [![Company](img)\n**Title**\n\n**Company**\n\nLocation \n\n  - Posted X ago](url)
+  // URLs can be /job/slug or /?post_type=job_listing&p=ID
+  const linkPattern = /\[([^\]]+)\]\((https?:\/\/(?:www\.)?venture5\.com\/(?:job\/[^\s)]+|\?post_type=job_listing[^\s)]+))\)/g;
   let match;
   
   while ((match = linkPattern.exec(markdown)) !== null) {
     const content = match[1];
     const url = match[2];
     
-    // Split content by newlines to get title and company
-    const parts = content.split(/\n/).map(s => s.trim()).filter(s => s.length > 0);
+    // Split content by newlines to get fields
+    const parts = content.split(/\n/).map(s => s.replace(/\*\*/g, '').trim()).filter(s => s.length > 0 && !s.startsWith('!['));
     if (parts.length < 1) continue;
     
-    const title = parts[0].replace(/\*\*/g, '').trim();
-    const company = parts.length >= 2 ? parts[1].replace(/\*\*/g, '').trim() : 'Unknown';
+    const title = parts[0].trim();
+    const company = parts.length >= 2 ? parts[1].trim() : 'Unknown';
     
     // Skip non-job entries
     if (title.length < 3 || title.length > 200) continue;
-    const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about'];
+    const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about', 'latest news'];
     if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
     
-    // Look at text AFTER the link for location and date
-    const afterIdx = match.index + match[0].length;
-    const afterText = markdown.substring(afterIdx, afterIdx + 300);
-    
-    // Extract location - look for text before "Posted"
+    // Location is typically the 3rd field in content, or in text after the link
     let jobLocation = '';
-    
-    // Try to find location text between this link and the "Posted" text
-    const locAndDate = afterText.match(/^\s*(.+?)(?:Posted\s+\d)/s);
-    if (locAndDate) {
-      // Clean up the location text
-      const rawLoc = locAndDate[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-      // Remove markdown artifacts
-      const cleanLoc = rawLoc.replace(/[*#\[\]|]/g, '').trim();
-      if (cleanLoc.length > 0 && cleanLoc.length < 100) {
-        jobLocation = cleanLoc;
-      }
+    if (parts.length >= 3) {
+      jobLocation = parts[2].trim();
     }
     
-    // Also check if location is one of the parts in the link content
-    if (!jobLocation && parts.length >= 3) {
-      jobLocation = parts[2].replace(/\*\*/g, '').trim();
+    // Also try text after the link for location
+    if (!jobLocation) {
+      const afterIdx = match.index + match[0].length;
+      const afterText = markdown.substring(afterIdx, afterIdx + 300);
+      const locAndDate = afterText.match(/^\s*(.+?)(?:Posted\s+\d)/s);
+      if (locAndDate) {
+        const rawLoc = locAndDate[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+        const cleanLoc = rawLoc.replace(/[*#\[\]|]/g, '').trim();
+        if (cleanLoc.length > 0 && cleanLoc.length < 100) {
+          jobLocation = cleanLoc;
+        }
+      }
     }
     
     // Filter by search location
     if (searchCity) {
       if (jobLocation) {
-        const locLower = jobLocation.toLowerCase();
-        if (!locLower.includes(searchCity)) {
-          console.log(`Venture5: skipping "${title}" at "${company}" - location "${jobLocation}" doesn't match "${searchCity}"`);
-          continue;
-        }
+        if (!jobLocation.toLowerCase().includes(searchCity)) continue;
       } else {
-        // No location found - skip since we can't confirm it matches
-        console.log(`Venture5: skipping "${title}" - no location extracted`);
+        // We're scraping a pre-filtered URL so location should match, but skip if uncertain
         continue;
       }
     }
     
-    // Extract posted date
+    // Extract posted date from content parts or after text
     let postedDate = 'Scraped just now';
-    const dateMatch = afterText.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
-    if (dateMatch) postedDate = dateMatch[1];
+    const datePartIdx = parts.findIndex(p => /posted\s+\d+/i.test(p));
+    if (datePartIdx >= 0) {
+      const m = parts[datePartIdx].match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+      if (m) postedDate = m[1];
+    } else {
+      const afterIdx = match.index + match[0].length;
+      const afterText = markdown.substring(afterIdx, afterIdx + 300);
+      const dateMatch = afterText.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+      if (dateMatch) postedDate = dateMatch[1];
+    }
     
     // Determine job type
     let type = 'full-time';
