@@ -129,6 +129,10 @@ const Index = () => {
       });
     }
 
+    if (selectedSources.length > 0) {
+      filtered = filtered.filter((j) => selectedSources.includes(j.source));
+    }
+
     const enabledSources = sources.filter((s) => s.enabled).map((s) => s.name);
     filtered = filtered.filter((j) => enabledSources.includes(j.source));
 
