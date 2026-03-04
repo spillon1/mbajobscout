@@ -136,6 +136,12 @@ function expandKeywords(keywords: string[]): string[] {
   return [...expanded];
 }
 
+// ---- Google Jobs Detection ----
+
+function isGoogleJobsUrl(url: string): boolean {
+  return url.includes('google.com/search') && (url.includes('udm=8') || url.includes('jobs'));
+}
+
 // ---- RSS Feed Support ----
 
 function isRssFeedUrl(url: string): boolean {
