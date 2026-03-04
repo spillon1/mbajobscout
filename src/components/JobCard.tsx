@@ -35,9 +35,9 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
   const handleCopySearchLink = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    if (!job.sourceUrl) return;
-
-    await navigator.clipboard.writeText(job.sourceUrl);
+    const searchQuery = encodeURIComponent(`${job.title} ${job.company}`);
+    const searchLink = `https://www.google.com/search?q=${searchQuery}`;
+    await navigator.clipboard.writeText(searchLink);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   };
