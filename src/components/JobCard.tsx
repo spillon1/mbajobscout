@@ -2,8 +2,6 @@ import { Job } from '@/types/jobs';
 import { JobTypeBadge } from './JobTypeBadge';
 import { ExternalLink, Building2, MapPin, Calendar, DollarSign } from 'lucide-react';
 
-const FRAME_BLOCKED_DOMAINS = ['venturecapitalcareers.com'];
-
 function formatPostedDate(dateStr?: string): string | null {
   if (!dateStr || dateStr === 'Scraped just now') return null;
   try {
@@ -23,41 +21,23 @@ function formatPostedDate(dateStr?: string): string | null {
   }
 }
 
-function isFrameBlockedUrl(url: string): boolean {
-  try {
-    const { hostname } = new URL(url);
-    return FRAME_BLOCKED_DOMAINS.some(
-      (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
-    );
-  } catch {
-    return false;
-  }
-}
-
-function openExternalLink(url: string, forceTopLevel: boolean) {
-  const popup = window.open('about:blank', '_blank', 'noopener,noreferrer');
-  if (popup) {
-    popup.opener = null;
-    popup.location.replace(url);
-    return;
-  }
-
-  if (forceTopLevel) {
-    try {
-      window.top?.location.assign(url);
-      return;
-    } catch {
-      // Ignore and fall back
-    }
-  }
-
-  window.location.assign(url);
-}
-
 export function JobCard({ job }: { job: Job }) {
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
-    openExternalLink(job.url, isFrameBlockedUrl(job.url));
+    // Use a temporary <a> element on the top-level document to bypass iframe restrictions
+    try {
+      const a = (window.top || window).document.createElement('a');
+      a.href = job.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.style.display = 'none';
+      (window.top || window).document.body.appendChild(a);
+      a.click();
+      (window.top || window).document.body.removeChild(a);
+    } catch {
+      // Cross-origin fallback: just use window.open
+      window.open(job.url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   return (
