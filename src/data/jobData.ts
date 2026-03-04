@@ -7,7 +7,7 @@ export const DEFAULT_SOURCES: (JobSource & { status?: 'connected' | 'error' | 'c
   { id: '5', name: 'Startup & VC', url: 'https://www.startupandvc.com/locations/london', enabled: true, status: 'unknown' },
   { id: '6', name: 'eFinancialCareers', url: 'https://www.efinancialcareers.co.uk/jobs/', enabled: true, status: 'unknown' },
   { id: '7', name: 'Venture5', url: 'https://venture5.com/jobs/', enabled: true, status: 'unknown' },
-  { id: '8', name: 'VC Careers', url: 'https://venturecapitalcareers.com/jobs', enabled: true, status: 'unknown' },
+  
   { id: '9', name: 'Indeed UK', url: 'https://uk.indeed.com/', enabled: true, status: 'unknown' },
   { id: '10', name: 'Glassdoor UK', url: 'https://www.glassdoor.co.uk/Job/index.htm', enabled: true, status: 'unknown' },
 ];
