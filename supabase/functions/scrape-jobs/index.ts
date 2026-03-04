@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        sourceStatuses[source.name] = { status: 'connected' };
+        sourceStatuses[source.name] = { status: 'connected', count: 0 };
 
         const markdown = data.data?.markdown || data.markdown || '';
         const links = data.data?.links || data.links || [];
