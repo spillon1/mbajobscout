@@ -326,7 +326,44 @@ async function scrapeVenture5(
   console.log(`Venture5 markdown length: ${markdown.length}`);
   console.log(`Venture5 markdown preview: ${markdown.substring(0, 500)}`);
 
-  return parseVenture5Jobs(markdown, source, searchCity);
+  const parsedJobs = parseVenture5Jobs(markdown, source, searchCity);
+  return await enrichVenture5PostedDates(parsedJobs, searchCity);
+}
+
+async function enrichVenture5PostedDates(jobs: any[], searchCity: string): Promise<any[]> {
+  const missingDateJobs = jobs.filter((j) => !j.postedDate || j.postedDate === 'Scraped just now');
+  if (missingDateJobs.length === 0) return jobs;
+
+  try {
+    const rssUrl = `https://venture5.com/?feed=job_feed&job_types=freelance%2Cfull-time%2Cinternship%2Cpart-time%2Ctemporary&search_location=${encodeURIComponent(searchCity)}&job_categories&search_keywords`;
+    const response = await fetch(rssUrl);
+    if (!response.ok) return jobs;
+
+    const xml = await response.text();
+    const rssItems = parseRssItems(xml);
+
+    const dateByUrl = new Map<string, string>();
+    for (const item of rssItems) {
+      const key = normalizeVenture5Url(item.link);
+      if (key && item.pubDate) dateByUrl.set(key, item.pubDate);
+    }
+
+    return jobs.map((job) => {
+      if (job.postedDate && job.postedDate !== 'Scraped just now') return job;
+      const rssDate = dateByUrl.get(normalizeVenture5Url(job.url));
+      return rssDate ? { ...job, postedDate: rssDate } : job;
+    });
+  } catch (err) {
+    console.error('Venture5 RSS date enrichment failed:', err);
+    return jobs;
+  }
+}
+
+function normalizeVenture5Url(url: string): string {
+  return (url || '')
+    .trim()
+    .replace(/^https?:\/\/(www\.)?/i, 'https://')
+    .replace(/\/$/, '');
 }
 
 function parseVenture5Jobs(
@@ -336,49 +373,48 @@ function parseVenture5Jobs(
 ): any[] {
   const jobs: any[] = [];
 
-  // Instead of complex regex for nested brackets, find all venture5 job URLs
-  // and work backwards to extract the content block before each URL
+  // Find venture5 job URLs and parse the listing content around each URL
   const urlPattern = /\]\((https?:\/\/(?:www\.)?venture5\.com\/(?:job\/[^\s)]+|\?post_type=job_listing[^\s)]+))\)/g;
   let urlMatch;
-  
+
   while ((urlMatch = urlPattern.exec(markdown)) !== null) {
     const url = urlMatch[1];
-    
-    // Find the opening `[` for this link by searching backwards
-    // Look for the list item start `- [` before this position
-    const beforeUrl = markdown.substring(Math.max(0, urlMatch.index - 500), urlMatch.index);
-    
-    // Find the last `- [` or `- [![` in the content before the URL
+
+    // Proven extraction block: content before URL carries title/company/location for most listings
+    const windowStart = Math.max(0, urlMatch.index - 700);
+    const beforeUrl = markdown.substring(windowStart, urlMatch.index);
     const blockStart = beforeUrl.lastIndexOf('- [');
     if (blockStart < 0) continue;
-    
-    const content = beforeUrl.substring(blockStart + 2); // skip "- "
-    
-    // Extract text fields: remove image markdown, bold markers, clean up
+
+    const absoluteBlockStart = windowStart + blockStart;
+    const blockEnd = markdown.indexOf('\n- [', urlMatch.index);
+    const itemWindow = markdown.substring(
+      absoluteBlockStart,
+      blockEnd === -1 ? Math.min(markdown.length, urlMatch.index + 1200) : blockEnd
+    );
+
+    const content = beforeUrl.substring(blockStart + 2);
     const textContent = content
-      .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // remove images
-      .replace(/\*\*/g, '') // remove bold
-      .replace(/\\/g, '') // remove backslashes
-      .replace(/- Posted/g, 'Posted') // normalize
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+      .replace(/\*\*/g, '')
+      .replace(/\\/g, '')
+      .replace(/- Posted/g, 'Posted')
       .trim();
-    
+
     const parts = textContent
       .split(/\n/)
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && s !== '[' && s !== ',' && s !== '-');
-    
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && s !== '[' && s !== ',' && s !== '-');
+
     if (parts.length < 2) continue;
-    
-    // First non-empty part is title, second is company
+
     const title = parts[0].replace(/^\[/, '').trim();
     const company = parts[1].trim();
-    
-    // Skip non-job entries
+
     if (title.length < 3 || title.length > 200) continue;
     const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about', 'latest news'];
-    if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
-    
-    // Find location - look for "City, Region" pattern or just city name
+    if (skipWords.some((w) => title.toLowerCase().includes(w))) continue;
+
     let jobLocation = '';
     for (const part of parts) {
       if (/london|england|uk|united kingdom/i.test(part) && !part.includes('Posted')) {
@@ -386,27 +422,31 @@ function parseVenture5Jobs(
         break;
       }
     }
-    
-    // If we're scraping a pre-filtered URL, location should match
+
     if (searchCity && !jobLocation) continue;
     if (searchCity && jobLocation && !jobLocation.toLowerCase().includes(searchCity)) continue;
-    
-    // Extract posted date - search the raw content block, not just cleaned parts
+
+    // Capture posted date from the full listing item
     let postedDate = 'Scraped just now';
-    const rawDateMatch = content.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+
+    const rawDateMatch =
+      itemWindow.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i) ||
+      itemWindow.match(/\b(\d+\s*(?:hour|day|week|month)s?\s*ago)\b/i);
+
     if (rawDateMatch) {
       postedDate = rawDateMatch[1];
+    } else {
+      const absoluteDateMatch = itemWindow.match(/\b([A-Za-z]+\s+\d{1,2},?\s+\d{4})\b/);
+      if (absoluteDateMatch) postedDate = absoluteDateMatch[1];
     }
-    
-    // Determine job type
+
     let type = 'full-time';
     const fullText = `${title} ${company}`.toLowerCase();
     if (fullText.includes('intern') && !fullText.includes('internal')) type = 'internship';
     else if (fullText.includes('graduate') || fullText.includes('entry level') || fullText.includes('visiting analyst')) type = 'graduate';
-    
-    // Avoid duplicates
-    if (jobs.some(j => j.title === title && j.company === company)) continue;
-    
+
+    if (jobs.some((j) => j.url === url || (j.title === title && j.company === company))) continue;
+
     jobs.push({
       id: crypto.randomUUID(),
       title,
@@ -419,7 +459,7 @@ function parseVenture5Jobs(
       postedDate,
     });
   }
-  
+
   console.log(`Venture5 parser found ${jobs.length} jobs matching location: ${searchCity}`);
   return jobs;
 }
