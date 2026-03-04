@@ -616,68 +616,112 @@ function buildEfcSearchUrl(sourceUrl: string, keywords: string[], location: stri
   return dynamicUrl;
 }
 
+function parseEfcTotalJobs(markdown: string): number | null {
+  const patterns = [
+    /"[^"]+"\s+jobs\s+in\s+[^\n(]+\((\d+)\)/i,
+    /jobs\s+in\s+[^\n(]+\((\d+)\)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = markdown.match(pattern);
+    if (match) {
+      const value = parseInt(match[1], 10);
+      if (!Number.isNaN(value) && value > 0) return value;
+    }
+  }
+
+  return null;
+}
+
+async function fetchEfcPageJobs(
+  apiKey: string,
+  pageUrl: string,
+  source: { name: string; url: string }
+): Promise<{ jobs: any[]; markdown: string }> {
+  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url: pageUrl,
+      formats: ['markdown'],
+      onlyMainContent: true,
+      waitFor: 5000,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || `HTTP ${response.status}`);
+  }
+
+  const markdown = data.data?.markdown || data.markdown || '';
+  const jobs = parseEFinancialCareersJobs(markdown, source);
+  return { jobs, markdown };
+}
+
 async function scrapeEFinancialCareers(
   apiKey: string,
   source: { name: string; url: string },
   location: string,
   keywords: string[]
 ): Promise<any[]> {
+  const PAGE_SIZE = 50;
+  const MAX_PAGES = 6;
   const allJobs: any[] = [];
-  const MAX_PAGES = 12;
   const baseUrl = buildEfcSearchUrl(source.url, keywords, location);
 
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    const pageUrlObj = new URL(baseUrl);
-    if (page > 1) {
+  const firstPageUrl = new URL(baseUrl).toString();
+  console.log(`eFinancialCareers page 1: ${firstPageUrl}`);
+
+  const firstPage = await fetchEfcPageJobs(apiKey, firstPageUrl, source);
+  allJobs.push(...firstPage.jobs);
+  console.log(`eFinancialCareers page 1: ${firstPage.jobs.length} new jobs (${firstPage.jobs.length} on page)`);
+
+  const totalJobs = parseEfcTotalJobs(firstPage.markdown);
+  const fallbackPageCount = firstPage.jobs.length >= 40 ? 4 : 2;
+  const targetPages = Math.max(
+    1,
+    Math.min(MAX_PAGES, totalJobs ? Math.ceil(totalJobs / PAGE_SIZE) : fallbackPageCount)
+  );
+
+  if (targetPages > 1) {
+    const pagePromises: Promise<{ page: number; jobs: any[]; error?: string }>[] = [];
+
+    for (let page = 2; page <= targetPages; page++) {
+      const pageUrlObj = new URL(baseUrl);
       pageUrlObj.searchParams.set('page', String(page));
-    } else {
-      pageUrlObj.searchParams.delete('page');
+      const pageUrl = pageUrlObj.toString();
+      console.log(`eFinancialCareers page ${page}: ${pageUrl}`);
+
+      pagePromises.push(
+        fetchEfcPageJobs(apiKey, pageUrl, source)
+          .then((result) => ({ page, jobs: result.jobs }))
+          .catch((err) => ({
+            page,
+            jobs: [],
+            error: err instanceof Error ? err.message : String(err),
+          }))
+      );
     }
-    const pageUrl = pageUrlObj.toString();
-    console.log(`eFinancialCareers page ${page}: ${pageUrl}`);
 
-    try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: pageUrl,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          waitFor: 7000,
-        }),
-      });
+    const pageResults = await Promise.all(pagePromises);
 
-      const data = await response.json();
-      if (!response.ok) {
-        if (page === 1) throw new Error(data.error || `HTTP ${response.status}`);
-        console.log(`eFinancialCareers page ${page} failed, stopping`);
-        break;
+    for (const result of pageResults) {
+      if (result.error) {
+        console.log(`eFinancialCareers page ${result.page} failed: ${result.error}`);
+        continue;
       }
 
-      const markdown = data.data?.markdown || data.markdown || '';
-      const pageJobs = parseEFinancialCareersJobs(markdown, source);
-
-      // Deduplicate against already found jobs
-      const newJobs = pageJobs.filter(j => !allJobs.some(existing => existing.url === j.url));
+      const newJobs = result.jobs.filter((j) => !allJobs.some((existing) => existing.url === j.url));
       allJobs.push(...newJobs);
-
-      console.log(`eFinancialCareers page ${page}: ${newJobs.length} new jobs (${pageJobs.length} on page)`);
-
-      // If we got very few results, no more pages
-      if (pageJobs.length < 5) break;
-    } catch (err) {
-      if (page === 1) throw err;
-      console.log(`eFinancialCareers pagination stopped at page ${page}: ${err}`);
-      break;
+      console.log(`eFinancialCareers page ${result.page}: ${newJobs.length} new jobs (${result.jobs.length} on page)`);
     }
   }
 
-  // Filter using user's actual search keywords; if parser misses text context, keep original query results as fallback
-  const keywordMatchedJobs = allJobs.filter(j => matchesUserKeywords(j.title, j.company, j.description, keywords));
+  const keywordMatchedJobs = allJobs.filter((j) => matchesUserKeywords(j.title, j.company, j.description, keywords));
   console.log(`eFinancialCareers: ${keywordMatchedJobs.length} keyword-matched jobs out of ${allJobs.length} total`);
 
   if (keywordMatchedJobs.length === 0 && allJobs.length > 0) {
