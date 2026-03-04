@@ -43,10 +43,14 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
   };
 
   return (
-    <article
-      className={`group border border-border rounded-md p-4 bg-card transition-all duration-200 animate-slide-in ${
-        hasDirectJobUrl ? 'hover:border-primary/40 hover:glow-primary' : 'opacity-90'
+    <a
+      href={outboundUrl || undefined}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`group block border border-border rounded-md p-4 bg-card transition-all duration-200 animate-slide-in no-underline ${
+        hasDirectJobUrl ? 'hover:border-primary/40 hover:glow-primary cursor-pointer' : 'opacity-90 pointer-events-auto cursor-default'
       }`}
+      onClick={!hasDirectJobUrl ? (e) => e.preventDefault() : undefined}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -54,8 +58,9 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
             <JobTypeBadge type={job.type} />
             <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">{job.source}</span>
           </div>
-          <h3 className="font-body font-semibold text-foreground transition-colors">
+          <h3 className="font-body font-semibold text-foreground transition-colors group-hover:text-primary">
             {job.title}
+            {hasDirectJobUrl && <ExternalLink className="inline h-3.5 w-3.5 ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity" />}
           </h3>
           <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
             <span className="flex items-center gap-1 font-semibold text-foreground/80">
@@ -78,39 +83,20 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
             <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{job.description}</p>
           )}
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {outboundUrl ? (
-              <a
-                href={outboundUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                View Job
-              </a>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground cursor-not-allowed opacity-50">
-                <ExternalLink className="h-3.5 w-3.5" />
-                View Job
-              </span>
-            )}
-
-            {!hasDirectJobUrl && (
-              <>
-                <p className="text-[11px] text-muted-foreground">Direct job posting unavailable</p>
-                {canCopySearchLink && (
-                  <button
-                    onClick={handleCopySearchLink}
-                    className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-foreground transition-colors hover:bg-muted"
-                  >
-                    {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                    {copied ? 'Copied' : 'Copy search link'}
-                  </button>
-                )}
-              </>
-            )}
-          </div>
+          {!hasDirectJobUrl && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <p className="text-[11px] text-muted-foreground">Direct job posting unavailable</p>
+              {canCopySearchLink && (
+                <button
+                  onClick={handleCopySearchLink}
+                  className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-foreground transition-colors hover:bg-muted"
+                >
+                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {copied ? 'Copied' : 'Copy search link'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {onDismiss && (
@@ -127,6 +113,6 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
           </button>
         )}
       </div>
-    </article>
+    </a>
   );
 }
