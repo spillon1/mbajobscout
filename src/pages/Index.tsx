@@ -42,6 +42,7 @@ const Index = () => {
   const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
   const [isSearching, setIsSearching] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [hasScraped, setHasScraped] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -110,6 +111,7 @@ const Index = () => {
 
       if (result.success) {
         setJobs(result.jobs);
+        setDismissedIds(new Set());
         setHasScraped(true);
         toast({
           title: 'Scrape complete',
@@ -141,7 +143,7 @@ const Index = () => {
 
   // Jobs filtered by everything EXCEPT type (for stable stat counts)
   const baseFilteredJobs = useMemo(() => {
-    let filtered = jobs;
+    let filtered = jobs.filter((j) => !dismissedIds.has(j.id));
 
     if (selectedCompanies.length > 0) {
       filtered = filtered.filter((j) => selectedCompanies.includes(j.company));
@@ -175,7 +177,7 @@ const Index = () => {
     }
 
     return filtered;
-  }, [jobs, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, location]);
+  }, [jobs, dismissedIds, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, location]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -301,7 +303,31 @@ const Index = () => {
                 <p className="font-display text-sm text-muted-foreground">No jobs match your filters</p>
               </div>
             ) : (
-              filteredJobs.map((job) => <JobCard key={job.id} job={job} />)
+              filteredJobs.map((job) => (
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  onDismiss={(id) => {
+                    setDismissedIds((prev) => new Set(prev).add(id));
+                    toast({
+                      title: 'Listing dismissed',
+                      description: job.title,
+                      action: (
+                        <button
+                          className="text-xs font-medium text-primary hover:underline"
+                          onClick={() => setDismissedIds((prev) => {
+                            const next = new Set(prev);
+                            next.delete(id);
+                            return next;
+                          })}
+                        >
+                          Undo
+                        </button>
+                      ),
+                    });
+                  }}
+                />
+              ))
             )}
           </div>
 
