@@ -18,11 +18,14 @@ interface FilterRowProps {
   onCompaniesChange: (companies: string[]) => void;
   selectedTitles: string[];
   onTitlesChange: (titles: string[]) => void;
+  selectedSources: string[];
+  onSourcesChange: (sources: string[]) => void;
   filterKeywords: string[];
   onAddFilterKeyword: (keyword: string) => void;
   onRemoveFilterKeyword: (keyword: string) => void;
   allCompanies: string[];
   allTitles: string[];
+  allSources: string[];
 }
 
 const TYPE_OPTIONS: { value: JobType | 'any'; label: string }[] = [
@@ -59,11 +62,14 @@ export function FilterRow({
   onCompaniesChange,
   selectedTitles,
   onTitlesChange,
+  selectedSources,
+  onSourcesChange,
   filterKeywords,
   onAddFilterKeyword,
   onRemoveFilterKeyword,
   allCompanies,
   allTitles,
+  allSources,
 }: FilterRowProps) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -121,6 +127,13 @@ export function FilterRow({
         options={allTitles}
         selected={selectedTitles}
         onChange={onTitlesChange}
+      />
+
+      <CheckboxFilter
+        label="Sources"
+        options={allSources}
+        selected={selectedSources}
+        onChange={onSourcesChange}
       />
 
       <CustomKeywordFilter

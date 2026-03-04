@@ -38,6 +38,7 @@ const Index = () => {
   const [jobStatus, setJobStatus] = useState<JobStatus>('any');
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [selectedTitles, setSelectedTitles] = useState<string[]>([]);
+  const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [filterKeywords, setFilterKeywords] = useState<string[]>([]);
 
   const handleToggleSource = (id: string) => {
@@ -107,6 +108,7 @@ const Index = () => {
   // Derive unique companies and titles from scraped jobs
   const allCompanies = useMemo(() => [...new Set(jobs.map((j) => j.company))].sort(), [jobs]);
   const allTitles = useMemo(() => [...new Set(jobs.map((j) => j.title))].sort(), [jobs]);
+  const allSources = useMemo(() => [...new Set(jobs.map((j) => j.source))].sort(), [jobs]);
 
   // Jobs filtered by everything EXCEPT type (for stable stat counts)
   const baseFilteredJobs = useMemo(() => {
@@ -125,6 +127,10 @@ const Index = () => {
         const text = `${j.title} ${j.description || ''} ${j.company}`.toLowerCase();
         return filterKeywords.some((kw) => text.includes(kw.toLowerCase()));
       });
+    }
+
+    if (selectedSources.length > 0) {
+      filtered = filtered.filter((j) => selectedSources.includes(j.source));
     }
 
     const enabledSources = sources.filter((s) => s.enabled).map((s) => s.name);
@@ -200,11 +206,14 @@ const Index = () => {
           onCompaniesChange={setSelectedCompanies}
           selectedTitles={selectedTitles}
           onTitlesChange={setSelectedTitles}
+          selectedSources={selectedSources}
+          onSourcesChange={setSelectedSources}
           filterKeywords={filterKeywords}
           onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])}
           onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))}
           allCompanies={allCompanies}
           allTitles={allTitles}
+          allSources={allSources}
         />
 
         {/* Stats - clickable filters */}
