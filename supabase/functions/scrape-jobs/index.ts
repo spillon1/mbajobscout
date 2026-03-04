@@ -108,6 +108,16 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // LinkedIn Jobs: use guest API
+        if (source.url.includes('linkedin.com')) {
+          const linkedinJobs = await scrapeLinkedIn(apiKey, source, keywords, location);
+          const vcLinkedinJobs = linkedinJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
+          results.push(...vcLinkedinJobs);
+          sourceStatuses[source.name] = { status: 'connected', count: vcLinkedinJobs.length };
+          console.log(`Found ${vcLinkedinJobs.length} VC-relevant jobs from LinkedIn (filtered from ${linkedinJobs.length})`);
+          continue;
+        }
+
         // InnovatorsRoom: scrape beehiiv JobDrop newsletters
         if (source.url.includes('innovatorsroom.beehiiv.com') || source.url.includes('innovatorsroom.com/jobs')) {
           const irJobs = await scrapeInnovatorsRoom(apiKey, source, location);
@@ -2349,7 +2359,205 @@ function parseInnovatorsRoomJobs(
       url,
       postedDate: newsletterDate || undefined,
     });
+}
+
+// ---- LinkedIn Jobs Guest API Scraper ----
+
+const LINKEDIN_PAGES = 4; // 25 jobs per page
+
+async function scrapeLinkedIn(
+  apiKey: string,
+  source: { name: string; url: string },
+  keywords: string[],
+  location: string
+): Promise<any[]> {
+  const searchCity = location.split(',')[0]?.trim() || 'London';
+  const searchQuery = keywords[0] || 'venture capital';
+  const allJobs: any[] = [];
+
+  for (let page = 0; page < LINKEDIN_PAGES; page++) {
+    const start = page * 25;
+    const guestUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(searchCity)}&start=${start}`;
+    console.log(`LinkedIn page ${page + 1}: ${guestUrl}`);
+
+    try {
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: guestUrl,
+          formats: ['html', 'markdown'],
+          onlyMainContent: false,
+          waitFor: 3000,
+          timeout: 30000,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        console.error(`LinkedIn page ${page + 1} failed:`, data);
+        break;
+      }
+
+      const html = data.data?.html || data.html || '';
+      const markdown = data.data?.markdown || data.markdown || '';
+      console.log(`LinkedIn page ${page + 1}: ${html.length} chars HTML, ${markdown.length} chars markdown`);
+
+      const pageJobs = parseLinkedInGuestJobs(html, markdown, source, searchCity);
+      const newJobs = pageJobs.filter(j => !allJobs.some(e => e.title === j.title && e.company === j.company));
+      allJobs.push(...newJobs);
+      console.log(`LinkedIn page ${page + 1}: ${newJobs.length} new jobs`);
+
+      if (pageJobs.length < 5) break; // No more results
+    } catch (err) {
+      console.error(`LinkedIn page ${page + 1} error:`, err);
+      break;
+    }
   }
+
+  console.log(`LinkedIn total: ${allJobs.length} jobs`);
+  return allJobs;
+}
+
+function parseLinkedInGuestJobs(
+  html: string,
+  markdown: string,
+  source: { name: string; url: string },
+  searchCity: string
+): any[] {
+  const jobs: any[] = [];
+
+  // Strategy 1: Parse HTML — LinkedIn guest API returns <li> cards with specific classes
+  // Each card has: base-card__full-link (title+url), base-search-card__subtitle (company),
+  // job-search-card__location (location), <time datetime="..."> (date)
+
+  // Extract job cards using base-card pattern
+  const cardPattern = /<li[\s\S]*?<\/li>/gi;
+  let cardMatch;
+  while ((cardMatch = cardPattern.exec(html)) !== null) {
+    const card = cardMatch[0];
+
+    // Title + URL
+    const titleMatch = card.match(/<a[^>]*class="[^"]*base-card__full-link[^"]*"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/i)
+      || card.match(/<h3[^>]*class="[^"]*base-search-card__title[^"]*"[^>]*>([\s\S]*?)<\/h3>/i);
+    if (!titleMatch) continue;
+
+    let url = '';
+    let title = '';
+    if (titleMatch[2] !== undefined) {
+      url = titleMatch[1].trim();
+      title = titleMatch[2].replace(/<[^>]*>/g, '').trim();
+    } else {
+      title = titleMatch[1].replace(/<[^>]*>/g, '').trim();
+    }
+
+    if (title.length < 3 || title.length > 200) continue;
+    if (/sign in|log in|cookie|privacy|menu/i.test(title)) continue;
+
+    // If no URL from title link, look for any linkedin job URL in the card
+    if (!url) {
+      const urlMatch = card.match(/href="(https:\/\/[^"]*linkedin\.com\/jobs\/view\/[^"]*)"/i);
+      if (urlMatch) url = urlMatch[1];
+    }
+    if (!url) continue;
+
+    // Company
+    let company = 'Unknown';
+    const companyMatch = card.match(/<h4[^>]*class="[^"]*base-search-card__subtitle[^"]*"[^>]*>([\s\S]*?)<\/h4>/i)
+      || card.match(/<a[^>]*class="[^"]*hidden-nested-link[^"]*"[^>]*>([\s\S]*?)<\/a>/i);
+    if (companyMatch) {
+      company = companyMatch[1].replace(/<[^>]*>/g, '').trim();
+    }
+
+    // Location
+    let jobLocation = searchCity;
+    const locMatch = card.match(/<span[^>]*class="[^"]*job-search-card__location[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
+    if (locMatch) {
+      jobLocation = locMatch[1].replace(/<[^>]*>/g, '').trim();
+    }
+
+    // Posted date
+    let postedDate: string | undefined;
+    const timeMatch = card.match(/<time[^>]*datetime="([^"]*)"[^>]*>/i);
+    if (timeMatch) {
+      postedDate = timeMatch[1]; // ISO date like "2026-02-28"
+    }
+
+    let type = 'full-time';
+    const tl = title.toLowerCase();
+    if (tl.includes('intern') && !tl.includes('internal')) type = 'internship';
+    else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
+
+    if (!jobs.some(j => j.title === title && j.company === company)) {
+      jobs.push({
+        id: crypto.randomUUID(),
+        title,
+        company,
+        location: jobLocation,
+        type,
+        source: source.name,
+        sourceUrl: source.url,
+        url: url.split('?')[0], // Clean tracking params
+        postedDate,
+      });
+    }
+  }
+
+  // Strategy 2: Fallback to markdown parsing if HTML parsing found nothing
+  if (jobs.length === 0 && markdown.length > 100) {
+    console.log('LinkedIn: HTML parsing found nothing, trying markdown fallback');
+    const lines = markdown.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Look for markdown links to linkedin job views
+      const linkMatch = line.match(/\[([^\]]{5,200})\]\((https:\/\/[^\s)]*linkedin\.com\/jobs\/view\/[^\s)]+)\)/);
+      if (!linkMatch) continue;
+
+      const title = linkMatch[1].replace(/\*\*/g, '').trim();
+      const url = linkMatch[2].split('?')[0];
+
+      if (/sign in|log in|cookie|privacy/i.test(title)) continue;
+
+      let company = 'Unknown';
+      let jobLocation = searchCity;
+
+      // Check next lines for company/location
+      for (let j = 1; j <= 3 && i + j < lines.length; j++) {
+        const next = lines[i + j].replace(/\*\*/g, '').replace(/\[.*?\]\(.*?\)/g, '').trim();
+        if (!next || next.startsWith('#')) break;
+        if (company === 'Unknown' && next.length > 1 && next.length < 100) {
+          company = next;
+        } else if (/london|uk|england|remote|hybrid/i.test(next) && next.length < 60) {
+          jobLocation = next;
+        }
+      }
+
+      let type = 'full-time';
+      const tl = title.toLowerCase();
+      if (tl.includes('intern') && !tl.includes('internal')) type = 'internship';
+      else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
+
+      if (!jobs.some(j => j.title === title && j.company === company)) {
+        jobs.push({
+          id: crypto.randomUUID(),
+          title,
+          company,
+          location: jobLocation,
+          type,
+          source: source.name,
+          sourceUrl: source.url,
+          url,
+        });
+      }
+    }
+  }
+
+  return jobs;
+}
 
   return jobs;
 }
