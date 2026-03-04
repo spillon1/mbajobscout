@@ -3,7 +3,8 @@ import { JobTypeBadge } from './JobTypeBadge';
 import { ExternalLink, Building2, MapPin, Calendar, DollarSign } from 'lucide-react';
 
 function formatPostedDate(dateStr?: string): string | null {
-  if (!dateStr || dateStr === 'Scraped just now') return null;
+  if (!dateStr) return null;
+  if (dateStr === 'Scraped just now') return 'Just now';
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return dateStr;
