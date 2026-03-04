@@ -5,7 +5,7 @@ function parsePostedDate(dateStr?: string): Date {
   if (!dateStr || dateStr === 'Scraped just now' || dateStr === 'Mock data') return new Date();
 
   // Relative: "5 days ago", "2 weeks ago"
-  const rel = dateStr.match(/(\d+)\s*(hour|day|week|month)s?\s*ago/i);
+  const rel = dateStr.match(/(\d+)\s*(hour|day|week|month|year)s?\s*ago/i);
   if (rel) {
     const n = parseInt(rel[1]);
     const unit = rel[2].toLowerCase();
@@ -14,6 +14,7 @@ function parsePostedDate(dateStr?: string): Date {
     else if (unit === 'day') d.setDate(d.getDate() - n);
     else if (unit === 'week') d.setDate(d.getDate() - n * 7);
     else if (unit === 'month') d.setMonth(d.getMonth() - n);
+    else if (unit === 'year') d.setFullYear(d.getFullYear() - n);
     return d;
   }
 
@@ -108,24 +109,7 @@ const Index = () => {
       }
 
       if (result.success) {
-        setJobs((prev) => {
-          // Merge by URL and refresh existing entries so fields like postedDate get updated
-          const byKey = new Map(prev.map((j) => [j.url || `${j.title}|${j.company}`, j]));
-
-          for (const incoming of result.jobs) {
-            const key = incoming.url || `${incoming.title}|${incoming.company}`;
-            const existing = byKey.get(key);
-            byKey.set(key, {
-              ...existing,
-              ...incoming,
-              postedDate: incoming.postedDate || existing?.postedDate,
-              description: incoming.description ?? existing?.description,
-              salary: incoming.salary ?? existing?.salary,
-            });
-          }
-
-          return Array.from(byKey.values());
-        });
+        setJobs(result.jobs);
         setHasScraped(true);
         toast({
           title: 'Scrape complete',

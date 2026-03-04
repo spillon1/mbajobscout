@@ -39,7 +39,23 @@ export async function scrapeJobs(
     .map((j: any) => ({ ...j, type: j.type as JobType }))
     .filter(isValidJob);
 
-  // Save to database using upsert (deduplicate by url)
+  // Replace saved rows for successfully scraped sources to prevent stale jobs from lingering
+  const successfulSources = Object.entries(data.sourceStatuses || {})
+    .filter(([, status]) => (status as { status?: string })?.status === 'connected')
+    .map(([sourceName]) => sourceName);
+
+  if (successfulSources.length > 0) {
+    const { error: deleteError } = await supabase
+      .from('scraped_jobs')
+      .delete()
+      .in('source', successfulSources);
+
+    if (deleteError) {
+      console.error('Failed to clear old jobs for sources:', deleteError);
+    }
+  }
+
+  // Save fresh rows (deduplicated by URL)
   if (jobs.length > 0) {
     const rows = jobs.map((j) => ({
       title: j.title,
@@ -148,7 +164,7 @@ function isValidJob(job: Job): boolean {
 
 /** Parse freetext date strings into Date objects */
 function tryParseDate(dateStr: string): Date | null {
-  const rel = dateStr.match(/(\d+)\s*(hour|day|week|month)s?\s*ago/i);
+  const rel = dateStr.match(/(\d+)\s*(hour|day|week|month|year)s?\s*ago/i);
   if (rel) {
     const n = parseInt(rel[1]);
     const unit = rel[2].toLowerCase();
@@ -157,6 +173,7 @@ function tryParseDate(dateStr: string): Date | null {
     else if (unit === 'day') d.setDate(d.getDate() - n);
     else if (unit === 'week') d.setDate(d.getDate() - n * 7);
     else if (unit === 'month') d.setMonth(d.getMonth() - n);
+    else if (unit === 'year') d.setFullYear(d.getFullYear() - n);
     return d;
   }
   const parsed = new Date(dateStr);

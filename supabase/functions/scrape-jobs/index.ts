@@ -121,6 +121,7 @@ Deno.serve(async (req) => {
       if (job.company === 'Unknown' && job.title.length < 10) return false;
 
       // Age filter
+      if (job.source === 'Venture5' && (!job.postedDate || job.postedDate === 'Scraped just now')) return false;
       if (!job.postedDate || job.postedDate === 'Scraped just now') return true;
       const parsed = tryParseDate(job.postedDate);
       if (!parsed) return true;
@@ -134,6 +135,17 @@ Deno.serve(async (req) => {
       seen.add(job.url);
       return true;
     });
+
+    // Update per-source counts based on final filtered result set
+    const finalSourceCounts: Record<string, number> = {};
+    for (const job of dedupedResults) {
+      finalSourceCounts[job.source] = (finalSourceCounts[job.source] || 0) + 1;
+    }
+    for (const [sourceName, status] of Object.entries(sourceStatuses)) {
+      if (status.status === 'connected') {
+        status.count = finalSourceCounts[sourceName] || 0;
+      }
+    }
 
     console.log(`Total jobs found: ${dedupedResults.length} (filtered from ${results.length})`);
 
@@ -335,7 +347,7 @@ async function enrichVenture5PostedDates(jobs: any[], searchCity: string): Promi
   if (missingDateJobs.length === 0) return jobs;
 
   try {
-    const rssUrl = `https://venture5.com/?feed=job_feed&job_types=freelance%2Cfull-time%2Cinternship%2Cpart-time%2Ctemporary&search_location=${encodeURIComponent(searchCity)}&job_categories&search_keywords`;
+    const rssUrl = `https://venture5.com/jobs/?feed=job_feed&search_location=${encodeURIComponent(searchCity)}`;
     const response = await fetch(rssUrl);
     if (!response.ok) return jobs;
 
@@ -348,11 +360,15 @@ async function enrichVenture5PostedDates(jobs: any[], searchCity: string): Promi
       if (key && item.pubDate) dateByUrl.set(key, item.pubDate);
     }
 
-    return jobs.map((job) => {
-      if (job.postedDate && job.postedDate !== 'Scraped just now') return job;
-      const rssDate = dateByUrl.get(normalizeVenture5Url(job.url));
-      return rssDate ? { ...job, postedDate: rssDate } : job;
-    });
+    console.log(`Venture5 RSS date enrichment loaded ${dateByUrl.size} dated URLs`);
+
+    return jobs
+      .map((job) => {
+        if (job.postedDate && job.postedDate !== 'Scraped just now') return job;
+        const rssDate = dateByUrl.get(normalizeVenture5Url(job.url));
+        return rssDate ? { ...job, postedDate: rssDate } : job;
+      })
+      .filter((job) => job.postedDate && job.postedDate !== 'Scraped just now');
   } catch (err) {
     console.error('Venture5 RSS date enrichment failed:', err);
     return jobs;
@@ -430,8 +446,8 @@ function parseVenture5Jobs(
     let postedDate = 'Scraped just now';
 
     const rawDateMatch =
-      itemWindow.match(/Posted\s+(\d+\s*(?:hour|day|week|month)s?\s*ago)/i) ||
-      itemWindow.match(/\b(\d+\s*(?:hour|day|week|month)s?\s*ago)\b/i);
+      itemWindow.match(/Posted\s+(\d+\s*(?:hour|day|week|month|year)s?\s*ago)/i) ||
+      itemWindow.match(/\b(\d+\s*(?:hour|day|week|month|year)s?\s*ago)\b/i);
 
     if (rawDateMatch) {
       postedDate = rawDateMatch[1];
@@ -470,7 +486,7 @@ function tryParseDate(dateStr: string): Date | null {
   if (!dateStr || dateStr === 'Scraped just now') return null;
   
   // Handle relative dates like "5 days ago", "2 weeks ago"
-  const relMatch = dateStr.match(/(\d+)\s*(hour|day|week|month)s?\s*ago/i);
+  const relMatch = dateStr.match(/(\d+)\s*(hour|day|week|month|year)s?\s*ago/i);
   if (relMatch) {
     const num = parseInt(relMatch[1]);
     const unit = relMatch[2].toLowerCase();
@@ -479,6 +495,7 @@ function tryParseDate(dateStr: string): Date | null {
     else if (unit === 'day') d.setDate(d.getDate() - num);
     else if (unit === 'week') d.setDate(d.getDate() - num * 7);
     else if (unit === 'month') d.setMonth(d.getMonth() - num);
+    else if (unit === 'year') d.setFullYear(d.getFullYear() - num);
     return d;
   }
 
