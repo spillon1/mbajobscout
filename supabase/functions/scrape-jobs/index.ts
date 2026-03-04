@@ -412,7 +412,7 @@ function parseJobsFromMarkdown(
   }
 
   // Try structured card parsing first (e.g. Startup & VC format)
-  const cardJobs = parseStructuredCards(markdown, source, keywords);
+  const cardJobs = parseStructuredCards(markdown, source, keywords, location);
   if (cardJobs.length > 0) return cardJobs;
 
   // Fall back to generic header-based parsing
@@ -485,7 +485,8 @@ function parseJobsFromMarkdown(
 function parseStructuredCards(
   markdown: string,
   source: { name: string; url: string },
-  keywords: string[]
+  keywords: string[],
+  searchLocation: string = ''
 ): any[] {
   const jobs: any[] = [];
 
@@ -519,11 +520,12 @@ function parseStructuredCards(
     });
     const jobLocation = locationField || '';
 
-    // For Startup & VC scraping all jobs page: only include London jobs
-    if (source.url.includes('startupandvc.com/venture-capital-jobs') && !source.url.includes('/locations/')) {
+    // Filter by user's search location if provided
+    if (searchLocation && jobLocation) {
+      // Extract city from search location (e.g. "London, United Kingdom" -> "london")
+      const searchCity = searchLocation.split(',')[0].trim().toLowerCase();
       const locLower = jobLocation.toLowerCase();
-      // Must explicitly contain 'london' — skip jobs with unknown or non-London locations
-      if (!locLower.includes('london')) continue;
+      if (searchCity && !locLower.includes(searchCity)) continue;
     }
 
     // Find type field
