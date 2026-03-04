@@ -1,0 +1,1 @@
+DELETE FROM public.scraped_jobs WHERE title LIKE '%](http%' OR title LIKE '%venture5.com%' OR company = 'Invest. Amplify. Grow.';
