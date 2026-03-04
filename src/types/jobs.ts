@@ -22,6 +22,7 @@ export interface JobSource {
   status?: 'connected' | 'error' | 'checking' | 'unknown';
   statusMessage?: string;
   lastJobCount?: number;
+  manualOnly?: boolean;
 }
 
 export interface SearchConfig {
