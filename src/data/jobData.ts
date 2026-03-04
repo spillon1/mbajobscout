@@ -14,6 +14,7 @@ export const DEFAULT_SOURCES: (JobSource & { status?: 'connected' | 'error' | 'c
 
 export const MANUAL_SOURCES: JobSource[] = [
   { id: 'm1', name: 'MBA Exchange', url: 'https://www.mba-exchange.com/candidates/jobSearch_p.php', enabled: false, manualOnly: true },
+  { id: 'm2', name: 'VC Careers', url: 'https://venturecapitalcareers.com/jobs', enabled: false, manualOnly: true },
 ];
 
 export const DEFAULT_KEYWORDS = [
