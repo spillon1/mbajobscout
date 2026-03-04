@@ -27,7 +27,7 @@ const isOccSource = (value: string): boolean => /occ\s*\(cambridge\)|12twenty/i.
 import { Job, JobType, JobSource } from '@/types/jobs';
 import { DEFAULT_SOURCES, DEFAULT_KEYWORDS } from '@/data/jobData';
 import { FilterBar } from '@/components/FilterBar';
-import { FilterRow, ListedPeriod, JobStatus } from '@/components/FilterRow';
+import { FilterRow, ListedPeriod, JobStatus, SortOption } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
 import { KeywordBar } from '@/components/KeywordBar';
@@ -69,6 +69,7 @@ const Index = () => {
   const [selectedTitles, setSelectedTitles] = useState<string[]>([]);
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [filterKeywords, setFilterKeywords] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
 
   useEffect(() => {
     setSources((prev) => prev.filter((s) => !isOccSource(`${s.name} ${s.url}`)));
@@ -193,13 +194,26 @@ const Index = () => {
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
-    // Sort newest-first by posted date
     return [...typed].sort((a, b) => {
-      const da = parsePostedDate(a.postedDate);
-      const db = parsePostedDate(b.postedDate);
-      return db.getTime() - da.getTime();
+      switch (sortBy) {
+        case 'date-asc': {
+          const da = parsePostedDate(a.postedDate);
+          const db = parsePostedDate(b.postedDate);
+          return da.getTime() - db.getTime();
+        }
+        case 'company-asc':
+          return a.company.localeCompare(b.company);
+        case 'title-asc':
+          return a.title.localeCompare(b.title);
+        case 'date-desc':
+        default: {
+          const da = parsePostedDate(a.postedDate);
+          const db = parsePostedDate(b.postedDate);
+          return db.getTime() - da.getTime();
+        }
+      }
     });
-  }, [baseFilteredJobs, selectedType]);
+  }, [baseFilteredJobs, selectedType, sortBy]);
 
   const stats = useMemo(() => ({
     total: baseFilteredJobs.length,
@@ -252,6 +266,8 @@ const Index = () => {
         <FilterRow
           listedPeriod={listedPeriod}
           onListedPeriodChange={setListedPeriod}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
           selectedCompanies={selectedCompanies}
           onCompaniesChange={setSelectedCompanies}
           selectedTitles={selectedTitles}

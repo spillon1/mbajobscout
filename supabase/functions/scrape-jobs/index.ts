@@ -683,7 +683,7 @@ function convertRelativeDate(relStr: string): string | undefined {
   }
 
   // Handle compact formats like "30d+", "24h", "2d", "1w"
-  const compactMatch = lower.match(/^(\d+)\+?\s*(h|d|w|m)$/);
+  const compactMatch = lower.match(/^(\d+)\s*(h|d|w|m)\+?$/);
   if (compactMatch) {
     const n = parseInt(compactMatch[1]);
     const unit = compactMatch[2];
