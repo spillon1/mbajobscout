@@ -2137,9 +2137,11 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
     if (skipWords.some(w => company.toLowerCase().includes(w))) continue;
     if (title.length < 5 || title.length > 300) continue;
 
-    // Skip entries where title looks like a US location (e.g. "Adams County, Nebraska")
-    const usStatePattern = /\b(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new\s+hampshire|new\s+jersey|new\s+mexico|new\s+york|north\s+carolina|north\s+dakota|ohio|oklahoma|oregon|pennsylvania|rhode\s+island|south\s+carolina|south\s+dakota|tennessee|texas|utah|vermont|virginia|washington|west\s+virginia|wisconsin|wyoming)\b/i;
-    if (usStatePattern.test(title)) continue;
+    // Skip entries where title looks like a bare geographic label, not a job title
+    // e.g. "Adams County, Nebraska" or "Logan County, Colorado"
+    // Real job titles contain role words like analyst, manager, associate, director, etc.
+    const roleWords = /\b(analyst|associate|manager|director|officer|lead|head|engineer|developer|assistant|coordinator|specialist|consultant|partner|principal|intern|advisor|administrator|accountant|controller|recruiter|designer|scientist|researcher|strategist|president|vice\s+president|vp)\b/i;
+    if (!roleWords.test(title)) continue;
 
     // Enforce location filter from user search (e.g. London)
     if (searchCity) {
