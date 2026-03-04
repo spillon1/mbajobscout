@@ -628,38 +628,43 @@ async function scrapeIndeed(
     required: ['jobs'],
   };
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s client timeout
+  // Try JSON extraction first, fall back to markdown if it times out
+  let jsonData: any = null;
+  let html = '';
 
-  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      url: searchUrl,
-      formats: ['extract'],
-      extract: { schema: jsonSchema },
-      waitFor: 2000,
-      timeout: 20000,
-    }),
-    signal: controller.signal,
-  });
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  clearTimeout(timeoutId);
+    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: searchUrl,
+        formats: ['extract'],
+        extract: { schema: jsonSchema },
+        waitFor: 3000,
+        timeout: 30000,
+      }),
+      signal: controller.signal,
+    });
 
-  const data = await response.json();
-  if (!response.ok) {
-    console.error('Indeed: Firecrawl scrape failed:', JSON.stringify(data));
-    throw new Error(data.error || `Firecrawl HTTP ${response.status}`);
+    clearTimeout(timeoutId);
+
+    const data = await response.json();
+    if (response.ok) {
+      jsonData = data.data?.extract || data.extract;
+      html = data.data?.html || data.html || '';
+      console.log(`Indeed: got JSON extraction: ${JSON.stringify(jsonData)?.substring(0, 500)}`);
+    } else {
+      console.error('Indeed: Firecrawl extract failed:', JSON.stringify(data).substring(0, 300));
+    }
+  } catch (extractErr) {
+    console.warn(`Indeed: JSON extraction timed out or failed, falling back to markdown scrape`);
   }
-
-  const jsonData = data.data?.extract || data.extract;
-  const html = data.data?.html || data.html || '';
-
-  console.log(`Indeed: got JSON extraction: ${JSON.stringify(jsonData)?.substring(0, 500)}`);
-  console.log(`Indeed: got ${html.length} chars HTML`);
 
   // If JSON extraction succeeded, use it directly
   if (jsonData?.jobs && jsonData.jobs.length > 0) {
@@ -677,7 +682,6 @@ async function scrapeIndeed(
         if (jobUrl.startsWith('/')) jobUrl = `https://uk.indeed.com${jobUrl}`;
         if (!jobUrl) jobUrl = searchUrl;
 
-        // Convert relative date like "2 days ago" to actual date string
         const postedDate = j.posted ? convertRelativeDate(j.posted) : undefined;
 
         return {
@@ -695,9 +699,43 @@ async function scrapeIndeed(
       });
   }
 
-  // Fallback to HTML parsing if JSON extraction failed
-  console.log('Indeed: JSON extraction failed, falling back to HTML parsing');
-  return parseIndeedJobs(html, source, searchCity);
+  // Fallback: try markdown scrape (faster, no LLM extraction)
+  console.log('Indeed: JSON extraction failed or empty, trying markdown fallback');
+  try {
+    const fallbackController = new AbortController();
+    const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 20000);
+
+    const fallbackResp = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: searchUrl,
+        formats: ['markdown', 'html'],
+        waitFor: 3000,
+        timeout: 15000,
+      }),
+      signal: fallbackController.signal,
+    });
+
+    clearTimeout(fallbackTimeoutId);
+    const fallbackData = await fallbackResp.json();
+    if (fallbackResp.ok) {
+      html = fallbackData.data?.html || fallbackData.html || '';
+      console.log(`Indeed: markdown fallback got ${html.length} chars HTML`);
+    }
+  } catch (fallbackErr) {
+    console.warn('Indeed: markdown fallback also failed');
+  }
+
+  if (html) {
+    return parseIndeedJobs(html, source, searchCity);
+  }
+
+  console.warn('Indeed: all scraping methods failed, returning empty');
+  return [];
 }
 
 /** Convert relative date strings like "2 days ago" to ISO date strings */
