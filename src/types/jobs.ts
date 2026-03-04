@@ -19,6 +19,7 @@ export interface JobSource {
   name: string;
   url: string;
   enabled: boolean;
+  status?: 'connected' | 'error' | 'checking' | 'unknown';
 }
 
 export interface SearchConfig {
