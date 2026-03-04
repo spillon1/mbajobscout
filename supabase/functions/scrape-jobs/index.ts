@@ -315,8 +315,6 @@ async function scrapeRssFeed(
       title = title.substring(0, companyMatch.index).trim();
     }
 
-    // Clean title prefix like "VC " from "VC Internship"
-    title = title.replace(/^VC\s+/i, '').trim();
     // But keep the full title if it becomes too short
     if (title.length < 3) title = item.title.split(/\s+[@-]\s+/)[0].trim();
 
