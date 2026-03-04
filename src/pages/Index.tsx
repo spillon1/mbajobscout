@@ -7,6 +7,7 @@ import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
 import { KeywordBar } from '@/components/KeywordBar';
 import { scrapeJobs } from '@/lib/api/scrapeJobs';
+import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { Briefcase, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -220,7 +221,9 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Job list */}
           <div className="lg:col-span-3 space-y-2">
-            {!hasScraped ? (
+            {isSearching ? (
+              <ScrapeProgress isSearching={isSearching} sourceCount={sources.filter(s => s.enabled).length} />
+            ) : !hasScraped ? (
               <div className="border border-border rounded-md bg-card p-12 text-center">
                 <Zap className="h-8 w-8 text-primary mx-auto mb-3" />
                 <p className="font-display text-sm text-foreground mb-1">Ready to scrape</p>
