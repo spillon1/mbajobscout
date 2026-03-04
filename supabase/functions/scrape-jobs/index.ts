@@ -80,8 +80,9 @@ Deno.serve(async (req) => {
         const markdown = data.data?.markdown || data.markdown || '';
         const links = data.data?.links || data.links || [];
 
-        const jobs = parseJobsFromMarkdown(markdown, links, source, keywords, location);
+        const jobs = parseJobsFromMarkdown(markdown, links, source, expandedKeywords, location);
         results.push(...jobs);
+        sourceStatuses[source.name].count = jobs.length;
 
         console.log(`Found ${jobs.length} potential jobs from ${source.name}`);
       } catch (err) {
