@@ -93,13 +93,15 @@ export function AlertConfig({ keywords, location, sourceNames }: AlertConfigProp
 
     setTesting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-job-alerts');
+      const { data, error } = await supabase.functions.invoke('send-job-alerts', {
+        body: { test: true },
+      });
       if (error) throw error;
 
       if (data?.count > 0) {
-        toast({ title: `Test alert sent!`, description: `${data.count} jobs emailed to ${email}` });
+        toast({ title: `Test alert sent!`, description: `${data.count} sample jobs emailed to ${email}` });
       } else {
-        toast({ title: 'No new jobs to alert about', description: 'All current jobs have already been included in previous alerts' });
+        toast({ title: 'No jobs found', description: 'Scrape some jobs first, then try again' });
       }
     } catch (err) {
       console.error('Test alert error:', err);
