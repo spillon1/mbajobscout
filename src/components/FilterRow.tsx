@@ -5,10 +5,13 @@ import { SlidersHorizontal } from 'lucide-react';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
 export type JobStatus = 'any' | 'open' | 'closed';
+export type SortOption = 'date-desc' | 'date-asc' | 'company-asc' | 'title-asc';
 
 interface FilterRowProps {
   listedPeriod: ListedPeriod;
   onListedPeriodChange: (period: ListedPeriod) => void;
+  sortBy: SortOption;
+  onSortByChange: (sort: SortOption) => void;
   selectedCompanies: string[];
   onCompaniesChange: (companies: string[]) => void;
   selectedTitles: string[];
@@ -32,9 +35,18 @@ const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
   { value: '6m', label: 'Past 6 Months' },
 ];
 
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'date-desc', label: 'Newest First' },
+  { value: 'date-asc', label: 'Oldest First' },
+  { value: 'company-asc', label: 'Company A–Z' },
+  { value: 'title-asc', label: 'Title A–Z' },
+];
+
 export function FilterRow({
   listedPeriod,
   onListedPeriodChange,
+  sortBy,
+  onSortByChange,
   selectedCompanies,
   onCompaniesChange,
   selectedTitles,
@@ -92,6 +104,22 @@ export function FilterRow({
         onAddKeyword={onAddFilterKeyword}
         onRemoveKeyword={onRemoveFilterKeyword}
       />
+
+      <div className="ml-auto flex items-center gap-1.5">
+        <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">Sort:</span>
+        <Select value={sortBy} onValueChange={(v) => onSortByChange(v as SortOption)}>
+          <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 }
