@@ -565,16 +565,14 @@ async function scrapeIndeed(
   keywords: string[],
   location: string
 ): Promise<any[]> {
-  // Build the Indeed search URL with keywords and location
   const searchCity = location.split(',')[0]?.trim() || 'London';
   const searchQuery = keywords[0] || 'venture capital';
-  
-  // Use the source URL directly if it already has query params, otherwise build one
+
   let searchUrl = source.url;
   if (!searchUrl.includes('?q=') && !searchUrl.includes('&q=')) {
     searchUrl = `https://uk.indeed.com/jobs?q=${encodeURIComponent('"' + searchQuery + '"')}&l=${encodeURIComponent(searchCity)}`;
   }
-  
+
   console.log(`Indeed: scraping URL: ${searchUrl}`);
 
   const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
@@ -585,7 +583,7 @@ async function scrapeIndeed(
     },
     body: JSON.stringify({
       url: searchUrl,
-      formats: ['markdown', 'html'],
+      formats: ['html'],
       waitFor: 5000,
       timeout: 60000,
     }),
@@ -597,97 +595,48 @@ async function scrapeIndeed(
     throw new Error(data.error || `Firecrawl HTTP ${response.status}`);
   }
 
-  const markdown = data.data?.markdown || data.markdown || '';
   const html = data.data?.html || data.html || '';
-  console.log(`Indeed: got ${markdown.length} chars markdown, ${html.length} chars HTML`);
-  console.log(`Indeed markdown preview: ${markdown.substring(0, 1500)}`);
+  console.log(`Indeed: got ${html.length} chars HTML`);
 
-  return parseIndeedJobs(markdown, html, source, searchCity);
+  return parseIndeedJobs(html, source, searchCity);
 }
 
 function parseIndeedJobs(
-  markdown: string,
   html: string,
   source: { name: string; url: string },
   searchCity: string
 ): any[] {
   const jobs: any[] = [];
 
-  // Indeed markdown typically has job cards with title links, company, location, and snippets
-  // Pattern: [Job Title](url) followed by company and location info
-  
-  // Try markdown link pattern first
-  const linkPattern = /\[([^\]]{5,200})\]\((https?:\/\/[^\s)]*indeed[^\s)]*|\/[^\s)]*)\)/g;
+  // Indeed job cards use specific data attributes and classes.
+  // Each job card is typically inside a <div> with class "job_seen_beacon" or similar,
+  // with an <a> containing class "jcs-JobTitle" and an <h2> with the title text.
+
+  // Strategy: extract job card blocks from HTML using multiple patterns.
+
+  // Pattern 1: jcs-JobTitle links (most reliable)
+  const titlePattern = /<a[^>]*?href="([^"]*)"[^>]*?class="[^"]*jcs-JobTitle[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
   let match;
-  while ((match = linkPattern.exec(markdown)) !== null) {
-    const title = match[1].replace(/\*\*/g, '').trim();
-    let url = match[2];
-    
-    // Skip non-job links
-    if (/sign in|log in|menu|filter|search|cookie|privacy|terms|post your|find salaries|company reviews/i.test(title)) continue;
-    if (title.length < 5 || title.length > 200) continue;
-    
-    // Make relative URLs absolute
+  while ((match = titlePattern.exec(html)) !== null) {
+    let url = match[1];
+    // Extract text from inner HTML (strip tags)
+    const title = match[2].replace(/<[^>]*>/g, '').trim();
     if (url.startsWith('/')) url = `https://uk.indeed.com${url}`;
-    
-    // Skip pagination, filter, and navigation links
-    if (/\/companies|\/salaries|\/career|\/hiring|\/about|\/accessibility/i.test(url)) continue;
+    if (title.length < 3 || title.length > 200) continue;
 
-    // Extract company and location from lines after the title
-    const afterText = markdown.substring(match.index + match[0].length, match.index + match[0].length + 500);
-    const afterLines = afterText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    // Get surrounding context (next ~2000 chars) for company/location/salary
+    const context = html.substring(match.index, match.index + 3000);
+    const { company, jobLocation, salary, postedDate, description } = extractIndeedCardDetails(context, searchCity);
 
-    let company = 'Unknown';
-    let jobLocation = searchCity;
-    let salary = '';
-    let postedDate = '';
-    let description = '';
-
-    for (const line of afterLines.slice(0, 8)) {
-      if (line.startsWith('[') || line.startsWith('!') || line.startsWith('#')) continue;
-      if (/apply now|easily apply|save this job|not interested/i.test(line)) continue;
-      
-      // Company name (usually first non-link line)
-      if (company === 'Unknown' && line.length > 1 && line.length < 80 && !line.includes('£') && !line.includes('$') && !line.includes('ago')) {
-        company = line.replace(/\*\*/g, '').replace(/^\d+(\.\d+)?\s*/, '').trim();
-        if (company.length < 2) company = 'Unknown';
-        continue;
-      }
-      
-      // Location detection
-      if (/london|manchester|birmingham|cambridge|oxford|edinburgh|bristol|remote|hybrid/i.test(line) && line.length < 100) {
-        jobLocation = line.replace(/\*\*/g, '').trim();
-        continue;
-      }
-      
-      // Salary
-      if (/£[\d,]+|£\d+k|\$[\d,]+/i.test(line)) {
-        salary = line.replace(/\*\*/g, '').trim();
-        continue;
-      }
-      
-      // Posted date
-      if (/(\d+\+?\s*(day|hour|week|month)s?\s*ago|just posted|today)/i.test(line)) {
-        postedDate = line.replace(/\*\*/g, '').trim();
-        continue;
-      }
-      
-      // Description snippet
-      if (line.length > 30 && !description) {
-        description = line.replace(/\*\*/g, '').trim().substring(0, 300);
-      }
-    }
-
-    // Determine job type
-    let type = 'full-time';
-    const titleLower = title.toLowerCase();
-    if (titleLower.includes('intern') && !titleLower.includes('internal')) type = 'internship';
-    else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
+    let type: string = 'full-time';
+    const tl = title.toLowerCase();
+    if (tl.includes('intern') && !tl.includes('internal')) type = 'internship';
+    else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
 
     if (!jobs.some(j => j.title === title && j.company === company)) {
       jobs.push({
         id: crypto.randomUUID(),
-        title: title.slice(0, 200),
+        title,
         company,
         location: jobLocation,
         type,
@@ -701,35 +650,126 @@ function parseIndeedJobs(
     }
   }
 
-  // Fallback: try to parse from HTML if markdown yielded nothing
-  if (jobs.length === 0 && html) {
-    console.log('Indeed: No markdown links found, trying HTML parsing');
-    const htmlPattern = /<a[^>]*href="([^"]*)"[^>]*class="[^"]*jcs-JobTitle[^"]*"[^>]*>(?:<[^>]*>)*([^<]+)/gi;
-    let htmlMatch;
-    while ((htmlMatch = htmlPattern.exec(html)) !== null) {
-      let url = htmlMatch[1];
-      const title = htmlMatch[2].trim();
+  // Pattern 2: Fallback — look for <h2> with jobTitle class
+  if (jobs.length === 0) {
+    const h2Pattern = /<h2[^>]*class="[^"]*jobTitle[^"]*"[^>]*>([\s\S]*?)<\/h2>/gi;
+    while ((match = h2Pattern.exec(html)) !== null) {
+      const innerHtml = match[1];
+      // Extract link and title
+      const linkMatch = innerHtml.match(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/);
+      if (!linkMatch) continue;
+      let url = linkMatch[1];
+      const title = linkMatch[2].replace(/<[^>]*>/g, '').trim();
       if (url.startsWith('/')) url = `https://uk.indeed.com${url}`;
-      if (title.length < 5) continue;
+      if (title.length < 3) continue;
+
+      const context = html.substring(match.index, match.index + 3000);
+      const { company, jobLocation, salary, postedDate, description } = extractIndeedCardDetails(context, searchCity);
+
+      let type: string = 'full-time';
+      const tl = title.toLowerCase();
+      if (tl.includes('intern') && !tl.includes('internal')) type = 'internship';
+      else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
+
+      if (!jobs.some(j => j.title === title && j.company === company)) {
+        jobs.push({
+          id: crypto.randomUUID(),
+          title,
+          company,
+          location: jobLocation,
+          type,
+          source: source.name,
+          sourceUrl: source.url,
+          url,
+          postedDate: postedDate || 'Scraped just now',
+          description: description || undefined,
+          salary: salary || undefined,
+        });
+      }
+    }
+  }
+
+  // Pattern 3: data-jk attribute cards (Indeed uses data-jk for job keys)
+  if (jobs.length === 0) {
+    const cardPattern = /<a[^>]*data-jk="([^"]*)"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+    while ((match = cardPattern.exec(html)) !== null) {
+      let url = match[2];
+      const title = match[3].replace(/<[^>]*>/g, '').trim();
+      if (url.startsWith('/')) url = `https://uk.indeed.com${url}`;
+      if (title.length < 5 || title.length > 200) continue;
+      if (/sign in|menu|filter|skip|salary|location|remote|miles/i.test(title)) continue;
+
+      const context = html.substring(match.index, match.index + 3000);
+      const { company, jobLocation, salary, postedDate } = extractIndeedCardDetails(context, searchCity);
 
       if (!jobs.some(j => j.title === title)) {
         jobs.push({
           id: crypto.randomUUID(),
           title,
-          company: 'Unknown',
-          location: searchCity,
+          company,
+          location: jobLocation,
           type: 'full-time',
           source: source.name,
           sourceUrl: source.url,
           url,
-          postedDate: 'Scraped just now',
+          postedDate: postedDate || 'Scraped just now',
+          salary: salary || undefined,
         });
       }
     }
   }
 
   console.log(`Indeed parser found ${jobs.length} jobs`);
+  if (jobs.length > 0) {
+    console.log(`Indeed sample titles: ${jobs.slice(0, 5).map(j => j.title).join(' | ')}`);
+  }
   return jobs;
+}
+
+function extractIndeedCardDetails(context: string, fallbackCity: string) {
+  let company = 'Unknown';
+  let jobLocation = fallbackCity;
+  let salary = '';
+  let postedDate = '';
+  let description = '';
+
+  // Company: often in <span data-testid="company-name"> or class containing "company"
+  const companyMatch = context.match(/data-testid="company-name"[^>]*>([^<]+)/i)
+    || context.match(/class="[^"]*company[^"]*"[^>]*>([^<]+)/i)
+    || context.match(/class="[^"]*companyName[^"]*"[^>]*>([^<]+)/i);
+  if (companyMatch) {
+    company = companyMatch[1].replace(/&amp;/g, '&').trim();
+  }
+
+  // Location: often in <div data-testid="text-location"> or class containing "companyLocation"
+  const locMatch = context.match(/data-testid="text-location"[^>]*>([^<]+)/i)
+    || context.match(/class="[^"]*companyLocation[^"]*"[^>]*>([^<]+)/i)
+    || context.match(/class="[^"]*job-location[^"]*"[^>]*>([^<]+)/i);
+  if (locMatch) {
+    jobLocation = locMatch[1].trim();
+  }
+
+  // Salary: look for salary-related content
+  const salaryMatch = context.match(/class="[^"]*salary[^"]*"[^>]*>([\s\S]*?)<\/(?:div|span)>/i)
+    || context.match(/data-testid="[^"]*salary[^"]*"[^>]*>([^<]+)/i);
+  if (salaryMatch) {
+    salary = salaryMatch[1].replace(/<[^>]*>/g, '').trim();
+  }
+
+  // Posted date
+  const dateMatch = context.match(/class="[^"]*date[^"]*"[^>]*>([^<]+)/i)
+    || context.match(/(\d+\+?\s*(?:day|hour|week|month)s?\s*ago|just posted|today)/i);
+  if (dateMatch) {
+    postedDate = dateMatch[1]?.trim() || dateMatch[0]?.trim() || '';
+  }
+
+  // Description snippet
+  const descMatch = context.match(/class="[^"]*job-snippet[^"]*"[^>]*>([\s\S]*?)<\/(?:div|ul|table)>/i);
+  if (descMatch) {
+    description = descMatch[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 300);
+  }
+
+  return { company, jobLocation, salary, postedDate, description };
 }
 
 // ---- OCC / 12twenty Authenticated Scraper ----
