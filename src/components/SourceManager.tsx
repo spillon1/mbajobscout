@@ -12,6 +12,7 @@ export type ConnectionStatus = 'connected' | 'error' | 'checking' | 'unknown';
 interface SourceManagerProps {
   sources: JobSource[];
   onToggleSource: (id: string) => void;
+  onToggleAll: (enabled: boolean) => void;
   onAddSource: (name: string, url: string) => void;
   onRemoveSource: (id: string) => void;
 }
