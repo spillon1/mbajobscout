@@ -25,20 +25,7 @@ function formatPostedDate(dateStr?: string): string | null {
 export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string) => void }) {
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
-    // Use a temporary <a> element on the top-level document to bypass iframe restrictions
-    try {
-      const a = (window.top || window).document.createElement('a');
-      a.href = job.url;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.style.display = 'none';
-      (window.top || window).document.body.appendChild(a);
-      a.click();
-      (window.top || window).document.body.removeChild(a);
-    } catch {
-      // Cross-origin fallback: just use window.open
-      window.open(job.url, '_blank', 'noopener,noreferrer');
-    }
+    window.open(job.url, '_blank', 'noopener,noreferrer');
   };
 
   return (
