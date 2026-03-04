@@ -47,6 +47,10 @@ const Index = () => {
     );
   };
 
+  const handleToggleAll = (enabled: boolean) => {
+    setSources((prev) => prev.map((s) => ({ ...s, enabled })));
+  };
+
   const handleAddSource = (name: string, url: string) => {
     setSources((prev) => [
       ...prev,
@@ -272,6 +276,7 @@ const Index = () => {
             <SourceManager
               sources={sources}
               onToggleSource={handleToggleSource}
+              onToggleAll={handleToggleAll}
               onAddSource={handleAddSource}
               onRemoveSource={handleRemoveSource}
             />
