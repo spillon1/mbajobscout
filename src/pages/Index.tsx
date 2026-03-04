@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect } from 'react';
 function parsePostedDate(dateStr?: string): Date {
   if (!dateStr || dateStr === 'Scraped just now' || dateStr === 'Mock data') return new Date();
 
-  // Relative: "5 days ago", "2 weeks ago"
   const rel = dateStr.match(/(\d+)\s*(hour|day|week|month|year)s?\s*ago/i);
   if (rel) {
     const n = parseInt(rel[1]);
@@ -21,25 +20,24 @@ function parsePostedDate(dateStr?: string): Date {
   const parsed = new Date(dateStr);
   if (!isNaN(parsed.getTime())) return parsed;
 
-  return new Date(); // fallback: treat as recent
+  return new Date();
 }
 const isOccSource = (value: string): boolean => /occ\s*\(cambridge\)|12twenty/i.test(value);
 import { Job, JobType, JobSource, Seniority } from '@/types/jobs';
 import { DEFAULT_SOURCES, DEFAULT_KEYWORDS } from '@/data/jobData';
-import { FilterBar } from '@/components/FilterBar';
 import { FilterRow, ListedPeriod, JobStatus, SortOption, DatePostedFilter } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
-import { KeywordBar } from '@/components/KeywordBar';
 import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { AlertConfig } from '@/components/AlertConfig';
 import { Briefcase, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+const LOCATION = 'London, United Kingdom';
+
 const Index = () => {
   const { toast } = useToast();
-  const [location, setLocation] = useState('London, United Kingdom');
   const [sources, setSources] = useState<JobSource[]>(() =>
     DEFAULT_SOURCES.filter((s) => !isOccSource(`${s.name} ${s.url}`))
   );
@@ -103,9 +101,8 @@ const Index = () => {
   const handleScrape = async () => {
     setIsSearching(true);
     try {
-      const result = await scrapeJobs(sources, keywords, location);
+      const result = await scrapeJobs(sources, keywords, LOCATION);
 
-      // Update source statuses
       if (result.sourceStatuses) {
         setSources((prev) =>
           prev.map((s) => {
@@ -149,7 +146,6 @@ const Index = () => {
     }
   };
 
-  // Derive unique companies and titles from scraped jobs
   const allCompanies = useMemo(() => [...new Set(jobs.map((j) => j.company))].sort(), [jobs]);
   const allTitles = useMemo(() => [...new Set(jobs.map((j) => j.title))].sort(), [jobs]);
   const allSources = useMemo(
@@ -157,7 +153,6 @@ const Index = () => {
     [jobs, sources]
   );
 
-  // Jobs filtered by everything EXCEPT type (for stable stat counts)
   const baseFilteredJobs = useMemo(() => {
     let filtered = jobs.filter((j) => !dismissedIds.has(j.id));
 
@@ -183,8 +178,8 @@ const Index = () => {
     const enabledSources = sources.filter((s) => s.enabled).map((s) => s.name);
     filtered = filtered.filter((j) => enabledSources.includes(j.source));
 
-    // Always respect selected search location in displayed results
-    const searchCity = location.split(',')[0]?.trim().toLowerCase();
+    // Always filter to London
+    const searchCity = LOCATION.split(',')[0]?.trim().toLowerCase();
     if (searchCity) {
       filtered = filtered.filter((j) => {
         const locationText = `${j.location} ${j.title}`.toLowerCase();
@@ -192,14 +187,12 @@ const Index = () => {
       });
     }
 
-    // Date posted filter
     if (datePostedFilter === 'with-date') {
       filtered = filtered.filter((j) => j.postedDate && j.postedDate !== 'Scraped just now');
     } else if (datePostedFilter === 'without-date') {
       filtered = filtered.filter((j) => !j.postedDate || j.postedDate === 'Scraped just now');
     }
 
-    // Listed period filter
     if (listedPeriod !== 'any') {
       const now = new Date();
       const cutoff = new Date();
@@ -214,14 +207,12 @@ const Index = () => {
       });
     }
 
-
-    // Seniority filter
     if (selectedSeniorities.length > 0) {
       filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
     }
 
     return filtered;
-  }, [jobs, dismissedIds, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, location, datePostedFilter, listedPeriod, selectedSeniorities]);
+  }, [jobs, dismissedIds, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -272,14 +263,6 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Location & Scrape — inline in header */}
-          <FilterBar
-            location={location}
-            onLocationChange={setLocation}
-            onSearch={handleScrape}
-            isSearching={isSearching}
-          />
-
           <div className="flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground shrink-0">
             <span>{stats.total} jobs</span>
             <span className="h-3 w-px bg-border" />
@@ -290,9 +273,6 @@ const Index = () => {
 
       {/* Main */}
       <main className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
-        {/* Keywords */}
-        {/* Keywords are managed internally but hidden from UI */}
-
         {/* Filters */}
         <FilterRow
           listedPeriod={listedPeriod}
@@ -325,6 +305,8 @@ const Index = () => {
             setFilterKeywords([]);
             setSelectedType('any');
           }}
+          onScrape={handleScrape}
+          isSearching={isSearching}
         />
 
         {/* Stats - clickable filters */}
@@ -360,7 +342,7 @@ const Index = () => {
               <div className="border border-border rounded-md bg-card p-12 text-center">
                 <Zap className="h-8 w-8 text-primary mx-auto mb-3" />
                 <p className="font-display text-sm text-foreground mb-1">Ready to scrape</p>
-                <p className="text-xs text-muted-foreground">Configure your keywords, location, and sources, then click Scrape</p>
+                <p className="text-xs text-muted-foreground">Configure your sources, then click Scrape</p>
               </div>
             ) : filteredJobs.length === 0 ? (
               <div className="border border-border rounded-md bg-card p-12 text-center">
