@@ -19,8 +19,9 @@ const Index = () => {
   const [selectedType, setSelectedType] = useState<JobType | 'any'>('any');
   const [listedPeriod, setListedPeriod] = useState<ListedPeriod>('any');
   const [jobStatus, setJobStatus] = useState<JobStatus>('any');
-  const [companyFilter, setCompanyFilter] = useState('');
-  const [titleFilter, setTitleFilter] = useState('');
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [selectedTitles, setSelectedTitles] = useState<string[]>([]);
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
 
   const handleToggleSource = (id: string) => {
     setSources((prev) =>
@@ -44,6 +45,10 @@ const Index = () => {
     setTimeout(() => setIsSearching(false), 2000);
   };
 
+  // Derive unique companies and titles from all jobs
+  const allCompanies = useMemo(() => [...new Set(MOCK_JOBS.map((j) => j.company))].sort(), []);
+  const allTitles = useMemo(() => [...new Set(MOCK_JOBS.map((j) => j.title))].sort(), []);
+
   const filteredJobs = useMemo(() => {
     let jobs = MOCK_JOBS;
 
@@ -61,21 +66,26 @@ const Index = () => {
       );
     }
 
-    if (companyFilter.trim()) {
-      const c = companyFilter.toLowerCase();
-      jobs = jobs.filter((j) => j.company.toLowerCase().includes(c));
+    if (selectedCompanies.length > 0) {
+      jobs = jobs.filter((j) => selectedCompanies.includes(j.company));
     }
 
-    if (titleFilter.trim()) {
-      const t = titleFilter.toLowerCase();
-      jobs = jobs.filter((j) => j.title.toLowerCase().includes(t));
+    if (selectedTitles.length > 0) {
+      jobs = jobs.filter((j) => selectedTitles.includes(j.title));
+    }
+
+    if (selectedKeywords.length > 0) {
+      jobs = jobs.filter((j) => {
+        const text = `${j.title} ${j.description || ''}`.toLowerCase();
+        return selectedKeywords.some((kw) => text.includes(kw.toLowerCase()));
+      });
     }
 
     const enabledSources = sources.filter((s) => s.enabled).map((s) => s.name);
     jobs = jobs.filter((j) => enabledSources.includes(j.source));
 
     return jobs;
-  }, [searchQuery, selectedType, companyFilter, titleFilter, sources]);
+  }, [searchQuery, selectedType, selectedCompanies, selectedTitles, selectedKeywords, sources]);
 
   const stats = useMemo(() => ({
     total: filteredJobs.length,
@@ -137,10 +147,15 @@ const Index = () => {
           onListedPeriodChange={setListedPeriod}
           jobStatus={jobStatus}
           onJobStatusChange={setJobStatus}
-          companyFilter={companyFilter}
-          onCompanyFilterChange={setCompanyFilter}
-          titleFilter={titleFilter}
-          onTitleFilterChange={setTitleFilter}
+          selectedCompanies={selectedCompanies}
+          onCompaniesChange={setSelectedCompanies}
+          selectedTitles={selectedTitles}
+          onTitlesChange={setSelectedTitles}
+          selectedKeywords={selectedKeywords}
+          onKeywordsChange={setSelectedKeywords}
+          allCompanies={allCompanies}
+          allTitles={allTitles}
+          allKeywords={keywords}
         />
 
         {/* Stats */}
