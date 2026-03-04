@@ -52,6 +52,14 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Build the scrape URL — for Google Jobs, append keywords + location as query
+        let scrapeUrl = source.url;
+        if (isGoogleJobsUrl(source.url)) {
+          const query = encodeURIComponent(`"${keywords[0] || 'venture capital'}" jobs ${location}`);
+          scrapeUrl = `https://www.google.com/search?q=${query}&udm=8`;
+          console.log(`Google Jobs URL: ${scrapeUrl}`);
+        }
+
         // Otherwise use Firecrawl
         const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
           method: 'POST',
@@ -60,10 +68,10 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            url: source.url,
+            url: scrapeUrl,
             formats: ['markdown', 'links'],
             onlyMainContent: true,
-            waitFor: 3000,
+            waitFor: 5000,
           }),
         });
 
@@ -126,6 +134,12 @@ function expandKeywords(keywords: string[]): string[] {
     expanded.add('venture capital');
   }
   return [...expanded];
+}
+
+// ---- Google Jobs Detection ----
+
+function isGoogleJobsUrl(url: string): boolean {
+  return url.includes('google.com/search') && (url.includes('udm=8') || url.includes('jobs'));
 }
 
 // ---- RSS Feed Support ----
