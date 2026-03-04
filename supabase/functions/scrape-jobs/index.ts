@@ -541,34 +541,76 @@ function isRssFeedUrl(url: string): boolean {
 
 // ---- eFinancialCareers Scraper ----
 
+const EFC_VC_KEYWORDS = [
+  'venture capital', 'vc ', 'vc,', 'venture', 'startup', 'start-up',
+  'seed', 'series a', 'series b', 'growth equity', 'private equity',
+  'portfolio', 'fund', 'investor', 'investment', 'capital',
+];
+
+function isVcRelated(title: string, company: string, description?: string): boolean {
+  const text = `${title} ${company} ${description || ''}`.toLowerCase();
+  return EFC_VC_KEYWORDS.some(kw => text.includes(kw));
+}
+
 async function scrapeEFinancialCareers(
   apiKey: string,
   source: { name: string; url: string },
   location: string
 ): Promise<any[]> {
-  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      url: source.url,
-      formats: ['markdown'],
-      onlyMainContent: true,
-      waitFor: 5000,
-    }),
-  });
+  const allJobs: any[] = [];
+  const MAX_PAGES = 12;
+  const baseUrl = source.url;
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || `HTTP ${response.status}`);
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    // eFinancialCareers uses &page=N for pagination
+    const pageUrl = page === 1 ? baseUrl : `${baseUrl}&page=${page}`;
+    console.log(`eFinancialCareers page ${page}: ${pageUrl}`);
+
+    try {
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: pageUrl,
+          formats: ['markdown'],
+          onlyMainContent: true,
+          waitFor: 5000,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        if (page === 1) throw new Error(data.error || `HTTP ${response.status}`);
+        console.log(`eFinancialCareers page ${page} failed, stopping`);
+        break;
+      }
+
+      const markdown = data.data?.markdown || data.markdown || '';
+      const pageJobs = parseEFinancialCareersJobs(markdown, source);
+
+      // Deduplicate against already found jobs
+      const newJobs = pageJobs.filter(j => !allJobs.some(existing => existing.url === j.url));
+      allJobs.push(...newJobs);
+
+      console.log(`eFinancialCareers page ${page}: ${newJobs.length} new jobs (${pageJobs.length} on page)`);
+
+      // If we got very few results, no more pages
+      if (pageJobs.length < 5) break;
+    } catch (err) {
+      if (page === 1) throw err;
+      console.log(`eFinancialCareers pagination stopped at page ${page}: ${err}`);
+      break;
+    }
   }
 
-  const markdown = data.data?.markdown || data.markdown || '';
-  console.log(`eFinancialCareers markdown length: ${markdown.length}`);
+  // Filter to only VC-related roles
+  const vcJobs = allJobs.filter(j => isVcRelated(j.title, j.company, j.description));
+  console.log(`eFinancialCareers: ${vcJobs.length} VC-related jobs out of ${allJobs.length} total`);
 
-  return parseEFinancialCareersJobs(markdown, source);
+  return vcJobs;
 }
 
 function parseEFinancialCareersJobs(
@@ -585,27 +627,22 @@ function parseEFinancialCareersJobs(
     const title = match[1].trim();
     const url = match[2].trim();
 
-    // Skip "Apply now" links
     if (title.toLowerCase() === 'apply now') continue;
 
-    // Get context after this match
     const afterMatch = markdown.substring(match.index + match[0].length, match.index + match[0].length + 500);
     const lines = afterMatch.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-    // Skip "Apply now" / "Save" lines
     let lineIdx = 0;
     while (lineIdx < lines.length && (lines[lineIdx].startsWith('[Apply') || lines[lineIdx] === 'Save' || lines[lineIdx].includes('Apply now'))) {
       lineIdx++;
     }
 
-    // Company name
     let company = 'Unknown';
     if (lineIdx < lines.length && !lines[lineIdx].startsWith('![') && !lines[lineIdx].startsWith('[')) {
       company = lines[lineIdx].trim();
       lineIdx++;
     }
 
-    // Location + Type (e.g. "London, United KingdomPermanent")
     let jobLocation = 'London, UK';
     let contractType = 'Permanent';
     if (lineIdx < lines.length) {
@@ -620,7 +657,6 @@ function parseEFinancialCareersJobs(
       lineIdx++;
     }
 
-    // Salary line
     let salary: string | undefined;
     if (lineIdx < lines.length) {
       const salaryLine = lines[lineIdx];
@@ -630,7 +666,6 @@ function parseEFinancialCareersJobs(
       lineIdx++;
     }
 
-    // Posted date
     let postedDate = 'Scraped just now';
     if (lineIdx < lines.length) {
       const dateLine = lines[lineIdx];
@@ -639,7 +674,6 @@ function parseEFinancialCareersJobs(
       }
     }
 
-    // Determine job type
     let type = 'full-time';
     const titleLower = title.toLowerCase();
     if (titleLower.includes('intern') && !titleLower.includes('internal')) type = 'internship';
