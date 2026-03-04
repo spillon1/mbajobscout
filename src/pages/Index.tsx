@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 
 /** Parse freetext posted date into a Date for sorting. Unknown dates → now (appear first). */
 function parsePostedDate(dateStr?: string): Date {
@@ -38,6 +38,7 @@ const LOCATION = 'London, United Kingdom';
 
 const Index = () => {
   const { toast } = useToast();
+  const sourcesRef = useRef<HTMLDivElement>(null);
   const [sources, setSources] = useState<JobSource[]>(() =>
     DEFAULT_SOURCES.filter((s) => !isOccSource(`${s.name} ${s.url}`))
   );
@@ -266,7 +267,12 @@ const Index = () => {
           <div className="flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground shrink-0">
             <span>{stats.total} jobs</span>
             <span className="h-3 w-px bg-border" />
-            <span>{sources.filter((s) => s.enabled).length} sources</span>
+            <button
+              className="lg:cursor-default hover:text-foreground lg:hover:text-muted-foreground transition-colors"
+              onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            >
+              {sources.filter((s) => s.enabled).length} sources
+            </button>
           </div>
         </div>
       </header>
@@ -379,7 +385,7 @@ const Index = () => {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-4">
+          <div ref={sourcesRef} className="space-y-4">
             <AlertConfig />
             <SourceManager
               sources={sources}
