@@ -485,7 +485,8 @@ function parseJobsFromMarkdown(
 function parseStructuredCards(
   markdown: string,
   source: { name: string; url: string },
-  keywords: string[]
+  keywords: string[],
+  searchLocation: string = ''
 ): any[] {
   const jobs: any[] = [];
 
