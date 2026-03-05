@@ -1679,7 +1679,7 @@ async function scrapeEFinancialCareers(
   keywords: string[]
 ): Promise<any[]> {
   const PAGE_SIZE = 50;
-  const MAX_PAGES = 10;
+  const MAX_PAGES = 20;
   const allJobs: any[] = [];
   const baseUrl = buildEfcSearchUrl(source.url, keywords, location);
 
