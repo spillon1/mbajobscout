@@ -218,10 +218,6 @@ function isValidJob(job: Job): boolean {
   // Unknown company with short or generic title
   if (job.company === 'Unknown' && job.title.length < 15) return false;
 
-  // Block PE recruitment agencies and PE-focused roles
-  const companyLower = job.company.toLowerCase();
-  if (/\bprivate\s+equity\b/i.test(companyLower)) return false;
-  if (/\bprivate\s+equity\b/i.test(titleLower)) return false;
 
   // Description contains newsletter/subscribe spam (not a real job)
   const spamSignals = ['subscribing to our', 'newsletter', 'subscribe to', 'terms & conditions', 'something went wrong while submitting'];
