@@ -224,31 +224,32 @@ function isValidJob(job: Job): boolean {
   const spamCount = spamSignals.filter(s => descLower.includes(s)).length;
   if (spamCount >= 2) return false;
 
-  // Hard-exclude non-VC role patterns (mirrors edge function isLikelyVcRole hard excludes)
+  // Hard-exclude non-VC role patterns (mirrors edge function isNotExcludedRole)
   const hardExcludeTitles = [
-    /\bir\s+analyst\b/i,
-    /\binvestor\s+relation/i,
-    /\bfund\s+controller\b/i,
-    /\bportfolio\s+controller\b/i,
-    /\blegal\s+counsel\b/i,
-    /\bfinance\s+and\s+portfolio\b/i,
-    /\bfinance\s+analyst\b/i,
-    /\bfinance\s+director\b/i,
-    /\bfinance\s+manager\b/i,
+    // Legal
+    /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
+    /\blegal\s+counsel\b/i, /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
+    // Finance ops
+    /\baccountant\b/i, /\bauditor\b/i, /\bfund\s+controller\b/i,
+    /\bportfolio\s+(controller|monitor|manager)\b/i, /\bfund\s+administ/i,
+    /\bfinance\s+(analyst|director|manager|business\s+partner|and\s+portfolio)\b/i,
     /\bhead\s+of\s+finance\b/i,
-    /\bfund\s+administ/i,
-    /\bportfolio\s+monitor/i,
-    /\bportfolio\s+manager\b/i,
-    /\binvestment\s+consultant\b/i,
-    /\bsolicitor\b/i,
-    /\blawyer\b/i,
-    /\bbarrister\b/i,
-    /\baccountant\b/i,
-    /\bauditor\b/i,
-    /\bproduct\s+manager\b/i,
-    /\bproject\s+manager\b/i,
-    /\bdata\s+scientist\b/i,
-    /\brecruitment\s+(consultant|manager)\b/i,
+    // Tech / product
+    /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i, /\bdata\s+scientist\b/i,
+    /\bdesigner\b/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i,
+    // Non-VC finance (by title)
+    /\bprivate\s+equity\b/i, /\bm&a\b/i, /\bmergers?\s+(and|&)\s+acquisitions?\b/i,
+    /\bcorporate\s+development\b/i, /\bcorporate\s+(finance|m&a)\b/i,
+    /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i, /\binvestment\s+consultant\b/i,
+    /\binvestment\s+fund\w*\s+(senior\s+)?associate\b/i,
+    /\bstrategy\s+consult/i, /\bmanagement\s+consult/i,
+    /\bquantitative\s+(researcher|trader|analyst)\b/i, /\bcommodities\b/i,
+    /\bstructurer\b/i, /\breal\s+estate\b/i, /\bcredit\s+invest/i,
+    /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
+    // HR / admin / sales
+    /\brecruitment\s+(consultant|manager)\b/i, /\bcompliance\s+(administrator|officer|manager)\b/i,
+    /\bbusiness\s+development\b/i, /\bprogram\s+director\b/i,
+    /\bir\s+analyst\b/i, /\binvestor\s+relation/i,
   ];
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
 
