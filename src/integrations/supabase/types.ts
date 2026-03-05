@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      job_actions: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          job_company: string
+          job_source: string
+          job_title: string
+          job_url: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          job_company: string
+          job_source?: string
+          job_title: string
+          job_url: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          job_company?: string
+          job_source?: string
+          job_title?: string
+          job_url?: string
+        }
+        Relationships: []
+      }
       job_alerts: {
         Row: {
           created_at: string

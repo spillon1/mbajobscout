@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Job } from '@/types/jobs';
 import { JobTypeBadge } from './JobTypeBadge';
-import { ExternalLink, Building2, MapPin, Calendar, X, Copy, Check } from 'lucide-react';
+import { ExternalLink, Building2, MapPin, Calendar, X, Copy, Check, CheckCircle2 } from 'lucide-react';
 import { isBlockedUrl, getOutboundUrl } from '@/lib/urlSafety';
 
 function formatPostedDate(dateStr?: string): string | null {
@@ -24,7 +24,13 @@ function formatPostedDate(dateStr?: string): string | null {
   }
 }
 
-export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string) => void }) {
+interface JobCardProps {
+  job: Job;
+  onApplied?: (job: Job) => void;
+  onNotInterested?: (job: Job) => void;
+}
+
+export function JobCard({ job, onApplied, onNotInterested }: JobCardProps) {
   const [copied, setCopied] = useState(false);
 
   const hasBlockedJobUrl = isBlockedUrl(job.jobUrl);
@@ -99,19 +105,35 @@ export function JobCard({ job, onDismiss }: { job: Job; onDismiss?: (id: string)
           )}
         </div>
 
-        {onDismiss && (
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onDismiss(job.id);
-            }}
-            className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
-            title="Dismiss this listing"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
+        {/* Action buttons */}
+        <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onApplied && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onApplied(job);
+              }}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-success hover:bg-success/10 transition-colors"
+              title="Mark as Applied"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onNotInterested && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onNotInterested(job);
+              }}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              title="Not interested"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
     </a>
   );
