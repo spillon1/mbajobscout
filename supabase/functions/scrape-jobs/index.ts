@@ -2283,15 +2283,23 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
     if (timeMatch) {
       postedDate = timeMatch[1];
     } else {
-      // Time info often appears after the link in surrounding markdown text
-      const afterLink = markdown.substring(match.index! + match[0].length, match.index! + match[0].length + 500);
-      const afterTimeMatch = afterLink.match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+      // Date appears after the link but before the next job link.
+      // Google injects large Share/social blocks (base64 images, URLs) between
+      // the job link and the date text, so we need a large window — but stop at
+      // the next job link to avoid grabbing a neighbour's date.
+      const afterStart = match.index! + match[0].length;
+      const afterEnd = Math.min(markdown.length, afterStart + 5000);
+      let afterLink = markdown.substring(afterStart, afterEnd);
+      // Truncate at the next job-style link to avoid cross-contamination
+      const nextLinkIdx = afterLink.search(/\[([^\]]*\\\\[^\]]*)\]\(https?:\/\//);
+      if (nextLinkIdx > 0) afterLink = afterLink.substring(0, nextLinkIdx);
+      const afterTimeMatch = afterLink.match(/(\d+\s*(?:hour|day|week|month|year)s?\s*ago)/i);
       if (afterTimeMatch) postedDate = afterTimeMatch[1];
       // Also check before the link
       if (postedDate === 'Scraped just now') {
-        const beforeStart = Math.max(0, match.index! - 300);
+        const beforeStart = Math.max(0, match.index! - 500);
         const beforeLink = markdown.substring(beforeStart, match.index!);
-        const beforeTimeMatch = beforeLink.match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+        const beforeTimeMatch = beforeLink.match(/(\d+\s*(?:hour|day|week|month|year)s?\s*ago)/i);
         if (beforeTimeMatch) postedDate = beforeTimeMatch[1];
       }
     }
