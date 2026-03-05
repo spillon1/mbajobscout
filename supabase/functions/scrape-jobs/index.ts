@@ -257,7 +257,7 @@ function isGoogleJobsUrl(url: string): boolean {
 
 // ---- Google Jobs Pagination ----
 
-const GOOGLE_JOBS_PAGES = 20; // Scrape 20 pages (~10 results per page)
+const GOOGLE_JOBS_PAGES = 40; // Scrape 40 pages (~10 results per page)
 
 async function scrapeGoogleJobsPages(
   apiKey: string,
@@ -335,8 +335,8 @@ async function scrapeVenture5(
       const actions: any[] = [
         { type: 'wait', milliseconds: 3000 },
       ];
-      // 241 London jobs ÷ ~10 per page = ~25 clicks needed; use 30 for safety
-      for (let i = 0; i < 30; i++) {
+      // Double from 30 to 60 clicks for full coverage
+      for (let i = 0; i < 60; i++) {
         actions.push({ type: 'click', selector: 'a.load_more_jobs' });
         actions.push({ type: 'wait', milliseconds: 2000 });
       }
@@ -2573,7 +2573,7 @@ function parseInnovatorsRoomJobs(
 
 // ---- LinkedIn Jobs Guest API Scraper ----
 
-const LINKEDIN_PAGES = 20; // 25 jobs per page
+const LINKEDIN_PAGES = 40; // 25 jobs per page
 
 async function scrapeLinkedIn(
   apiKey: string,
