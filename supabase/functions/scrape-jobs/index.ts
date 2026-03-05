@@ -2260,9 +2260,23 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
       postedDate = timeMatch[1];
     } else {
       // Time info often appears after the link in surrounding markdown text
-      const afterLink = markdown.substring(match.index! + match[0].length, match.index! + match[0].length + 200);
+      const afterLink = markdown.substring(match.index! + match[0].length, match.index! + match[0].length + 500);
       const afterTimeMatch = afterLink.match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
       if (afterTimeMatch) postedDate = afterTimeMatch[1];
+      // Also check before the link
+      if (postedDate === 'Scraped just now') {
+        const beforeStart = Math.max(0, match.index! - 300);
+        const beforeLink = markdown.substring(beforeStart, match.index!);
+        const beforeTimeMatch = beforeLink.match(/(\d+\s*(?:hour|day|week|month)s?\s*ago)/i);
+        if (beforeTimeMatch) postedDate = beforeTimeMatch[1];
+      }
+    }
+
+    // DEBUG: log first 3 jobs to see markdown context
+    if (jobs.length < 3) {
+      const ctxStart = Math.max(0, match.index! - 200);
+      const ctxEnd = Math.min(markdown.length, match.index! + match[0].length + 300);
+      console.log(`[DEBUG] Google Job "${title}" date="${postedDate}" context: ...${markdown.substring(ctxStart, ctxEnd).replace(/\n/g, '\\n')}...`);
     }
 
     if (jobs.some(j => j.title === title && j.company === company)) continue;
