@@ -45,8 +45,7 @@ export async function scrapeJobs(
   }
 
   // Filter out junk entries
-  const allJobs: Job[] = (data.jobs || [])
-    .map((j: any): Job => {
+  const allRaw = (data.jobs || []).map((j: any): Job => {
       const rawJobUrl = j.jobUrl ?? j.url ?? '';
       const rawSourceUrl = j.sourceUrl ?? j.source_url ?? rawJobUrl;
 
@@ -64,8 +63,22 @@ export async function scrapeJobs(
         description: j.description ?? undefined,
         salary: j.salary ?? undefined,
       };
-    })
-    .filter(isValidJob);
+    });
+
+  // DEBUG: trace Venture5 filtering
+  const v5Before = allRaw.filter(j => j.source === 'Venture5');
+  console.log(`[DEBUG] Venture5 raw from edge fn: ${v5Before.length}`);
+
+  const allJobs = allRaw.filter((j) => {
+    const valid = isValidJob(j);
+    if (!valid && j.source === 'Venture5') {
+      console.log(`[DEBUG] Venture5 DROPPED by isValidJob: "${j.title}" @ ${j.company} | loc: ${j.location}`);
+    }
+    return valid;
+  });
+
+  const v5After = allJobs.filter(j => j.source === 'Venture5');
+  console.log(`[DEBUG] Venture5 after isValidJob: ${v5After.length}`);
 
   // Cross-source deduplication: keep first occurrence by normalized title+company
   const seen = new Set<string>();
