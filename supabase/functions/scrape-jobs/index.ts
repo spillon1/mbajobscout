@@ -257,7 +257,7 @@ function isGoogleJobsUrl(url: string): boolean {
 
 // ---- Google Jobs Pagination ----
 
-const GOOGLE_JOBS_PAGES = 10; // Scrape 10 pages (~10 results per page)
+const GOOGLE_JOBS_PAGES = 20; // Scrape 20 pages (~10 results per page)
 
 async function scrapeGoogleJobsPages(
   apiKey: string,
@@ -335,7 +335,7 @@ async function scrapeVenture5(
       const actions: any[] = [
         { type: 'wait', milliseconds: 2000 },
       ];
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 20; i++) {
         actions.push({ type: 'click', selector: 'a.load_more_jobs' });
         actions.push({ type: 'wait', milliseconds: 1500 });
       }
@@ -1676,7 +1676,7 @@ async function scrapeEFinancialCareers(
   keywords: string[]
 ): Promise<any[]> {
   const PAGE_SIZE = 50;
-  const MAX_PAGES = 6;
+  const MAX_PAGES = 10;
   const allJobs: any[] = [];
   const baseUrl = buildEfcSearchUrl(source.url, keywords, location);
 
@@ -1824,7 +1824,7 @@ async function scrapeRssFeed(
   location: string
 ): Promise<any[]> {
   const allItems: Array<{ title: string; link: string; description: string; pubDate: string }> = [];
-  const MAX_PAGES = 15;
+  const MAX_PAGES = 999; // No limit — paginate until RSS feed is exhausted
   const baseUrl = source.url;
 
   // WordPress RSS feeds default to 10 items — paginate with &paged=N
@@ -2570,7 +2570,7 @@ function parseInnovatorsRoomJobs(
 
 // ---- LinkedIn Jobs Guest API Scraper ----
 
-const LINKEDIN_PAGES = 10; // 25 jobs per page
+const LINKEDIN_PAGES = 20; // 25 jobs per page
 
 async function scrapeLinkedIn(
   apiKey: string,
