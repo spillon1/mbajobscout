@@ -99,8 +99,7 @@ Deno.serve(async (req) => {
         // Indeed UK: dedicated scraper with Firecrawl
         if (source.url.includes('indeed.com')) {
           const indeedJobs = await scrapeIndeed(apiKey, source, keywords, location);
-          // Indeed search already filtered by VC keywords — only apply hard exclusions
-          const vcIndeedJobs = indeedJobs.filter((j: any) => isNotExcludedRole(j.title));
+        const vcIndeedJobs = indeedJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
           results.push(...vcIndeedJobs);
           sourceStatuses[source.name] = { status: 'connected', count: vcIndeedJobs.length };
           console.log(`Found ${vcIndeedJobs.length} VC-relevant jobs from Indeed UK (light filter from ${indeedJobs.length})`);
@@ -110,8 +109,7 @@ Deno.serve(async (req) => {
         // Glassdoor UK: dedicated scraper with Firecrawl extract
         if (source.url.includes('glassdoor.co.uk')) {
           const glassdoorJobs = await scrapeGlassdoor(apiKey, source, keywords, location);
-          // Glassdoor search already filtered by VC keywords — only apply hard exclusions
-          const vcGlassdoorJobs = glassdoorJobs.filter((j: any) => isNotExcludedRole(j.title));
+        const vcGlassdoorJobs = glassdoorJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
           results.push(...vcGlassdoorJobs);
           sourceStatuses[source.name] = { status: 'connected', count: vcGlassdoorJobs.length };
           console.log(`Found ${vcGlassdoorJobs.length} VC-relevant jobs from Glassdoor UK (light filter from ${glassdoorJobs.length})`);
@@ -121,8 +119,7 @@ Deno.serve(async (req) => {
         // LinkedIn Jobs: use guest API
         if (source.url.includes('linkedin.com')) {
           const linkedinJobs = await scrapeLinkedIn(apiKey, source, keywords, location);
-          // LinkedIn search already filtered by VC keywords in title+description — only apply hard exclusions
-          const vcLinkedinJobs = linkedinJobs.filter((j: any) => isNotExcludedRole(j.title));
+        const vcLinkedinJobs = linkedinJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
           results.push(...vcLinkedinJobs);
           sourceStatuses[source.name] = { status: 'connected', count: vcLinkedinJobs.length };
           console.log(`Found ${vcLinkedinJobs.length} VC-relevant jobs from LinkedIn (light filter from ${linkedinJobs.length})`);
