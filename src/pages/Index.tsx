@@ -31,10 +31,10 @@ import { SourceManager } from '@/components/SourceManager';
 import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { AlertConfig } from '@/components/AlertConfig';
-import { Briefcase, Zap } from 'lucide-react';
+import { Briefcase, Zap, CheckCircle2, XCircle, Undo2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useJobActions } from '@/hooks/useJobActions';
-import { ApplicationsPanel } from '@/components/ApplicationsPanel';
+
 
 const LOCATION = 'London, United Kingdom';
 
@@ -65,6 +65,7 @@ const Index = () => {
   }, []);
 
   // Filters
+  const [viewMode, setViewMode] = useState<'search' | 'applied' | 'not_interested'>('search');
   const [selectedType, setSelectedType] = useState<JobType | 'any'>('any');
   const [listedPeriod, setListedPeriod] = useState<ListedPeriod>('any');
   const [jobStatus, setJobStatus] = useState<JobStatus>('any');
@@ -328,18 +329,21 @@ const Index = () => {
         
 
         {/* Stats - clickable filters */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-6 gap-3">
           {[
           { label: 'Total', value: stats.total, color: 'text-foreground', type: 'any' as const },
           { label: 'Full Time', value: stats.fullTime, color: 'text-primary', type: 'full-time' as const },
           { label: 'Internship', value: stats.internship, color: 'text-warning', type: 'internship' as const },
           { label: 'Graduate', value: stats.graduate, color: 'text-accent', type: 'graduate' as const }].
           map(({ label, value, color, type }) => {
-            const isActive = selectedType === type;
+            const isActive = viewMode === 'search' && selectedType === type;
             return (
               <button
                 key={label}
-                onClick={() => setSelectedType(isActive && type !== 'any' ? 'any' : type)}
+                onClick={() => {
+                  setViewMode('search');
+                  setSelectedType(isActive && type !== 'any' ? 'any' : type);
+                }}
                 className={`border rounded-md bg-card p-3 text-center transition-all cursor-pointer hover:glow-primary ${
                 isActive ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'}`
                 }>
@@ -349,12 +353,90 @@ const Index = () => {
               </button>);
 
           })}
+          <button
+            onClick={() => setViewMode(viewMode === 'applied' ? 'search' : 'applied')}
+            className={`border rounded-md bg-card p-3 text-center transition-all cursor-pointer hover:glow-primary ${
+              viewMode === 'applied' ? 'border-success/50 glow-primary' : 'border-border hover:border-success/30'
+            }`}
+          >
+            <div className="font-display text-2xl font-bold text-success">{appliedJobs.length}</div>
+            <div className="font-display text-[10px] uppercase tracking-widest text-muted-foreground">Applied</div>
+          </button>
+          <button
+            onClick={() => setViewMode(viewMode === 'not_interested' ? 'search' : 'not_interested')}
+            className={`border rounded-md bg-card p-3 text-center transition-all cursor-pointer hover:glow-primary ${
+              viewMode === 'not_interested' ? 'border-destructive/50 glow-primary' : 'border-border hover:border-destructive/30'
+            }`}
+          >
+            <div className="font-display text-2xl font-bold text-destructive">{notInterestedJobs.length}</div>
+            <div className="font-display text-[10px] uppercase tracking-widest text-muted-foreground">Dismissed</div>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Job list */}
           <div className="lg:col-span-3 space-y-2">
-            {isSearching ?
+            {viewMode === 'applied' ? (
+              appliedJobs.length === 0 ? (
+                <div className="border border-border rounded-md bg-card p-12 text-center">
+                  <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-3" />
+                  <p className="font-display text-sm text-muted-foreground">No applications yet</p>
+                </div>
+              ) : (
+                appliedJobs.map((action) => (
+                  <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                        <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">{action.job_source}</span>
+                      </div>
+                      <h3 className="font-body font-semibold text-foreground">{action.job_title}</h3>
+                      <p className="text-sm text-muted-foreground">{action.job_company}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        removeAction(action.id);
+                        toast({ title: 'Removed from Applied', description: action.job_title });
+                      }}
+                      className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
+                      title="Remove (re-shows in results)"
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))
+              )
+            ) : viewMode === 'not_interested' ? (
+              notInterestedJobs.length === 0 ? (
+                <div className="border border-border rounded-md bg-card p-12 text-center">
+                  <XCircle className="h-8 w-8 text-destructive mx-auto mb-3" />
+                  <p className="font-display text-sm text-muted-foreground">No dismissed roles</p>
+                </div>
+              ) : (
+                notInterestedJobs.map((action) => (
+                  <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <XCircle className="h-3.5 w-3.5 text-destructive" />
+                        <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">{action.job_source}</span>
+                      </div>
+                      <h3 className="font-body font-semibold text-foreground">{action.job_title}</h3>
+                      <p className="text-sm text-muted-foreground">{action.job_company}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        removeAction(action.id);
+                        toast({ title: 'Removed from Dismissed', description: action.job_title });
+                      }}
+                      className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
+                      title="Remove (re-shows in results)"
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))
+              )
+            ) : isSearching ?
             <ScrapeProgress isSearching={isSearching} sourceCount={sources.filter((s) => s.enabled).length} /> :
             !hasScraped ?
             <div className="border border-border rounded-md bg-card p-12 text-center">
@@ -388,11 +470,6 @@ const Index = () => {
 
           {/* Sidebar */}
           <div ref={sourcesRef} className="space-y-4">
-            <ApplicationsPanel
-              appliedJobs={appliedJobs}
-              notInterestedJobs={notInterestedJobs}
-              onRemove={removeAction}
-            />
             <AlertConfig />
             <SourceManager
               sources={sources}
