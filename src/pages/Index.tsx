@@ -33,11 +33,14 @@ import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { AlertConfig } from '@/components/AlertConfig';
 import { Briefcase, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useJobActions } from '@/hooks/useJobActions';
+import { ApplicationsPanel } from '@/components/ApplicationsPanel';
 
 const LOCATION = 'London, United Kingdom';
 
 const Index = () => {
   const { toast } = useToast();
+  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs } = useJobActions();
   const sourcesRef = useRef<HTMLDivElement>(null);
   const [sources, setSources] = useState<JobSource[]>(() =>
   DEFAULT_SOURCES.filter((s) => !isOccSource(`${s.name} ${s.url}`))
@@ -157,6 +160,10 @@ const Index = () => {
   const baseFilteredJobs = useMemo(() => {
     let filtered = jobs.filter((j) => !dismissedIds.has(j.id));
 
+    // Exclude jobs that have been actioned (applied or not interested)
+    const jobUrl = (j: Job) => j.jobUrl || j.sourceUrl;
+    filtered = filtered.filter((j) => !actionedUrls.has(jobUrl(j)));
+
     if (selectedCompanies.length > 0) {
       filtered = filtered.filter((j) => selectedCompanies.includes(j.company));
     }
@@ -213,7 +220,7 @@ const Index = () => {
     }
 
     return filtered;
-  }, [jobs, dismissedIds, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities]);
+  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -365,32 +372,27 @@ const Index = () => {
             <JobCard
               key={job.id}
               job={job}
-              onDismiss={(id) => {
-                setDismissedIds((prev) => new Set(prev).add(id));
-                toast({
-                  title: 'Listing dismissed',
-                  description: job.title,
-                  action:
-                  <button
-                    className="text-xs font-medium text-primary hover:underline"
-                    onClick={() => setDismissedIds((prev) => {
-                      const next = new Set(prev);
-                      next.delete(id);
-                      return next;
-                    })}>
-                    
-                          Undo
-                        </button>
-
-                });
+              onApplied={(j) => {
+                const url = j.jobUrl || j.sourceUrl;
+                addAction(url, j.title, j.company, j.source, 'applied');
+                toast({ title: 'Marked as Applied', description: j.title });
+              }}
+              onNotInterested={(j) => {
+                const url = j.jobUrl || j.sourceUrl;
+                addAction(url, j.title, j.company, j.source, 'not_interested');
+                toast({ title: 'Not interested', description: j.title });
               }} />
-
             )
             }
           </div>
 
           {/* Sidebar */}
           <div ref={sourcesRef} className="space-y-4">
+            <ApplicationsPanel
+              appliedJobs={appliedJobs}
+              notInterestedJobs={notInterestedJobs}
+              onRemove={removeAction}
+            />
             <AlertConfig />
             <SourceManager
               sources={sources}
