@@ -90,35 +90,15 @@ export async function scrapeJobs(
   });
 
   // Replace saved rows for successfully scraped sources to prevent stale jobs from lingering
-  // BUT: only delete old data if the new scrape got a reasonable number of results.
-  // This prevents a degraded scrape (e.g. Bad Gateway) from wiping good data.
   const successfulSources = Object.entries(data.sourceStatuses || {})
     .filter(([, status]) => (status as { status?: string })?.status === 'connected')
     .map(([sourceName]) => sourceName);
 
-  // Count jobs per source in the new scrape
-  const newCountBySource = new Map<string, number>();
-  for (const j of jobs) {
-    newCountBySource.set(j.source, (newCountBySource.get(j.source) || 0) + 1);
-  }
-
-  // Only delete+replace sources where new scrape got at least 2 jobs,
-  // OR the source previously had 0 jobs (first scrape)
-  const sourcesToReplace: string[] = [];
-  for (const sourceName of successfulSources) {
-    const newCount = newCountBySource.get(sourceName) || 0;
-    if (newCount >= 2) {
-      sourcesToReplace.push(sourceName);
-    } else {
-      console.log(`[SAFEGUARD] Keeping existing DB data for "${sourceName}" — new scrape only got ${newCount} jobs (possible degraded scrape)`);
-    }
-  }
-
-  if (sourcesToReplace.length > 0) {
+  if (successfulSources.length > 0) {
     const { error: deleteError } = await supabase
       .from('scraped_jobs')
       .delete()
-      .in('source', sourcesToReplace);
+      .in('source', successfulSources);
 
     if (deleteError) {
       console.error('Failed to clear old jobs for sources:', deleteError);

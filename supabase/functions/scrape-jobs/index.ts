@@ -66,8 +66,15 @@ Deno.serve(async (req) => {
         if (source.url.includes('venture5.com')) {
           const venture5Jobs = await scrapeVenture5(apiKey, source, location);
           results.push(...venture5Jobs);
-          sourceStatuses[source.name] = { status: 'connected', count: venture5Jobs.length };
-          console.log(`Found ${venture5Jobs.length} jobs from Venture5 (with Load More)`);
+          // If we got very few jobs, the scrape was likely degraded — mark as error
+          // so the client won't wipe existing good data
+          if (venture5Jobs.length < 5) {
+            sourceStatuses[source.name] = { status: 'error', error: `Degraded scrape: only ${venture5Jobs.length} jobs (expected 50+)`, count: venture5Jobs.length };
+            console.log(`Venture5: degraded scrape — only ${venture5Jobs.length} jobs, marking as error`);
+          } else {
+            sourceStatuses[source.name] = { status: 'connected', count: venture5Jobs.length };
+            console.log(`Found ${venture5Jobs.length} jobs from Venture5 (with Load More)`);
+          }
           continue;
         }
 
@@ -319,50 +326,63 @@ async function scrapeVenture5(
   const filteredUrl = `https://venture5.com/jobs/?search_location=${encodeURIComponent(searchCity)}`;
   console.log(`Venture5: scraping pre-filtered URL: ${filteredUrl}`);
 
-  // Try multiple Firecrawl actions approaches to click "Load more listings"
+  // Try the actions scrape with retries (Bad Gateway / 502 are transient)
   let markdown = '';
+  const MAX_RETRIES = 3;
 
-  // Approach 1: Use click actions to hit the load more button repeatedly
-  try {
-    const actions: any[] = [
-      { type: 'wait', milliseconds: 2000 },
-    ];
-    // Click "Load more listings" up to 10 times (each loads ~10 jobs)
-    for (let i = 0; i < 10; i++) {
-      actions.push({ type: 'click', selector: 'a.load_more_jobs' });
-      actions.push({ type: 'wait', milliseconds: 1500 });
+  for (let attempt = 1; attempt <= MAX_RETRIES && !markdown; attempt++) {
+    try {
+      const actions: any[] = [
+        { type: 'wait', milliseconds: 2000 },
+      ];
+      for (let i = 0; i < 10; i++) {
+        actions.push({ type: 'click', selector: 'a.load_more_jobs' });
+        actions.push({ type: 'wait', milliseconds: 1500 });
+      }
+      actions.push({ type: 'scrape' });
+
+      console.log(`Venture5: actions scrape attempt ${attempt}/${MAX_RETRIES}`);
+      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: filteredUrl,
+          formats: ['markdown'],
+          onlyMainContent: true,
+          waitFor: 3000,
+          actions,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        const md = data.data?.markdown || data.markdown || '';
+        // Sanity check: a good scrape should return >10k chars (full listings)
+        if (md.length > 10000) {
+          markdown = md;
+          console.log(`Venture5: actions scrape succeeded on attempt ${attempt} (${markdown.length} chars)`);
+        } else {
+          console.log(`Venture5: actions scrape attempt ${attempt} returned only ${md.length} chars — too short, retrying`);
+        }
+      } else {
+        console.error(`Venture5: actions scrape attempt ${attempt} failed:`, data.error || response.status);
+      }
+    } catch (err) {
+      console.error(`Venture5: actions scrape attempt ${attempt} error:`, err);
     }
-    actions.push({ type: 'scrape' });
 
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: filteredUrl,
-        formats: ['markdown'],
-        onlyMainContent: true,
-        waitFor: 3000,
-        actions,
-      }),
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-      markdown = data.data?.markdown || data.markdown || '';
-      console.log(`Venture5: actions scrape got ${markdown.length} chars`);
-    } else {
-      console.error('Venture5 actions scrape failed:', data);
+    // Wait before retry
+    if (!markdown && attempt < MAX_RETRIES) {
+      await new Promise(r => setTimeout(r, 2000));
     }
-  } catch (err) {
-    console.error('Venture5 actions error:', err);
   }
 
-  // Fallback: simple scrape of the filtered URL (gets first page only)
+  // Fallback: simple scrape (first page only) — only if all retries failed
   if (!markdown) {
-    console.log('Venture5: falling back to simple scrape of filtered URL');
+    console.log('Venture5: all action scrape attempts failed, trying simple scrape fallback');
     try {
       const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
         method: 'POST',
