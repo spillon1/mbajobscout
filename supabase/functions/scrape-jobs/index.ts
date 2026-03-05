@@ -99,8 +99,7 @@ Deno.serve(async (req) => {
         // Indeed UK: dedicated scraper with Firecrawl
         if (source.url.includes('indeed.com')) {
           const indeedJobs = await scrapeIndeed(apiKey, source, keywords, location);
-          // Indeed search already filtered by VC keywords — only apply hard exclusions
-          const vcIndeedJobs = indeedJobs.filter((j: any) => isNotExcludedRole(j.title));
+        const vcIndeedJobs = indeedJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
           results.push(...vcIndeedJobs);
           sourceStatuses[source.name] = { status: 'connected', count: vcIndeedJobs.length };
           console.log(`Found ${vcIndeedJobs.length} VC-relevant jobs from Indeed UK (light filter from ${indeedJobs.length})`);
