@@ -335,14 +335,15 @@ async function scrapeVenture5(
       const actions: any[] = [
         { type: 'wait', milliseconds: 3000 },
       ];
-      // Double from 30 to 60 clicks for full coverage
-      for (let i = 0; i < 60; i++) {
+      // Firecrawl caps at 50 actions total; each click needs click+wait = 2 actions
+      // Budget: 50 - 1 (initial wait) - 1 (final scrape) = 48 → 24 click+wait pairs
+      for (let i = 0; i < 24; i++) {
         actions.push({ type: 'click', selector: 'a.load_more_jobs' });
         actions.push({ type: 'wait', milliseconds: 2000 });
       }
       actions.push({ type: 'scrape' });
 
-      console.log(`Venture5: actions scrape attempt ${attempt}/${MAX_RETRIES} (30 clicks)`);
+      console.log(`Venture5: actions scrape attempt ${attempt}/${MAX_RETRIES} (24 clicks)`);
       const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
         method: 'POST',
         headers: {
