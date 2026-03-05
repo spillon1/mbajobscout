@@ -82,12 +82,28 @@ export async function scrapeJobs(
 
   // Cross-source deduplication: keep first occurrence by normalized title+company
   const seen = new Set<string>();
+  const dedupDropped: { title: string; company: string; source: string }[] = [];
   const jobs = allJobs.filter((j) => {
     const key = `${j.title.toLowerCase().trim()}::${j.company.toLowerCase().trim()}`;
-    if (seen.has(key)) return false;
+    if (seen.has(key)) {
+      dedupDropped.push({ title: j.title, company: j.company, source: j.source });
+      return false;
+    }
     seen.add(key);
     return true;
   });
+
+  // DEBUG: log dedup stats per source
+  const dedupBySource = new Map<string, number>();
+  for (const d of dedupDropped) {
+    dedupBySource.set(d.source, (dedupBySource.get(d.source) || 0) + 1);
+  }
+  const keptBySource = new Map<string, number>();
+  for (const j of jobs) {
+    keptBySource.set(j.source, (keptBySource.get(j.source) || 0) + 1);
+  }
+  console.log(`[DEBUG] Dedup: ${allJobs.length} → ${jobs.length}. Dropped by source:`, Object.fromEntries(dedupBySource));
+  console.log(`[DEBUG] Kept by source:`, Object.fromEntries(keptBySource));
 
   // Replace saved rows for successfully scraped sources to prevent stale jobs from lingering
   const successfulSources = Object.entries(data.sourceStatuses || {})
