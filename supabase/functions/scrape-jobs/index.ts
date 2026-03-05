@@ -1498,6 +1498,7 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bfinance\s+director\b/i,              // CFO-type roles
     /\bfinance\s+manager\b/i,               // finance ops
     /\bhead\s+of\s+finance\b/i,             // finance leadership
+    /\binvestment\s+consultant\b/i,          // consulting, not VC investment
   ];
   if (hardExclude.some(p => p.test(titleLower))) return false;
 

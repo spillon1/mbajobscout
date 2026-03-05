@@ -1,0 +1,1 @@
+DELETE FROM public.scraped_jobs WHERE lower(title) LIKE '%investment consultant%';

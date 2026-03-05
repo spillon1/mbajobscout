@@ -236,6 +236,7 @@ function isValidJob(job: Job): boolean {
     /\bfund\s+administ/i,
     /\bportfolio\s+monitor/i,
     /\bportfolio\s+manager\b/i,
+    /\binvestment\s+consultant\b/i,
   ];
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
 
