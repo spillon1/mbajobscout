@@ -1534,6 +1534,7 @@ function isNotExcludedRole(title: string): boolean {
   if (/vc[\s-]*backed/i.test(titleLower)) return false;
   if (/venture[\s-]*backed/i.test(titleLower)) return false;
   if (/\bat\s+(a\s+)?vc\b/i.test(titleLower)) return false;
+  if (/\bprivate\s+equity\b/i.test(titleLower)) return false;
 
   return true;
 }
