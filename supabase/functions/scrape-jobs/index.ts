@@ -121,10 +121,11 @@ Deno.serve(async (req) => {
         // LinkedIn Jobs: use guest API
         if (source.url.includes('linkedin.com')) {
           const linkedinJobs = await scrapeLinkedIn(apiKey, source, keywords, location);
-          const vcLinkedinJobs = linkedinJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
+          // LinkedIn search already filtered by VC keywords in title+description — only apply hard exclusions
+          const vcLinkedinJobs = linkedinJobs.filter((j: any) => isNotExcludedRole(j.title));
           results.push(...vcLinkedinJobs);
           sourceStatuses[source.name] = { status: 'connected', count: vcLinkedinJobs.length };
-          console.log(`Found ${vcLinkedinJobs.length} VC-relevant jobs from LinkedIn (filtered from ${linkedinJobs.length})`);
+          console.log(`Found ${vcLinkedinJobs.length} VC-relevant jobs from LinkedIn (light filter from ${linkedinJobs.length})`);
           continue;
         }
 
