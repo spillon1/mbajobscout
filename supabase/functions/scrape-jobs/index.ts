@@ -1477,60 +1477,64 @@ function matchesUserKeywords(title: string, company: string, description: string
 function isNotExcludedRole(title: string): boolean {
   const titleLower = title.toLowerCase();
 
-  // Same hard exclusions as isLikelyVcRole
+  // ── Hard profession exclusions (clearly not VC investment roles) ──
   const hardExclude = [
-    /\bsoftware\s+engineer/i,
-    /\bengineer(?:ing)?\b/i,
-    /\bdeveloper\b/i,
-    /\breal\s+estate\b/i,
-    /\bsolicitor\b/i,
-    /\blawyer\b/i,
-    /\bbarrister\b/i,
-    /\bparalegal\b/i,
-    /\bconveyancing\b/i,
+    // Tech / engineering
+    /\bsoftware\s+engineer/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i,
+    /\bdata\s+scientist\b/i, /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i,
+    /\bux\s+(designer|researcher)\b/i, /\bdesigner\b/i, /\bcreative\s+director\b/i,
+
+    // Legal
+    /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
+    /\bconveyancing\b/i, /\blegal\s+counsel\b/i,
     /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
-    /\baccountant\b/i,
-    /\bauditor\b/i,
-    /\btax\s+(manager|analyst|advisor|specialist|consultant|director)\b/i,
-    /\bhr\s+(manager|director|business\s+partner|specialist)\b/i,
-    /\bhuman\s+resources\b/i,
-    /\brecruitment\s+(consultant|manager|specialist)\b/i,
-    /\bprocurement\b/i,
-    /\bsupply\s+chain\b/i,
-    /\bdata\s+scientist\b/i,
-    /\bproduct\s+manager\b/i,
-    /\bproject\s+manager\b/i,
-    /\bux\s+(designer|researcher)\b/i,
-    /\bdesigner\b/i,
-    /\bcreative\s+director\b/i,
-    /\bcontent\s+(manager|writer|specialist)\b/i,
-    /\bteacher\b/i,
-    /\bnurse\b/i,
-    /\bdoctor\b/i,
-    /\bpharmac/i,
-    /\bclinical\b/i,
-    /\bir\s+analyst\b/i,
-    /\bfund\s+controller\b/i,
-    /\bportfolio\s+controller\b/i,
-    /\blegal\s+counsel\b/i,
-    /\bfinance\s+analyst\b/i,
-    /\bfinance\s+director\b/i,
-    /\bfinance\s+manager\b/i,
+
+    // Finance ops / accounting
+    /\baccountant\b/i, /\bauditor\b/i, /\bfund\s+controller\b/i,
+    /\bportfolio\s+controller\b/i, /\bfund\s+administ/i, /\bportfolio\s+monitor/i,
+    /\bfinance\s+(analyst|director|manager|business\s+partner)\b/i,
     /\bhead\s+of\s+finance\b/i,
-    /\bfund\s+administ/i,
-    /\bportfolio\s+monitor/i,
+    /\btax\s+(manager|analyst|advisor|specialist|consultant|director)\b/i,
+
+    // HR / admin / content
+    /\bhr\s+(manager|director|business\s+partner|specialist)\b/i,
+    /\bhuman\s+resources\b/i, /\brecruitment\s+(consultant|manager|specialist)\b/i,
+    /\bprocurement\b/i, /\bsupply\s+chain\b/i,
+    /\bcontent\s+(manager|writer|specialist)\b/i,
+    /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i, /\bclinical\b/i,
+    /\bcompliance\s+(administrator|officer|manager|analyst)\b/i,
+
+    // Non-VC finance roles (by title, not company)
+    /\bprivate\s+equity\b/i,                  // PE roles (company can still be PE recruiter)
+    /\bm&a\b/i, /\bmergers?\s+(and|&)\s+acquisitions?\b/i,
+    /\bcorporate\s+development\b/i,
+    /\bcorporate\s+(finance|m&a|private\s+equity)\b/i,
+    /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i,
     /\binvestment\s+consultant\b/i,
-    /\binvestment\s+banking\b/i,
-    /\binvestment\s+bank\b/i,
-    /\bmanagement\s+consult/i,
+    /\binvestment\s+fund\w*\s+(senior\s+)?associate\b/i,  // law firm fund roles
+    /\bstrategy\s+consult/i, /\bmanagement\s+consult/i,
+    /\bquantitative\s+(researcher|trader|analyst)\b/i,
+    /\bcommodities\b/i,
+    /\bstructurer\b/i,
+    /\breal\s+estate\b/i,
+    /\bcredit\s+invest/i,
+    /\bsearch\s+fund\b/i,
+    /\bcapital\s+markets?\b/i,
+
+    // Sales / marketing / ops
     /\bb2b\b/i, /\bsales\s+(dev|representative|exec)/i,
     /\bbdr\b/i, /\bsdr\b/i,
     /\bmarketing\s+(executive|manager|specialist|coordinator|lead)\b/i,
     /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
+    /\bbusiness\s+development\b/i,
+    /\bprogram\s+director\b/i,
+
+    // IR
+    /\bir\s+analyst\b/i, /\binvestor\s+relation/i,
   ];
   if (hardExclude.some(p => p.test(titleLower))) return false;
 
-  // Also exclude vc-backed / "at a VC" portfolio company roles
+  // Exclude portfolio company roles
   if (/vc[\s-]*backed/i.test(titleLower)) return false;
   if (/venture[\s-]*backed/i.test(titleLower)) return false;
   if (/\bat\s+(a\s+)?vc\b/i.test(titleLower)) return false;
