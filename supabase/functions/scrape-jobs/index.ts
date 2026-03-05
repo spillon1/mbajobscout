@@ -1465,6 +1465,76 @@ function matchesUserKeywords(title: string, company: string, description: string
   });
 }
 
+/**
+ * Light filter: only hard-exclude clearly non-VC professions.
+ * Use this for sources where the search engine already filtered by VC keywords
+ * (LinkedIn, Indeed, Glassdoor, eFinancialCareers) — the search already matched
+ * "venture capital" in title/description, so we just need to remove obvious noise.
+ */
+function isNotExcludedRole(title: string): boolean {
+  const titleLower = title.toLowerCase();
+
+  // Same hard exclusions as isLikelyVcRole
+  const hardExclude = [
+    /\bsoftware\s+engineer/i,
+    /\bengineer(?:ing)?\b/i,
+    /\bdeveloper\b/i,
+    /\breal\s+estate\b/i,
+    /\bsolicitor\b/i,
+    /\blawyer\b/i,
+    /\bbarrister\b/i,
+    /\bparalegal\b/i,
+    /\bconveyancing\b/i,
+    /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
+    /\baccountant\b/i,
+    /\bauditor\b/i,
+    /\btax\s+(manager|analyst|advisor|specialist|consultant|director)\b/i,
+    /\bhr\s+(manager|director|business\s+partner|specialist)\b/i,
+    /\bhuman\s+resources\b/i,
+    /\brecruitment\s+(consultant|manager|specialist)\b/i,
+    /\bprocurement\b/i,
+    /\bsupply\s+chain\b/i,
+    /\bdata\s+scientist\b/i,
+    /\bproduct\s+manager\b/i,
+    /\bproject\s+manager\b/i,
+    /\bux\s+(designer|researcher)\b/i,
+    /\bdesigner\b/i,
+    /\bcreative\s+director\b/i,
+    /\bcontent\s+(manager|writer|specialist)\b/i,
+    /\bteacher\b/i,
+    /\bnurse\b/i,
+    /\bdoctor\b/i,
+    /\bpharmac/i,
+    /\bclinical\b/i,
+    /\bir\s+analyst\b/i,
+    /\bfund\s+controller\b/i,
+    /\bportfolio\s+controller\b/i,
+    /\blegal\s+counsel\b/i,
+    /\bfinance\s+analyst\b/i,
+    /\bfinance\s+director\b/i,
+    /\bfinance\s+manager\b/i,
+    /\bhead\s+of\s+finance\b/i,
+    /\bfund\s+administ/i,
+    /\bportfolio\s+monitor/i,
+    /\binvestment\s+consultant\b/i,
+    /\binvestment\s+banking\b/i,
+    /\binvestment\s+bank\b/i,
+    /\bmanagement\s+consult/i,
+    /\bb2b\b/i, /\bsales\s+(dev|representative|exec)/i,
+    /\bbdr\b/i, /\bsdr\b/i,
+    /\bmarketing\s+(executive|manager|specialist|coordinator|lead)\b/i,
+    /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
+  ];
+  if (hardExclude.some(p => p.test(titleLower))) return false;
+
+  // Also exclude vc-backed / "at a VC" portfolio company roles
+  if (/vc[\s-]*backed/i.test(titleLower)) return false;
+  if (/venture[\s-]*backed/i.test(titleLower)) return false;
+  if (/\bat\s+(a\s+)?vc\b/i.test(titleLower)) return false;
+
+  return true;
+}
+
 function isLikelyVcRole(title: string, company: string, description: string | undefined): boolean {
   const titleLower = title.toLowerCase();
   const companyLower = company.toLowerCase();
