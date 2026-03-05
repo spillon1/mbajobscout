@@ -1502,6 +1502,32 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bfinance\s+manager\b/i,               // finance ops
     /\bhead\s+of\s+finance\b/i,             // finance leadership
     /\binvestment\s+consultant\b/i,          // consulting, not VC investment
+    /\bsolicitor\b/i,                       // legal profession
+    /\blawyer\b/i,                          // legal profession
+    /\bbarrister\b/i,                       // legal profession
+    /\bparalegal\b/i,                       // legal profession
+    /\bconveyancing\b/i,                    // legal/property
+    /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,  // corporate legal
+    /\baccountant\b/i,                      // accounting
+    /\bauditor\b/i,                         // audit
+    /\btax\s+(manager|analyst|advisor|specialist|consultant|director)\b/i,
+    /\bhr\s+(manager|director|business\s+partner|specialist)\b/i,
+    /\bhuman\s+resources\b/i,
+    /\brecruitment\s+(consultant|manager|specialist)\b/i,
+    /\bprocurement\b/i,
+    /\bsupply\s+chain\b/i,
+    /\bdata\s+scientist\b/i,
+    /\bproduct\s+manager\b/i,
+    /\bproject\s+manager\b/i,
+    /\bux\s+(designer|researcher)\b/i,
+    /\bdesigner\b/i,
+    /\bcreative\s+director\b/i,
+    /\bcontent\s+(manager|writer|specialist)\b/i,
+    /\bteacher\b/i,
+    /\bnurse\b/i,
+    /\bdoctor\b/i,
+    /\bpharmac/i,
+    /\bclinical\b/i,
   ];
   if (hardExclude.some(p => p.test(titleLower))) return false;
 
