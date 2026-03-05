@@ -1470,6 +1470,10 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bportfolio\s+manager\b/i,           // asset mgmt, not VC (VC uses "portfolio lead/director")
     /\bbook\s+portfolio/i,                // quant trading
     /\bir\s+analyst\b/i,                   // investor relations analyst
+    /\bfund\s+controller\b/i,               // fund ops/accounting
+    /\bportfolio\s+controller\b/i,          // fund admin
+    /\blegal\s+counsel\b/i,                 // legal roles
+    /\bfinance\s+and\s+portfolio\b/i,       // fund services
   ];
   if (hardExclude.some(p => p.test(titleLower))) return false;
 
