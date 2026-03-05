@@ -333,15 +333,16 @@ async function scrapeVenture5(
   for (let attempt = 1; attempt <= MAX_RETRIES && !markdown; attempt++) {
     try {
       const actions: any[] = [
-        { type: 'wait', milliseconds: 2000 },
+        { type: 'wait', milliseconds: 3000 },
       ];
-      for (let i = 0; i < 20; i++) {
+      // 241 London jobs ÷ ~10 per page = ~25 clicks needed; use 30 for safety
+      for (let i = 0; i < 30; i++) {
         actions.push({ type: 'click', selector: 'a.load_more_jobs' });
-        actions.push({ type: 'wait', milliseconds: 1500 });
+        actions.push({ type: 'wait', milliseconds: 2000 });
       }
       actions.push({ type: 'scrape' });
 
-      console.log(`Venture5: actions scrape attempt ${attempt}/${MAX_RETRIES}`);
+      console.log(`Venture5: actions scrape attempt ${attempt}/${MAX_RETRIES} (30 clicks)`);
       const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
         method: 'POST',
         headers: {
@@ -352,7 +353,8 @@ async function scrapeVenture5(
           url: filteredUrl,
           formats: ['markdown'],
           onlyMainContent: true,
-          waitFor: 3000,
+          waitFor: 5000,
+          timeout: 120000,
           actions,
         }),
       });
