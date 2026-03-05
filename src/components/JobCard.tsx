@@ -106,7 +106,7 @@ export function JobCard({ job, onApplied, onNotInterested }: JobCardProps) {
         </div>
 
         {/* Action buttons */}
-        <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="shrink-0 flex flex-col gap-1.5">
           {onApplied && (
             <button
               onClick={(e) => {
@@ -114,10 +114,11 @@ export function JobCard({ job, onApplied, onNotInterested }: JobCardProps) {
                 e.stopPropagation();
                 onApplied(job);
               }}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-success hover:bg-success/10 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-success/30 bg-success/5 text-success text-[11px] font-display font-semibold uppercase tracking-wider hover:bg-success/15 hover:border-success/50 transition-colors"
               title="Mark as Applied"
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
+              Applied
             </button>
           )}
           {onNotInterested && (
@@ -127,10 +128,11 @@ export function JobCard({ job, onApplied, onNotInterested }: JobCardProps) {
                 e.stopPropagation();
                 onNotInterested(job);
               }}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-destructive/30 bg-destructive/5 text-destructive text-[11px] font-display font-semibold uppercase tracking-wider hover:bg-destructive/15 hover:border-destructive/50 transition-colors"
               title="Not interested"
             >
               <X className="h-3.5 w-3.5" />
+              Pass
             </button>
           )}
         </div>
