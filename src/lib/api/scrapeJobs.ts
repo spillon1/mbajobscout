@@ -246,10 +246,14 @@ function isValidJob(job: Job): boolean {
     /\bquantitative\s+(researcher|trader|analyst)\b/i, /\bcommodities\b/i,
     /\bstructurer\b/i, /\breal\s+estate\b/i, /\bcredit\s+invest/i,
     /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
-    // HR / admin / sales
+    // HR / admin / sales / marketing
     /\brecruitment\s+(consultant|manager)\b/i, /\bcompliance\s+(administrator|officer|manager)\b/i,
     /\bbusiness\s+development\b/i, /\bprogram\s+director\b/i,
     /\bir\s+analyst\b/i, /\binvestor\s+relation/i,
+    /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
+    /\bcontent\s+(manager|writer|specialist)\b/i,
+    /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
+    /\bsales\s+(dev|representative|exec)/i,
   ];
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
 
