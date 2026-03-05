@@ -225,6 +225,20 @@ function isValidJob(job: Job): boolean {
   const spamCount = spamSignals.filter(s => descLower.includes(s)).length;
   if (spamCount >= 2) return false;
 
+  // Hard-exclude non-VC role patterns (mirrors edge function isLikelyVcRole hard excludes)
+  const hardExcludeTitles = [
+    /\bir\s+analyst\b/i,
+    /\binvestor\s+relation/i,
+    /\bfund\s+controller\b/i,
+    /\bportfolio\s+controller\b/i,
+    /\blegal\s+counsel\b/i,
+    /\bfinance\s+and\s+portfolio\b/i,
+    /\bfund\s+administ/i,
+    /\bportfolio\s+monitor/i,
+    /\bportfolio\s+manager\b/i,
+  ];
+  if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
+
   // Skip entries that are clearly not job postings
   const skipWords = ['cookie policy', 'privacy policy', 'sign in', 'log in', 'contact us'];
   if (skipWords.some(w => titleLower.includes(w))) return false;
