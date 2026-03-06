@@ -188,8 +188,8 @@ const Index = () => {
     const enabledSources = sources.filter((s) => s.enabled).map((s) => s.name);
     filtered = filtered.filter((j) => enabledSources.includes(j.source));
 
-    // Always filter to London
-    const searchCity = LOCATION.split(',')[0]?.trim().toLowerCase();
+    // Filter to selected city
+    const searchCity = selectedCity.toLowerCase();
     if (searchCity) {
       filtered = filtered.filter((j) => {
         const locationText = `${j.location} ${j.title}`.toLowerCase();
