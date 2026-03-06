@@ -83,6 +83,23 @@ const Index = () => {
     setSelectedSources((prev) => prev.filter((name) => !isOccSource(name)));
   }, []);
 
+  // When city changes, update source URLs
+  const handleCityChange = (city: string) => {
+    setSelectedCity(city);
+    setSources((prev) =>
+      prev.map((s) => ({
+        ...s,
+        url: getSourceUrlForLocation(s.name, city) || s.url,
+        status: 'unknown' as const,
+        statusMessage: undefined,
+      }))
+    );
+    // Clear existing jobs since they're for a different location
+    setJobs([]);
+    setHasScraped(false);
+    setDismissedIds(new Set());
+  };
+
   const handleToggleSource = (id: string) => {
     setSources((prev) =>
     prev.map((s) => s.id === id ? { ...s, enabled: !s.enabled } : s)
