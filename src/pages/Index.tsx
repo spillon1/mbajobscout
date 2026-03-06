@@ -32,9 +32,10 @@ import { SourceManager } from '@/components/SourceManager';
 import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { AlertConfig } from '@/components/AlertConfig';
-import { Briefcase, Zap, CheckCircle2, XCircle, Undo2 } from 'lucide-react';
+import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useJobActions } from '@/hooks/useJobActions';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const Index = () => {
