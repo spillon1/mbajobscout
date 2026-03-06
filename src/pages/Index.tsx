@@ -289,22 +289,38 @@ const Index = () => {
                 {selectedCity} VC Job Aggregator   
               </p>
             </div>
-          </div>
+           </div>
 
-          <div className="flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground shrink-0">
-            <button
-              className="hover:text-foreground transition-colors"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              
-              {stats.total} Jobs
-            </button>
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              <Select value={selectedCity} onValueChange={handleCityChange}>
+                <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
+                  <SelectValue placeholder="Location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {UK_CITIES.map((loc) => (
+                    <SelectItem key={loc.value} value={loc.value} className="text-xs">
+                      {loc.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <span className="h-3 w-px bg-border" />
-            <button
-              className="hover:text-foreground transition-colors"
-              onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-              
-              {sources.filter((s) => s.enabled).length} Sources
-            </button>
+            <div className="flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
+              <button
+                className="hover:text-foreground transition-colors"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                {stats.total} Jobs
+              </button>
+              <span className="h-3 w-px bg-border" />
+              <button
+                className="hover:text-foreground transition-colors"
+                onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                {sources.filter((s) => s.enabled).length} Sources
+              </button>
+            </div>
           </div>
         </div>
       </header>
