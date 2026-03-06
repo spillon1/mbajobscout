@@ -37,14 +37,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useJobActions } from '@/hooks/useJobActions';
 
 
-const LOCATION = 'London, United Kingdom';
-
 const Index = () => {
   const { toast } = useToast();
   const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs } = useJobActions();
   const sourcesRef = useRef<HTMLDivElement>(null);
+  const [selectedCity, setSelectedCity] = useState<string>('London');
+  const location = getLocationString(selectedCity);
   const [sources, setSources] = useState<JobSource[]>(() =>
-  DEFAULT_SOURCES.filter((s) => !isOccSource(`${s.name} ${s.url}`))
+    getDefaultSources('London').filter((s) => !isOccSource(`${s.name} ${s.url}`))
   );
   const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
   const [isSearching, setIsSearching] = useState(false);
