@@ -24,26 +24,28 @@ function parsePostedDate(dateStr?: string): Date {
 }
 const isOccSource = (value: string): boolean => /occ\s*\(cambridge\)|12twenty/i.test(value);
 import { Job, JobType, JobSource, Seniority } from '@/types/jobs';
-import { DEFAULT_SOURCES, DEFAULT_KEYWORDS } from '@/data/jobData';
+import { getDefaultSources, DEFAULT_KEYWORDS } from '@/data/jobData';
+import { UK_CITIES, getLocationString, getSourceUrlForLocation } from '@/data/ukLocations';
 import { FilterRow, ListedPeriod, JobStatus, SortOption, DatePostedFilter } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
 import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { AlertConfig } from '@/components/AlertConfig';
-import { Briefcase, Zap, CheckCircle2, XCircle, Undo2 } from 'lucide-react';
+import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useJobActions } from '@/hooks/useJobActions';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-
-const LOCATION = 'London, United Kingdom';
 
 const Index = () => {
   const { toast } = useToast();
   const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs } = useJobActions();
   const sourcesRef = useRef<HTMLDivElement>(null);
+  const [selectedCity, setSelectedCity] = useState<string>('London');
+  const location = getLocationString(selectedCity);
   const [sources, setSources] = useState<JobSource[]>(() =>
-  DEFAULT_SOURCES.filter((s) => !isOccSource(`${s.name} ${s.url}`))
+    getDefaultSources('London').filter((s) => !isOccSource(`${s.name} ${s.url}`))
   );
   const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
   const [isSearching, setIsSearching] = useState(false);
@@ -82,6 +84,23 @@ const Index = () => {
     setSelectedSources((prev) => prev.filter((name) => !isOccSource(name)));
   }, []);
 
+  // When city changes, update source URLs
+  const handleCityChange = (city: string) => {
+    setSelectedCity(city);
+    setSources((prev) =>
+      prev.map((s) => ({
+        ...s,
+        url: getSourceUrlForLocation(s.name, city) || s.url,
+        status: 'unknown' as const,
+        statusMessage: undefined,
+      }))
+    );
+    // Clear existing jobs since they're for a different location
+    setJobs([]);
+    setHasScraped(false);
+    setDismissedIds(new Set());
+  };
+
   const handleToggleSource = (id: string) => {
     setSources((prev) =>
     prev.map((s) => s.id === id ? { ...s, enabled: !s.enabled } : s)
@@ -106,7 +125,7 @@ const Index = () => {
   const handleScrape = async () => {
     setIsSearching(true);
     try {
-      const result = await scrapeJobs(sources, keywords, LOCATION);
+      const result = await scrapeJobs(sources, keywords, location);
 
       if (result.sourceStatuses) {
         setSources((prev) =>
@@ -187,8 +206,8 @@ const Index = () => {
     const enabledSources = sources.filter((s) => s.enabled).map((s) => s.name);
     filtered = filtered.filter((j) => enabledSources.includes(j.source));
 
-    // Always filter to London
-    const searchCity = LOCATION.split(',')[0]?.trim().toLowerCase();
+    // Filter to selected city
+    const searchCity = selectedCity.toLowerCase();
     if (searchCity) {
       filtered = filtered.filter((j) => {
         const locationText = `${j.location} ${j.title}`.toLowerCase();
@@ -221,7 +240,7 @@ const Index = () => {
     }
 
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities]);
+  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -267,25 +286,41 @@ const Index = () => {
                 VC<span className="text-primary">SCOUT</span>
               </h1>
               <p className="text-[10px] font-display text-muted-foreground uppercase tracking-widest">
-                London VC Job Aggregator   
+                {selectedCity} VC Job Aggregator   
               </p>
             </div>
-          </div>
+           </div>
 
-          <div className="flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground shrink-0">
-            <button
-              className="hover:text-foreground transition-colors"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              
-              {stats.total} Jobs
-            </button>
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              <Select value={selectedCity} onValueChange={handleCityChange}>
+                <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
+                  <SelectValue placeholder="Location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {UK_CITIES.map((loc) => (
+                    <SelectItem key={loc.value} value={loc.value} className="text-xs">
+                      {loc.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <span className="h-3 w-px bg-border" />
-            <button
-              className="hover:text-foreground transition-colors"
-              onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-              
-              {sources.filter((s) => s.enabled).length} Sources
-            </button>
+            <div className="flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
+              <button
+                className="hover:text-foreground transition-colors"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                {stats.total} Jobs
+              </button>
+              <span className="h-3 w-px bg-border" />
+              <button
+                className="hover:text-foreground transition-colors"
+                onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                {sources.filter((s) => s.enabled).length} Sources
+              </button>
+            </div>
           </div>
         </div>
       </header>

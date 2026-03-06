@@ -1,17 +1,31 @@
 import { Job, JobSource } from '@/types/jobs';
+import { getSourceUrlForLocation } from './ukLocations';
 
-export const DEFAULT_SOURCES: (JobSource & { status?: 'connected' | 'error' | 'checking' | 'unknown' })[] = [
-  { id: '6', name: 'eFinancialCareers', url: 'https://www.efinancialcareers.co.uk/jobs/%22venture-capital%22/in-london%2C-uk?q=%22venture+capital%22&location=London%2C+UK&latitude=51.50721&longitude=-0.12758&countryCode=GB&locationPrecision=City&radius=40&radiusUnit=km&pageSize=15&currencyCode=GBP&language=en&includeUnspecifiedSalary=true&enableVectorSearch=true', enabled: true, status: 'unknown' },
-  { id: '10', name: 'Glassdoor UK', url: 'https://www.glassdoor.co.uk/Job/jobs.htm?sc.occupationParam=%22venture+capital%22&sc.locationSeoString=London%2C+England+%28UK%29&locId=2671300&locT=C', enabled: true, status: 'unknown' },
-  { id: 'm0', name: 'Google Jobs', url: 'https://www.google.com/search?udm=8&q=venture+capital+jobs+london', enabled: true, status: 'unknown' },
-  { id: '9', name: 'Indeed UK', url: 'https://uk.indeed.com/jobs?q=%22venture+capital%22&l=London%2C+Greater+London', enabled: true, status: 'unknown' },
-  { id: '11', name: 'InnovatorsRoom', url: 'https://innovatorsroom.beehiiv.com/archive?tags=%F0%9F%92%B6+Junior+Investor+JobDrop', enabled: true, status: 'unknown' },
-  { id: '4', name: 'John Gannon Blog', url: 'https://johngannonblog.com/?feed=job_feed&job_types&search_location=London&job_categories&search_keywords', enabled: true, status: 'unknown' },
-  { id: '2', name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/search/?keywords=%22venture+capital%22&location=London', enabled: true, status: 'unknown' },
-  { id: '5', name: 'Startup & VC', url: 'https://www.startupandvc.com/venture-capital-jobs', enabled: true, status: 'unknown' },
-  { id: '12', name: 'VC Careers', url: 'https://venturecapitalcareers.com/jobs/locations/london-eng-united-kingdom', enabled: true, status: 'unknown' },
-  { id: '7', name: 'Venture5', url: 'https://venture5.com/jobs/', enabled: true, status: 'unknown' },
+const SOURCE_TEMPLATES: { id: string; name: string; defaultUrl: string; enabled: boolean; status: 'connected' | 'error' | 'checking' | 'unknown' }[] = [
+  { id: '6', name: 'eFinancialCareers', defaultUrl: 'https://www.efinancialcareers.co.uk/jobs/', enabled: true, status: 'unknown' },
+  { id: '10', name: 'Glassdoor UK', defaultUrl: 'https://www.glassdoor.co.uk/Job/jobs.htm', enabled: true, status: 'unknown' },
+  { id: 'm0', name: 'Google Jobs', defaultUrl: 'https://www.google.com/search?udm=8&q=venture+capital+jobs', enabled: true, status: 'unknown' },
+  { id: '9', name: 'Indeed UK', defaultUrl: 'https://uk.indeed.com/jobs?q=%22venture+capital%22', enabled: true, status: 'unknown' },
+  { id: '11', name: 'InnovatorsRoom', defaultUrl: 'https://innovatorsroom.beehiiv.com/archive?tags=%F0%9F%92%B6+Junior+Investor+JobDrop', enabled: true, status: 'unknown' },
+  { id: '4', name: 'John Gannon Blog', defaultUrl: 'https://johngannonblog.com/?feed=job_feed', enabled: true, status: 'unknown' },
+  { id: '2', name: 'LinkedIn Jobs', defaultUrl: 'https://www.linkedin.com/jobs/search/?keywords=%22venture+capital%22', enabled: true, status: 'unknown' },
+  { id: '5', name: 'Startup & VC', defaultUrl: 'https://www.startupandvc.com/venture-capital-jobs', enabled: true, status: 'unknown' },
+  { id: '12', name: 'VC Careers', defaultUrl: 'https://venturecapitalcareers.com/jobs/', enabled: true, status: 'unknown' },
+  { id: '7', name: 'Venture5', defaultUrl: 'https://venture5.com/jobs/', enabled: true, status: 'unknown' },
 ];
+
+export function getDefaultSources(city: string): (JobSource & { status?: 'connected' | 'error' | 'checking' | 'unknown' })[] {
+  return SOURCE_TEMPLATES.map((t) => ({
+    id: t.id,
+    name: t.name,
+    url: getSourceUrlForLocation(t.name, city) || t.defaultUrl,
+    enabled: t.enabled,
+    status: t.status,
+  }));
+}
+
+// Keep for backwards compat — defaults to London
+export const DEFAULT_SOURCES = getDefaultSources('London');
 
 export const MANUAL_SOURCES: JobSource[] = [
   { id: 'm1', name: 'MBA Exchange', url: 'https://www.mba-exchange.com/candidates/jobSearch_p.php', enabled: false, manualOnly: true },
