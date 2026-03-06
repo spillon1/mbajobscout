@@ -254,6 +254,8 @@ function isValidJob(job: Job): boolean {
     /\bcontent\s+(manager|writer|specialist)\b/i,
     /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
     /\bsales\s+(dev|representative|exec)/i,
+    /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
+    /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
   ];
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
 
