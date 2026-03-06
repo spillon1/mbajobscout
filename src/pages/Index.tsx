@@ -107,7 +107,7 @@ const Index = () => {
   const handleScrape = async () => {
     setIsSearching(true);
     try {
-      const result = await scrapeJobs(sources, keywords, LOCATION);
+      const result = await scrapeJobs(sources, keywords, location);
 
       if (result.sourceStatuses) {
         setSources((prev) =>
