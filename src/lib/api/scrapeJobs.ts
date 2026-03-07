@@ -34,9 +34,10 @@ export async function scrapeJobs(
     return { success: false, jobs: [], sourceStatuses: {}, error: 'No sources enabled' };
   }
 
-  const { data, error } = await supabase.functions.invoke('scrape-jobs', {
-    body: { sources: enabledSources, keywords, location },
-  });
+  const fetchOptions: any = { body: { sources: enabledSources, keywords, location } };
+  if (signal) fetchOptions.signal = signal;
+
+  const { data, error } = await supabase.functions.invoke('scrape-jobs', fetchOptions);
 
   if (error) {
     console.error('Scrape error:', error);
