@@ -370,6 +370,7 @@ const Index = () => {
             setSelectedType('any');
           }}
           onScrape={handleScrape}
+          onStopScrape={handleStopScrape}
           isSearching={isSearching} />
         
 

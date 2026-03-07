@@ -33,6 +33,7 @@ interface FilterRowProps {
   allSources: string[];
   onClearFilters?: () => void;
   onScrape: () => void;
+  onStopScrape?: () => void;
   isSearching: boolean;
 }
 
