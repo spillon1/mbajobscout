@@ -232,7 +232,7 @@ function isValidJob(job: Job): boolean {
     /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
     /\blegal\s+counsel\b/i, /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
     // Finance ops
-    /\baccountant\b/i, /\bauditor\b/i, /\bfund\s+controller\b/i,
+    /\baccountant\b/i, /\bauditor\b/i, /\bfund\s+controller\b/i, /\bfinancial\s+controller\b/i,
     /\bportfolio\s+(controller|monitor|manager)\b/i, /\bfund\s+administ/i,
     /\bfinance\s+(analyst|director|manager|business\s+partner|and\s+portfolio)\b/i,
     /\bhead\s+of\s+finance\b/i,
