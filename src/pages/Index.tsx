@@ -490,15 +490,31 @@ const Index = () => {
             <JobCard
               key={job.id}
               job={job}
-              onApplied={(j) => {
+              onApplied={async (j) => {
                 const url = j.jobUrl || j.sourceUrl;
-                addAction(url, j.title, j.company, j.source, 'applied');
-                toast({ title: 'Marked as Applied', description: j.title });
+                const actionId = await addAction(url, j.title, j.company, j.source, 'applied');
+                toast({
+                  title: 'Marked as Applied',
+                  description: j.title,
+                  action: actionId ? (
+                    <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>
+                      Undo
+                    </ToastAction>
+                  ) : undefined,
+                });
               }}
-              onNotInterested={(j) => {
+              onNotInterested={async (j) => {
                 const url = j.jobUrl || j.sourceUrl;
-                addAction(url, j.title, j.company, j.source, 'not_interested');
-                toast({ title: 'Not interested', description: j.title });
+                const actionId = await addAction(url, j.title, j.company, j.source, 'not_interested');
+                toast({
+                  title: 'Not interested',
+                  description: j.title,
+                  action: actionId ? (
+                    <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>
+                      Undo
+                    </ToastAction>
+                  ) : undefined,
+                });
               }} />
             )
             }
