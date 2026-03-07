@@ -36,6 +36,7 @@ import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin } from 'lucide-rea
 import { useToast } from '@/hooks/use-toast';
 import { useJobActions } from '@/hooks/useJobActions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToastAction } from '@/components/ui/toast';
 
 
 const Index = () => {
