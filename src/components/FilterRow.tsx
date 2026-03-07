@@ -196,7 +196,13 @@ export function FilterRow({
           </button>
         )}
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {isSearching && onStopScrape && (
+            <Button onClick={onStopScrape} size="sm" variant="destructive" className="font-display text-[10px] uppercase tracking-wider h-7 px-4">
+              <Square className="h-3 w-3 mr-1.5" />
+              Stop
+            </Button>
+          )}
           <Button onClick={onScrape} disabled={isSearching} size="sm" className="font-display text-[10px] uppercase tracking-wider h-7 px-6">
             {isSearching ? (
               <span className="flex items-center gap-1.5">
