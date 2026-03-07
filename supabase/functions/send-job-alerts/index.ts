@@ -40,31 +40,32 @@ Deno.serve(async (req) => {
 
     let totalSent = 0;
 
+    // Fetch all un-alerted jobs once (shared across all recipients)
+    const { data: newJobs, error: jobsError } = await supabase
+      .from('scraped_jobs')
+      .select('*')
+      .eq('alerted', false)
+      .order('scraped_at', { ascending: false });
+
+    if (jobsError) {
+      console.error('Failed to fetch un-alerted jobs:', jobsError.message);
+      return new Response(
+        JSON.stringify({ success: false, error: jobsError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!newJobs || newJobs.length === 0) {
+      console.log('No new (un-alerted) jobs to send');
+      return new Response(
+        JSON.stringify({ success: true, message: 'No new jobs', count: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Found ${newJobs.length} un-alerted jobs to send`);
+
     for (const alert of alertRecipients) {
-      // Find jobs scraped AFTER the last alert was sent
-      // If never alerted before, send everything from the last 24 hours
-      const since = alert.last_alerted_at || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-      const { data: newJobs, error } = await supabase
-        .from('scraped_jobs')
-        .select('*')
-        .gt('scraped_at', since)
-        .order('scraped_at', { ascending: false });
-
-      if (error) {
-        console.error(`Failed to fetch jobs for ${alert.email}:`, error.message);
-        continue;
-      }
-
-      if (!newJobs || newJobs.length === 0) {
-        console.log(`No new jobs since ${since} for ${alert.email}`);
-        // Still update last_alerted_at so we don't keep checking the same window
-        await supabase
-          .from('job_alerts')
-          .update({ last_alerted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-          .eq('id', alert.id);
-        continue;
-      }
 
       console.log(`Found ${newJobs.length} new jobs for ${alert.email} since ${since}`);
 
