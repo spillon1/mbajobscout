@@ -2720,7 +2720,8 @@ function parseInnovatorsRoomJobs(
 
 // ---- LinkedIn Jobs Guest API Scraper ----
 
-const LINKEDIN_PAGES = 40; // 25 jobs per page
+const LINKEDIN_PAGES_CITY = 40; // 25 jobs per page — for city-specific searches
+const LINKEDIN_PAGES_COUNTRY = 15; // Cap for broad country-wide searches to avoid timeout
 
 async function scrapeLinkedIn(
   apiKey: string,
@@ -2729,10 +2730,12 @@ async function scrapeLinkedIn(
   location: string
 ): Promise<any[]> {
   const searchCity = location.split(',')[0]?.trim() || 'London';
+  const isCountryWide = searchCity.toLowerCase() === 'united kingdom';
+  const maxPages = isCountryWide ? LINKEDIN_PAGES_COUNTRY : LINKEDIN_PAGES_CITY;
   const searchQuery = keywords[0] || 'venture capital';
   const allJobs: any[] = [];
 
-  for (let page = 0; page < LINKEDIN_PAGES; page++) {
+  for (let page = 0; page < maxPages; page++) {
     const start = page * 25;
     const guestUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(searchCity)}&start=${start}`;
     console.log(`LinkedIn page ${page + 1}: ${guestUrl}`);
@@ -2763,7 +2766,7 @@ async function scrapeLinkedIn(
 
       if (pageJobs.length < 5) break;
       // Delay between pages to avoid rate limiting
-      if (page < LINKEDIN_PAGES - 1) await new Promise(r => setTimeout(r, 1000));
+      if (page < maxPages - 1) await new Promise(r => setTimeout(r, 1000));
     } catch (err) {
       console.error(`LinkedIn page ${page + 1} error:`, err);
       break;

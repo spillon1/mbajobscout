@@ -64,6 +64,7 @@ export const UK_CITIES: { value: string; label: string }[] = [
 ];
 
 export function getLocationString(city: string): string {
+  if (city === 'United Kingdom') return 'United Kingdom';
   return `${city}, United Kingdom`;
 }
 
