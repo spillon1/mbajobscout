@@ -23,7 +23,8 @@ interface ScrapeResult {
 export async function scrapeJobs(
   sources: JobSource[],
   keywords: string[],
-  location: string
+  location: string,
+  signal?: AbortSignal
 ): Promise<ScrapeResult> {
   const enabledSources = sources
     .filter((s) => s.enabled)
@@ -33,9 +34,10 @@ export async function scrapeJobs(
     return { success: false, jobs: [], sourceStatuses: {}, error: 'No sources enabled' };
   }
 
-  const { data, error } = await supabase.functions.invoke('scrape-jobs', {
-    body: { sources: enabledSources, keywords, location },
-  });
+  const fetchOptions: any = { body: { sources: enabledSources, keywords, location } };
+  if (signal) fetchOptions.signal = signal;
+
+  const { data, error } = await supabase.functions.invoke('scrape-jobs', fetchOptions);
 
   if (error) {
     console.error('Scrape error:', error);

@@ -123,10 +123,16 @@ const Index = () => {
     setSources((prev) => prev.filter((s) => s.id !== id));
   };
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const handleScrape = async () => {
     setIsSearching(true);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     try {
-      const result = await scrapeJobs(sources, keywords, location);
+      const result = await scrapeJobs(sources, keywords, location, controller.signal);
+
+      if (controller.signal.aborted) return;
 
       if (result.sourceStatuses) {
         setSources((prev) =>
@@ -160,6 +166,7 @@ const Index = () => {
         });
       }
     } catch (err) {
+      if (controller.signal.aborted) return;
       console.error('Scrape error:', err);
       toast({
         title: 'Scrape error',
@@ -167,8 +174,16 @@ const Index = () => {
         variant: 'destructive'
       });
     } finally {
+      abortControllerRef.current = null;
       setIsSearching(false);
     }
+  };
+
+  const handleStopScrape = () => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setIsSearching(false);
+    toast({ title: 'Search stopped' });
   };
 
   const allCompanies = useMemo(() => [...new Set(jobs.map((j) => j.company))].sort(), [jobs]);
@@ -355,6 +370,7 @@ const Index = () => {
             setSelectedType('any');
           }}
           onScrape={handleScrape}
+          onStopScrape={handleStopScrape}
           isSearching={isSearching} />
         
 
