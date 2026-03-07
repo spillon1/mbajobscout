@@ -1974,7 +1974,7 @@ async function scrapeRssFeed(
   location: string
 ): Promise<any[]> {
   const allItems: Array<{ title: string; link: string; description: string; pubDate: string }> = [];
-  const MAX_PAGES = 999; // No limit — paginate until RSS feed is exhausted
+  const MAX_PAGES = 50; // Cap at 50 pages (500 items) to avoid timeouts
   const baseUrl = source.url;
 
   // WordPress RSS feeds default to 10 items — paginate with &paged=N
