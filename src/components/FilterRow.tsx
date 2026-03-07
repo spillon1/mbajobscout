@@ -2,7 +2,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { CheckboxFilter } from '@/components/CheckboxFilter';
 import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
-import { SlidersHorizontal, X, Loader2 } from 'lucide-react';
+import { SlidersHorizontal, X, Loader2, Square } from 'lucide-react';
 import { Seniority } from '@/types/jobs';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
