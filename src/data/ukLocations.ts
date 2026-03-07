@@ -42,7 +42,7 @@ function buildSourceUrls(city: string, cityLower: string): Record<string, string
 }
 
 export const UK_CITIES: { value: string; label: string }[] = [
-  { value: 'United Kingdom', label: '🇬🇧 All UK' },
+  { value: 'United Kingdom', label: 'All UK' },
   { value: 'London', label: 'London' },
   { value: 'Manchester', label: 'Manchester' },
   { value: 'Birmingham', label: 'Birmingham' },
