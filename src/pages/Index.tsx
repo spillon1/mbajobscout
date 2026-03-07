@@ -364,7 +364,7 @@ const Index = () => {
         
 
         {/* Stats - clickable filters */}
-        <div className="grid grid-cols-6 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
           {[
           { label: 'Total', value: stats.total, color: 'text-foreground', type: 'any' as const },
           { label: 'Full Time', value: stats.fullTime, color: 'text-primary', type: 'full-time' as const },
@@ -379,32 +379,32 @@ const Index = () => {
                   setViewMode('search');
                   setSelectedType(isActive && type !== 'any' ? 'any' : type);
                 }}
-                className={`border rounded-md bg-card p-3 text-center transition-all cursor-pointer hover:glow-primary ${
+                className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
                 isActive ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'}`
                 }>
                 
-                <div className={`font-display text-2xl font-bold ${color}`}>{value}</div>
-                <div className="font-display text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+                <div className={`font-display text-lg sm:text-2xl font-bold ${color}`}>{value}</div>
+                <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">{label}</div>
               </button>);
 
           })}
           <button
             onClick={() => setViewMode(viewMode === 'applied' ? 'search' : 'applied')}
-            className={`border rounded-md bg-card p-3 text-center transition-all cursor-pointer hover:glow-primary ${
+            className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
               viewMode === 'applied' ? 'border-success/50 glow-primary' : 'border-border hover:border-success/30'
             }`}
           >
-            <div className="font-display text-2xl font-bold text-success">{appliedJobs.length}</div>
-            <div className="font-display text-[10px] uppercase tracking-widest text-muted-foreground">Applied</div>
+            <div className="font-display text-lg sm:text-2xl font-bold text-success">{appliedJobs.length}</div>
+            <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Applied</div>
           </button>
           <button
             onClick={() => setViewMode(viewMode === 'not_interested' ? 'search' : 'not_interested')}
-            className={`border rounded-md bg-card p-3 text-center transition-all cursor-pointer hover:glow-primary ${
+            className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
               viewMode === 'not_interested' ? 'border-destructive/50 glow-primary' : 'border-border hover:border-destructive/30'
             }`}
           >
-            <div className="font-display text-2xl font-bold text-destructive">{notInterestedJobs.length}</div>
-            <div className="font-display text-[10px] uppercase tracking-widest text-muted-foreground">Dismissed</div>
+            <div className="font-display text-lg sm:text-2xl font-bold text-destructive">{notInterestedJobs.length}</div>
+            <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Dismissed</div>
           </button>
         </div>
 
