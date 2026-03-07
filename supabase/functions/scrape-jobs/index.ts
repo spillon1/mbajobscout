@@ -217,6 +217,49 @@ Deno.serve(async (req) => {
 
     console.log(`Total jobs found: ${dedupedResults.length} (filtered from ${results.length})`);
 
+    // Persist to DB if requested (used by scheduled cron)
+    if (persist && dedupedResults.length > 0) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, serviceKey);
+
+        // Delete old jobs for successfully scraped sources
+        const successfulSources = Object.entries(sourceStatuses)
+          .filter(([, s]) => s.status === 'connected')
+          .map(([name]) => name);
+
+        if (successfulSources.length > 0) {
+          await supabase.from('scraped_jobs').delete().in('source', successfulSources);
+        }
+
+        const rows = dedupedResults.map((j: any) => ({
+          title: j.title,
+          company: j.company || 'Unknown',
+          location: j.location || 'London, UK',
+          type: j.type || 'full-time',
+          source: j.source,
+          source_url: j.sourceUrl || j.url || '',
+          url: j.url || j.sourceUrl || '',
+          posted_date: j.postedDate || j.posted_date || null,
+          description: j.description || null,
+          salary: j.salary || null,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('scraped_jobs')
+          .upsert(rows, { onConflict: 'url', ignoreDuplicates: false });
+
+        if (insertError) {
+          console.error('[Persist] Failed to save jobs:', insertError.message);
+        } else {
+          console.log(`[Persist] Saved ${rows.length} jobs to DB`);
+        }
+      } catch (persistErr) {
+        console.error('[Persist] Error:', persistErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, jobs: dedupedResults, sourceStatuses }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
