@@ -39,8 +39,8 @@ export function useJobActions() {
     jobCompany: string,
     jobSource: string,
     action: JobAction
-  ) => {
-    const { error } = await supabase
+  ): Promise<string | null> => {
+    const { data, error } = await supabase
       .from('job_actions')
       .upsert({
         job_url: jobUrl,
@@ -48,12 +48,15 @@ export function useJobActions() {
         job_company: jobCompany,
         job_source: jobSource,
         action,
-      }, { onConflict: 'job_url,action' });
+      }, { onConflict: 'job_url,action' })
+      .select('id')
+      .single();
 
     if (!error) {
       await fetchActions();
+      return data?.id ?? null;
     }
-    return !error;
+    return null;
   }, [fetchActions]);
 
   const removeAction = useCallback(async (id: string) => {

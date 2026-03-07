@@ -36,6 +36,7 @@ import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin } from 'lucide-rea
 import { useToast } from '@/hooks/use-toast';
 import { useJobActions } from '@/hooks/useJobActions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToastAction } from '@/components/ui/toast';
 
 
 const Index = () => {
@@ -489,15 +490,31 @@ const Index = () => {
             <JobCard
               key={job.id}
               job={job}
-              onApplied={(j) => {
+              onApplied={async (j) => {
                 const url = j.jobUrl || j.sourceUrl;
-                addAction(url, j.title, j.company, j.source, 'applied');
-                toast({ title: 'Marked as Applied', description: j.title });
+                const actionId = await addAction(url, j.title, j.company, j.source, 'applied');
+                toast({
+                  title: 'Marked as Applied',
+                  description: j.title,
+                  action: actionId ? (
+                    <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>
+                      Undo
+                    </ToastAction>
+                  ) : undefined,
+                });
               }}
-              onNotInterested={(j) => {
+              onNotInterested={async (j) => {
                 const url = j.jobUrl || j.sourceUrl;
-                addAction(url, j.title, j.company, j.source, 'not_interested');
-                toast({ title: 'Not interested', description: j.title });
+                const actionId = await addAction(url, j.title, j.company, j.source, 'not_interested');
+                toast({
+                  title: 'Not interested',
+                  description: j.title,
+                  action: actionId ? (
+                    <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>
+                      Undo
+                    </ToastAction>
+                  ) : undefined,
+                });
               }} />
             )
             }
