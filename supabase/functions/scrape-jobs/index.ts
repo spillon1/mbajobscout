@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { sources, keywords, location } = await req.json() as ScrapeRequest;
+    const { sources, keywords, location, persist } = await req.json() as ScrapeRequest;
 
     if (!sources || sources.length === 0) {
       return new Response(
