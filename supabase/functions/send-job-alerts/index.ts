@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
     for (const alert of alertRecipients) {
 
-      console.log(`Found ${newJobs.length} new jobs for ${alert.email} since ${since}`);
+      console.log(`Sending ${newJobs.length} new jobs to ${alert.email}`);
 
       // Build HTML email
       const jobRows = newJobs.map(job => `
