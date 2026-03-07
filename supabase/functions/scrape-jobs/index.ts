@@ -2730,10 +2730,12 @@ async function scrapeLinkedIn(
   location: string
 ): Promise<any[]> {
   const searchCity = location.split(',')[0]?.trim() || 'London';
+  const isCountryWide = searchCity.toLowerCase() === 'united kingdom';
+  const maxPages = isCountryWide ? LINKEDIN_PAGES_COUNTRY : LINKEDIN_PAGES_CITY;
   const searchQuery = keywords[0] || 'venture capital';
   const allJobs: any[] = [];
 
-  for (let page = 0; page < LINKEDIN_PAGES; page++) {
+  for (let page = 0; page < maxPages; page++) {
     const start = page * 25;
     const guestUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(searchCity)}&start=${start}`;
     console.log(`LinkedIn page ${page + 1}: ${guestUrl}`);
