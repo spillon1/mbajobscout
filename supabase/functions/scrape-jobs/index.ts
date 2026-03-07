@@ -2766,7 +2766,7 @@ async function scrapeLinkedIn(
 
       if (pageJobs.length < 5) break;
       // Delay between pages to avoid rate limiting
-      if (page < LINKEDIN_PAGES - 1) await new Promise(r => setTimeout(r, 1000));
+      if (page < maxPages - 1) await new Promise(r => setTimeout(r, 1000));
     } catch (err) {
       console.error(`LinkedIn page ${page + 1} error:`, err);
       break;
