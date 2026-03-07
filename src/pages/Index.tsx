@@ -276,12 +276,12 @@ const Index = () => {
     <div className="min-h-screen bg-background bg-grid">
       {/* Header */}
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <div className="container max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-2 shrink-0">
             <div className="h-8 w-8 rounded-sm bg-primary/15 border border-primary/30 flex items-center justify-center">
               <Zap className="h-4 w-4 text-primary" />
             </div>
-            <div>
+            <div className="hidden sm:block">
               <h1 className="font-display text-sm font-bold tracking-tight text-foreground">
                 VC<span className="text-primary">SCOUT</span>
               </h1>
@@ -291,11 +291,11 @@ const Index = () => {
             </div>
            </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <MapPin className="h-3.5 w-3.5 text-primary" />
               <Select value={selectedCity} onValueChange={handleCityChange}>
-                <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
+                <SelectTrigger className="h-7 w-[110px] sm:w-[140px] text-xs font-display bg-card border-border">
                   <SelectValue placeholder="Location" />
                 </SelectTrigger>
                 <SelectContent>
@@ -308,15 +308,15 @@ const Index = () => {
               </Select>
             </div>
             <span className="h-3 w-px bg-border" />
-            <div className="flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
+            <div className="flex items-center gap-2 sm:gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
               <button
-                className="hover:text-foreground transition-colors"
+                className="hover:text-foreground transition-colors whitespace-nowrap"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                 {stats.total} Jobs
               </button>
               <span className="h-3 w-px bg-border" />
               <button
-                className="hover:text-foreground transition-colors"
+                className="hover:text-foreground transition-colors whitespace-nowrap"
                 onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
                 {sources.filter((s) => s.enabled).length} Sources
               </button>
@@ -364,7 +364,7 @@ const Index = () => {
         
 
         {/* Stats - clickable filters */}
-        <div className="grid grid-cols-6 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
           {[
           { label: 'Total', value: stats.total, color: 'text-foreground', type: 'any' as const },
           { label: 'Full Time', value: stats.fullTime, color: 'text-primary', type: 'full-time' as const },
@@ -379,32 +379,32 @@ const Index = () => {
                   setViewMode('search');
                   setSelectedType(isActive && type !== 'any' ? 'any' : type);
                 }}
-                className={`border rounded-md bg-card p-3 text-center transition-all cursor-pointer hover:glow-primary ${
+                className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
                 isActive ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'}`
                 }>
                 
-                <div className={`font-display text-2xl font-bold ${color}`}>{value}</div>
-                <div className="font-display text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+                <div className={`font-display text-lg sm:text-2xl font-bold ${color}`}>{value}</div>
+                <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">{label}</div>
               </button>);
 
           })}
           <button
             onClick={() => setViewMode(viewMode === 'applied' ? 'search' : 'applied')}
-            className={`border rounded-md bg-card p-3 text-center transition-all cursor-pointer hover:glow-primary ${
+            className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
               viewMode === 'applied' ? 'border-success/50 glow-primary' : 'border-border hover:border-success/30'
             }`}
           >
-            <div className="font-display text-2xl font-bold text-success">{appliedJobs.length}</div>
-            <div className="font-display text-[10px] uppercase tracking-widest text-muted-foreground">Applied</div>
+            <div className="font-display text-lg sm:text-2xl font-bold text-success">{appliedJobs.length}</div>
+            <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Applied</div>
           </button>
           <button
             onClick={() => setViewMode(viewMode === 'not_interested' ? 'search' : 'not_interested')}
-            className={`border rounded-md bg-card p-3 text-center transition-all cursor-pointer hover:glow-primary ${
+            className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
               viewMode === 'not_interested' ? 'border-destructive/50 glow-primary' : 'border-border hover:border-destructive/30'
             }`}
           >
-            <div className="font-display text-2xl font-bold text-destructive">{notInterestedJobs.length}</div>
-            <div className="font-display text-[10px] uppercase tracking-widest text-muted-foreground">Dismissed</div>
+            <div className="font-display text-lg sm:text-2xl font-bold text-destructive">{notInterestedJobs.length}</div>
+            <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Dismissed</div>
           </button>
         </div>
 
