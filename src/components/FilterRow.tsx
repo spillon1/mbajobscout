@@ -91,6 +91,7 @@ export function FilterRow({
   allSources,
   onClearFilters,
   onScrape,
+  onStopScrape,
   isSearching,
 }: FilterRowProps) {
   const hasActiveFilters =

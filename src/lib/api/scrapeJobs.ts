@@ -23,7 +23,8 @@ interface ScrapeResult {
 export async function scrapeJobs(
   sources: JobSource[],
   keywords: string[],
-  location: string
+  location: string,
+  signal?: AbortSignal
 ): Promise<ScrapeResult> {
   const enabledSources = sources
     .filter((s) => s.enabled)
