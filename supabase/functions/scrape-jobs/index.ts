@@ -2398,9 +2398,35 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
     if (parts.length < 2) continue;
 
     const title = parts[0].trim();
-    const company = parts.length >= 2 ? parts[1].trim() : 'Unknown';
-    let jobLocation = parts.length >= 3 ? parts[2].trim() : 'London, UK';
-    jobLocation = jobLocation.replace(/\s*•\s*via\s+.+$/i, '').trim() || 'London, UK';
+
+    // Google Jobs format: Title \\ Location \\ • via Company
+    // Extract company from "• via X" suffix in the last part
+    let company = 'Unknown';
+    let jobLocation = 'London, UK';
+
+    // Find "via Company" in any part
+    const viaPattern = /•?\s*via\s+(.+)$/i;
+    for (const part of parts.slice(1)) {
+      const viaMatch = part.trim().match(viaPattern);
+      if (viaMatch) {
+        company = viaMatch[1].trim();
+        // The text before "via" in this part might be location info
+        const beforeVia = part.replace(viaPattern, '').trim();
+        if (beforeVia) jobLocation = beforeVia;
+      }
+    }
+
+    // parts[1] is typically the location (e.g. "London, UK")
+    if (parts.length >= 2) {
+      const p1 = parts[1].trim().replace(viaPattern, '').trim();
+      if (p1 && !viaPattern.test(parts[1])) {
+        jobLocation = p1;
+      } else if (p1) {
+        jobLocation = p1 || jobLocation;
+      }
+    }
+
+    if (!jobLocation || jobLocation === '') jobLocation = 'London, UK';
 
     const skipWords = ['filter', 'menu', 'sign in', 'cookie', 'follow', 'saved jobs', 'ai mode', 'forums', 'images', 'news', 'county', 'from your ip'];
     if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
