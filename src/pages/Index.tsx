@@ -463,7 +463,7 @@ const Index = () => {
                         removeAction(action.id);
                         toast({ title: 'Removed from Dismissed', description: action.job_title });
                       }}
-                      className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
+                      className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors sm:opacity-0 sm:group-hover:opacity-100"
                       title="Remove (re-shows in results)"
                     >
                       <Undo2 className="h-3.5 w-3.5" />
