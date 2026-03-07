@@ -147,6 +147,21 @@ Deno.serve(async (req) => {
       totalSent++;
     }
 
+    // Mark all sent jobs as alerted so they aren't sent again
+    if (totalSent > 0) {
+      const jobIds = newJobs.map(j => j.id);
+      const { error: markError } = await supabase
+        .from('scraped_jobs')
+        .update({ alerted: true })
+        .in('id', jobIds);
+
+      if (markError) {
+        console.error('Failed to mark jobs as alerted:', markError.message);
+      } else {
+        console.log(`Marked ${jobIds.length} jobs as alerted`);
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, sent: totalSent }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
