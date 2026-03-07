@@ -207,14 +207,8 @@ const Index = () => {
     const enabledSources = sources.filter((s) => s.enabled).map((s) => s.name);
     filtered = filtered.filter((j) => enabledSources.includes(j.source));
 
-    // Filter to selected city
-    const searchCity = selectedCity.toLowerCase();
-    if (searchCity) {
-      filtered = filtered.filter((j) => {
-        const locationText = `${j.location} ${j.title}`.toLowerCase();
-        return locationText.includes(searchCity);
-      });
-    }
+    // No client-side city filter: the scrape already targets city-specific URLs,
+    // and many sources don't embed the exact city name in the job location field.
 
     if (datePostedFilter === 'with-date') {
       filtered = filtered.filter((j) => j.postedDate && j.postedDate !== 'Scraped just now');
@@ -241,7 +235,7 @@ const Index = () => {
     }
 
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity]);
+  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
