@@ -3,10 +3,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 interface ScrapeRequest {
   sources: { name: string; url: string }[];
   keywords: string[];
   location: string;
+  persist?: boolean; // When true, save results directly to DB (used by cron)
 }
 
 Deno.serve(async (req) => {
@@ -23,7 +26,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { sources, keywords, location } = await req.json() as ScrapeRequest;
+    const { sources, keywords, location, persist } = await req.json() as ScrapeRequest;
 
     if (!sources || sources.length === 0) {
       return new Response(
@@ -213,6 +216,49 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Total jobs found: ${dedupedResults.length} (filtered from ${results.length})`);
+
+    // Persist to DB if requested (used by scheduled cron)
+    if (persist && dedupedResults.length > 0) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, serviceKey);
+
+        // Delete old jobs for successfully scraped sources
+        const successfulSources = Object.entries(sourceStatuses)
+          .filter(([, s]) => s.status === 'connected')
+          .map(([name]) => name);
+
+        if (successfulSources.length > 0) {
+          await supabase.from('scraped_jobs').delete().in('source', successfulSources);
+        }
+
+        const rows = dedupedResults.map((j: any) => ({
+          title: j.title,
+          company: j.company || 'Unknown',
+          location: j.location || 'London, UK',
+          type: j.type || 'full-time',
+          source: j.source,
+          source_url: j.sourceUrl || j.url || '',
+          url: j.url || j.sourceUrl || '',
+          posted_date: j.postedDate || j.posted_date || null,
+          description: j.description || null,
+          salary: j.salary || null,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('scraped_jobs')
+          .upsert(rows, { onConflict: 'url', ignoreDuplicates: false });
+
+        if (insertError) {
+          console.error('[Persist] Failed to save jobs:', insertError.message);
+        } else {
+          console.log(`[Persist] Saved ${rows.length} jobs to DB`);
+        }
+      } catch (persistErr) {
+        console.error('[Persist] Error:', persistErr);
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, jobs: dedupedResults, sourceStatuses }),
