@@ -24,7 +24,7 @@ function formatPostedDate(dateStr?: string): string | null {
   }
 }
 
-const SWIPE_THRESHOLD = 80;
+const SWIPE_THRESHOLD = 140;
 
 interface JobCardProps {
   job: Job;
