@@ -2441,8 +2441,16 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
 
     // Enforce location filter from user search (e.g. London)
     if (searchCity) {
-      const locationText = `${jobLocation} ${title} ${company}`.toLowerCase();
-      if (!locationText.includes(searchCity)) continue;
+      const locLower = jobLocation.toLowerCase();
+      const titleLower2 = title.toLowerCase();
+      const locationMatchesCity = locLower.includes(searchCity);
+      const titleMatchesCity = titleLower2.includes(searchCity);
+      // Skip if neither location nor title mention the search city
+      if (!locationMatchesCity && !titleMatchesCity) continue;
+      // If the parsed location doesn't match but the title does, override with search location
+      if (!locationMatchesCity && titleMatchesCity) {
+        jobLocation = searchLocation || jobLocation;
+      }
     }
 
     let type = 'full-time';
