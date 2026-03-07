@@ -2720,7 +2720,8 @@ function parseInnovatorsRoomJobs(
 
 // ---- LinkedIn Jobs Guest API Scraper ----
 
-const LINKEDIN_PAGES = 40; // 25 jobs per page
+const LINKEDIN_PAGES_CITY = 40; // 25 jobs per page — for city-specific searches
+const LINKEDIN_PAGES_COUNTRY = 15; // Cap for broad country-wide searches to avoid timeout
 
 async function scrapeLinkedIn(
   apiKey: string,
