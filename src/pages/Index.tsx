@@ -222,23 +222,37 @@ const Index = () => {
     const enabledSources = sources.filter((s) => s.enabled).map((s) => s.name);
     filtered = filtered.filter((j) => enabledSources.includes(j.source));
 
-    // Client-side city filter: some sources (Startup & VC, InnovatorsRoom) don't
-    // support location filtering, so we filter out jobs whose location clearly
-    // belongs to a different city when a specific city is selected.
+    // Client-side location filter: reject jobs clearly outside the UK
+    // US state abbreviations and non-UK country indicators
+    const NON_UK_INDICATORS = [
+      // US state abbreviations (2-letter, typically after comma)
+      /,\s*\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/,
+      // US state full names
+      /\b(massachusetts|california|new york|texas|florida|illinois|pennsylvania|ohio|georgia|michigan|connecticut|new jersey|virginia|maryland|colorado|washington state|minnesota|north carolina)\b/i,
+      // Non-UK countries
+      /\b(united states|usa|\bUS\b|canada|australia|germany|france|india|singapore|hong kong|japan|china|brazil|israel|netherlands|switzerland|ireland|spain|italy|sweden|denmark|norway|finland|austria|belgium|portugal|south korea|taiwan|thailand|vietnam|mexico|argentina|chile|south africa|nigeria|kenya|uae|dubai|saudi|qatar)\b/i,
+    ];
+
+    // Always filter out non-UK jobs regardless of city selection
+    filtered = filtered.filter((j) => {
+      const loc = j.location;
+      // Allow generic/empty locations
+      if (!loc || loc === 'London, UK') return true;
+      return !NON_UK_INDICATORS.some((pattern) => pattern.test(loc));
+    });
+
+    // Then filter by specific city if not "All UK"
     if (selectedCity !== 'United Kingdom') {
       const cityLower = selectedCity.toLowerCase();
       filtered = filtered.filter((j) => {
         const loc = j.location.toLowerCase();
-        // Keep if location contains the selected city, or is generic (e.g. "UK", "United Kingdom", "Remote")
         if (loc.includes(cityLower)) return true;
-        if (loc.includes('united kingdom') || loc.includes('uk') || loc.includes('remote') || loc.includes('various')) return true;
-        // Keep if location is the default "London, UK" placeholder and doesn't mention another specific city
-        // Drop if it clearly mentions a different major city
+        if (loc.includes('united kingdom') || loc === 'uk' || loc.includes('remote') || loc.includes('various')) return true;
+        // Drop if it mentions a different UK city
         const otherCities = UK_CITIES
           .filter((c) => c.value !== 'United Kingdom' && c.value.toLowerCase() !== cityLower)
           .map((c) => c.value.toLowerCase());
-        const mentionsOtherCity = otherCities.some((c) => loc.includes(c));
-        if (mentionsOtherCity) return false;
+        if (otherCities.some((c) => loc.includes(c))) return false;
         return true;
       });
     }
