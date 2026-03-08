@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Job } from '@/types/jobs';
 import { JobTypeBadge } from './JobTypeBadge';
-import { ExternalLink, Building2, MapPin, Calendar, X, Copy, Check, CheckCircle2 } from 'lucide-react';
+import { ExternalLink, Building2, MapPin, Calendar, X, Copy, Check, CheckCircle2, Bookmark } from 'lucide-react';
 import { isBlockedUrl, getOutboundUrl } from '@/lib/urlSafety';
 
 function formatPostedDate(dateStr?: string): string | null {
