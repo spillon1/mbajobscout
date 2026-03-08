@@ -2718,15 +2718,19 @@ function parseInnovatorsRoomJobs(
       ? companyMatch[companyMatch.length - 1].match(/\*\*\[([^\]]+)\]/)?.[1] || 'Unknown'
       : 'Unknown';
 
-    // Check for London/UK in surrounding context
-    const context = before + markdown.substring(match.index, Math.min(markdown.length, match.index + 200));
-    const hasLondon = /🇬🇧[^|]*london/i.test(context) || /london/i.test(context);
-
-    if (!hasLondon) continue;
-
-    // Extract location string
-    const locMatch = context.match(/🇬🇧\s*([^|<\n]+)/);
-    const locationStr = locMatch ? locMatch[1].trim() : 'London';
+    // Check for UK flag + search city in the IMMEDIATE context (200 chars around the job link)
+    const nearContext = before.substring(Math.max(0, before.length - 200)) + markdown.substring(match.index, Math.min(markdown.length, match.index + 200));
+    
+    // Require 🇬🇧 flag in the near context AND the search city
+    const hasUkFlag = /🇬🇧/.test(nearContext);
+    if (!hasUkFlag) continue;
+    
+    // Extract location string from nearby flag
+    const locMatch = nearContext.match(/🇬🇧\s*([^|<\n]+)/);
+    const locationStr = locMatch ? locMatch[1].trim() : '';
+    
+    // Must contain the search city (e.g. "london", "manchester")
+    if (!locationStr.toLowerCase().includes(searchCity)) continue;
 
     jobs.push({
       id: crypto.randomUUID(),
