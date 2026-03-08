@@ -456,8 +456,7 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Job list */}
           <div className="lg:col-span-3 space-y-2">
-            {viewMode === 'applied' ? (
-              viewMode === 'saved' ? (
+            {viewMode === 'saved' ? (
               savedJobs.length === 0 ? (
                 <div className="border border-border rounded-md bg-card p-12 text-center">
                   <Bookmark className="h-8 w-8 text-primary mx-auto mb-3" />
