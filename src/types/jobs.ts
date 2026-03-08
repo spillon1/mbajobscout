@@ -1,5 +1,5 @@
 export type JobType = 'full-time' | 'internship' | 'graduate' | 'unknown';
-export type Seniority = 'intern' | 'junior' | 'mid' | 'senior' | 'unknown';
+export type Seniority = 'intern' | 'junior' | 'mid' | 'senior' | 'graduate' | 'unknown';
 
 export interface Job {
   id: string;

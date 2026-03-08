@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Job } from '@/types/jobs';
 import { JobTypeBadge } from './JobTypeBadge';
-import { ExternalLink, Building2, MapPin, Calendar, X, Copy, Check, CheckCircle2 } from 'lucide-react';
+import { ExternalLink, Building2, MapPin, Calendar, X, Copy, Check, CheckCircle2, Bookmark } from 'lucide-react';
 import { isBlockedUrl, getOutboundUrl } from '@/lib/urlSafety';
 
 function formatPostedDate(dateStr?: string): string | null {
@@ -30,9 +30,10 @@ interface JobCardProps {
   job: Job;
   onApplied?: (job: Job) => void;
   onNotInterested?: (job: Job) => void;
+  onSaved?: (job: Job) => void;
 }
 
-export function JobCard({ job, onApplied, onNotInterested }: JobCardProps) {
+export function JobCard({ job, onApplied, onNotInterested, onSaved }: JobCardProps) {
   const [copied, setCopied] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -190,6 +191,19 @@ export function JobCard({ job, onApplied, onNotInterested }: JobCardProps) {
 
           {/* Action buttons - desktop only */}
           <div className="shrink-0 hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onSaved && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSaved(job);
+                }}
+                className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                title="Save"
+              >
+                <Bookmark className="h-3.5 w-3.5" />
+              </button>
+            )}
             {onNotInterested && (
               <button
                 onClick={(e) => {

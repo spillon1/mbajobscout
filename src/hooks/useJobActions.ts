@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type JobAction = 'applied' | 'not_interested';
+export type JobAction = 'applied' | 'not_interested' | 'saved';
 
 export interface JobActionRecord {
   id: string;
@@ -71,9 +71,10 @@ export function useJobActions() {
     return !error;
   }, []);
 
-  const actionedUrls = new Set(actions.map(a => a.job_url));
+  const actionedUrls = new Set(actions.filter(a => a.action !== 'saved').map(a => a.job_url));
   const appliedJobs = actions.filter(a => a.action === 'applied');
   const notInterestedJobs = actions.filter(a => a.action === 'not_interested');
+  const savedJobs = actions.filter(a => a.action === 'saved');
 
   return {
     actions,
@@ -83,5 +84,6 @@ export function useJobActions() {
     actionedUrls,
     appliedJobs,
     notInterestedJobs,
+    savedJobs,
   };
 }

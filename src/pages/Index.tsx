@@ -32,7 +32,7 @@ import { SourceManager } from '@/components/SourceManager';
 import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { AlertConfig } from '@/components/AlertConfig';
-import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin, Loader2 } from 'lucide-react';
+import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin, Loader2, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useJobActions } from '@/hooks/useJobActions';
@@ -42,7 +42,7 @@ import { ToastAction } from '@/components/ui/toast';
 
 const Index = () => {
   const { toast } = useToast();
-  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs } = useJobActions();
+  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs } = useJobActions();
   const sourcesRef = useRef<HTMLDivElement>(null);
   const [selectedCity, setSelectedCity] = useState<string>('London');
   const location = getLocationString(selectedCity);
@@ -69,7 +69,7 @@ const Index = () => {
   }, []);
 
   // Filters
-  const [viewMode, setViewMode] = useState<'search' | 'applied' | 'not_interested'>('search');
+  const [viewMode, setViewMode] = useState<'search' | 'applied' | 'not_interested' | 'saved'>('search');
   const [selectedType, setSelectedType] = useState<JobType | 'any'>('any');
   const [listedPeriod, setListedPeriod] = useState<ListedPeriod>('any');
   const [jobStatus, setJobStatus] = useState<JobStatus>('any');
@@ -245,9 +245,27 @@ const Index = () => {
     // Then filter by specific city if not "All UK"
     if (selectedCity !== 'United Kingdom') {
       const cityLower = selectedCity.toLowerCase();
+      // County/region aliases so e.g. "Oxfordshire" matches "Oxford"
+      const CITY_ALIASES: Record<string, string[]> = {
+        oxford: ['oxfordshire'],
+        cambridge: ['cambridgeshire'],
+        bristol: ['avon'],
+        newcastle: ['tyne and wear', 'tyneside'],
+        nottingham: ['nottinghamshire'],
+        sheffield: ['south yorkshire'],
+        leeds: ['west yorkshire'],
+        liverpool: ['merseyside'],
+        manchester: ['greater manchester'],
+        birmingham: ['west midlands'],
+        southampton: ['hampshire'],
+        bath: ['somerset', 'bath and north east somerset'],
+        aberdeen: ['aberdeenshire'],
+      };
+      const aliases = CITY_ALIASES[cityLower] || [];
       filtered = filtered.filter((j) => {
         const loc = j.location.toLowerCase();
         if (loc.includes(cityLower)) return true;
+        if (aliases.some((a) => loc.includes(a))) return true;
         if (loc.includes('united kingdom') || loc === 'uk' || loc.includes('remote') || loc.includes('various')) return true;
         // Drop if it mentions a different UK city
         const otherCities = UK_CITIES
@@ -354,7 +372,7 @@ const Index = () => {
             <Button
               onClick={isSearching ? handleStopScrape : handleScrape}
               size="sm"
-              variant={isSearching ? 'destructive' : 'default'}
+              variant="default"
               className="font-display text-[10px] uppercase tracking-wider h-7 px-4 sm:px-6 shrink-0"
             >
               {isSearching ? (
@@ -423,30 +441,16 @@ const Index = () => {
         
 
         {/* Stats - clickable filters */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
-          {[
-          { label: 'Total', value: stats.total, color: 'text-foreground', type: 'any' as const },
-          { label: 'Full Time', value: stats.fullTime, color: 'text-primary', type: 'full-time' as const },
-          { label: 'Internship', value: stats.internship, color: 'text-warning', type: 'internship' as const },
-          { label: 'Graduate', value: stats.graduate, color: 'text-accent', type: 'graduate' as const }].
-          map(({ label, value, color, type }) => {
-            const isActive = viewMode === 'search' && selectedType === type;
-            return (
-              <button
-                key={label}
-                onClick={() => {
-                  setViewMode('search');
-                  setSelectedType(isActive && type !== 'any' ? 'any' : type);
-                }}
-                className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
-                isActive ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'}`
-                }>
-                
-                <div className={`font-display text-lg sm:text-2xl font-bold ${color}`}>{value}</div>
-                <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">{label}</div>
-              </button>);
-
-          })}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          <button
+            onClick={() => setViewMode(viewMode === 'saved' ? 'search' : 'saved')}
+            className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
+              viewMode === 'saved' ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'
+            }`}
+          >
+            <div className="font-display text-lg sm:text-2xl font-bold text-primary">{savedJobs.length}</div>
+            <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Saved</div>
+          </button>
           <button
             onClick={() => setViewMode(viewMode === 'applied' ? 'search' : 'applied')}
             className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
@@ -470,7 +474,37 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Job list */}
           <div className="lg:col-span-3 space-y-2">
-            {viewMode === 'applied' ? (
+            {viewMode === 'saved' ? (
+              savedJobs.length === 0 ? (
+                <div className="border border-border rounded-md bg-card p-12 text-center">
+                  <Bookmark className="h-8 w-8 text-primary mx-auto mb-3" />
+                  <p className="font-display text-sm text-muted-foreground">No saved jobs yet</p>
+                </div>
+              ) : (
+                savedJobs.map((action) => (
+                  <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Bookmark className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">{action.job_source}</span>
+                      </div>
+                      <h3 className="font-body font-semibold text-foreground">{action.job_title}</h3>
+                      <p className="text-sm text-muted-foreground">{action.job_company}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        removeAction(action.id);
+                        toast({ title: 'Removed from Saved', description: action.job_title });
+                      }}
+                      className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+                      title="Remove from saved"
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))
+              )
+            ) : viewMode === 'applied' ? (
               appliedJobs.length === 0 ? (
                 <div className="border border-border rounded-md bg-card p-12 text-center">
                   <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-3" />
@@ -548,6 +582,19 @@ const Index = () => {
             <JobCard
               key={job.id}
               job={job}
+              onSaved={async (j) => {
+                const url = j.jobUrl || j.sourceUrl;
+                const actionId = await addAction(url, j.title, j.company, j.source, 'saved');
+                toast({
+                  title: 'Saved',
+                  description: j.title,
+                  action: actionId ? (
+                    <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>
+                      Undo
+                    </ToastAction>
+                  ) : undefined,
+                });
+              }}
               onApplied={async (j) => {
                 const url = j.jobUrl || j.sourceUrl;
                 const actionId = await addAction(url, j.title, j.company, j.source, 'applied');
