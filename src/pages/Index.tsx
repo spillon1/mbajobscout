@@ -457,6 +457,37 @@ const Index = () => {
           {/* Job list */}
           <div className="lg:col-span-3 space-y-2">
             {viewMode === 'applied' ? (
+              viewMode === 'saved' ? (
+              savedJobs.length === 0 ? (
+                <div className="border border-border rounded-md bg-card p-12 text-center">
+                  <Bookmark className="h-8 w-8 text-primary mx-auto mb-3" />
+                  <p className="font-display text-sm text-muted-foreground">No saved jobs yet</p>
+                </div>
+              ) : (
+                savedJobs.map((action) => (
+                  <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Bookmark className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">{action.job_source}</span>
+                      </div>
+                      <h3 className="font-body font-semibold text-foreground">{action.job_title}</h3>
+                      <p className="text-sm text-muted-foreground">{action.job_company}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        removeAction(action.id);
+                        toast({ title: 'Removed from Saved', description: action.job_title });
+                      }}
+                      className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+                      title="Remove from saved"
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))
+              )
+            ) : viewMode === 'applied' ? (
               appliedJobs.length === 0 ? (
                 <div className="border border-border rounded-md bg-card p-12 text-center">
                   <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-3" />
@@ -534,6 +565,19 @@ const Index = () => {
             <JobCard
               key={job.id}
               job={job}
+              onSaved={async (j) => {
+                const url = j.jobUrl || j.sourceUrl;
+                const actionId = await addAction(url, j.title, j.company, j.source, 'saved');
+                toast({
+                  title: 'Saved',
+                  description: j.title,
+                  action: actionId ? (
+                    <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>
+                      Undo
+                    </ToastAction>
+                  ) : undefined,
+                });
+              }}
               onApplied={async (j) => {
                 const url = j.jobUrl || j.sourceUrl;
                 const actionId = await addAction(url, j.title, j.company, j.source, 'applied');
