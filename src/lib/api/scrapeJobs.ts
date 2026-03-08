@@ -186,6 +186,7 @@ function isValidJob(job: Job): boolean {
     'venture capital jobs in london', 'venture capital careers',
     "the vc industry's trusted resource", 'filters and topics',
     'search results', 'united states',
+    'the best vc jobs in your city',
   ];
   if (JUNK_TITLES.includes(titleLower)) return false;
   if (titleLower.includes('trusted resource')) return false;

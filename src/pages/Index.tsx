@@ -222,8 +222,26 @@ const Index = () => {
     const enabledSources = sources.filter((s) => s.enabled).map((s) => s.name);
     filtered = filtered.filter((j) => enabledSources.includes(j.source));
 
-    // No client-side city filter: the scrape already targets city-specific URLs,
-    // and many sources don't embed the exact city name in the job location field.
+    // Client-side city filter: some sources (Startup & VC, InnovatorsRoom) don't
+    // support location filtering, so we filter out jobs whose location clearly
+    // belongs to a different city when a specific city is selected.
+    if (selectedCity !== 'United Kingdom') {
+      const cityLower = selectedCity.toLowerCase();
+      filtered = filtered.filter((j) => {
+        const loc = j.location.toLowerCase();
+        // Keep if location contains the selected city, or is generic (e.g. "UK", "United Kingdom", "Remote")
+        if (loc.includes(cityLower)) return true;
+        if (loc.includes('united kingdom') || loc.includes('uk') || loc.includes('remote') || loc.includes('various')) return true;
+        // Keep if location is the default "London, UK" placeholder and doesn't mention another specific city
+        // Drop if it clearly mentions a different major city
+        const otherCities = UK_CITIES
+          .filter((c) => c.value !== 'United Kingdom' && c.value.toLowerCase() !== cityLower)
+          .map((c) => c.value.toLowerCase());
+        const mentionsOtherCity = otherCities.some((c) => loc.includes(c));
+        if (mentionsOtherCity) return false;
+        return true;
+      });
+    }
 
     if (datePostedFilter === 'with-date') {
       filtered = filtered.filter((j) => j.postedDate && j.postedDate !== 'Scraped just now');
