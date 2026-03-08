@@ -33,7 +33,7 @@ interface JobCardProps {
   onSaved?: (job: Job) => void;
 }
 
-export function JobCard({ job, onApplied, onNotInterested }: JobCardProps) {
+export function JobCard({ job, onApplied, onNotInterested, onSaved }: JobCardProps) {
   const [copied, setCopied] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
