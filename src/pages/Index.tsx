@@ -354,7 +354,7 @@ const Index = () => {
             <Button
               onClick={isSearching ? handleStopScrape : handleScrape}
               size="sm"
-              variant={isSearching ? 'destructive' : 'default'}
+              variant="default"
               className="font-display text-[10px] uppercase tracking-wider h-7 px-4 sm:px-6 shrink-0"
             >
               {isSearching ? (
