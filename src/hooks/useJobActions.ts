@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type JobAction = 'applied' | 'not_interested';
+export type JobAction = 'applied' | 'not_interested' | 'saved';
 
 export interface JobActionRecord {
   id: string;
