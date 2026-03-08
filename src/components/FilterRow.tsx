@@ -87,9 +87,6 @@ export function FilterRow({
   allTitles,
   allSources,
   onClearFilters,
-  onScrape,
-  onStopScrape,
-  isSearching,
 }: FilterRowProps) {
   const hasActiveFilters =
     listedPeriod !== 'any' ||
