@@ -419,9 +419,7 @@ const Index = () => {
             setFilterKeywords([]);
             setSelectedType('any');
           }}
-          onScrape={handleScrape}
-          onStopScrape={handleStopScrape}
-          isSearching={isSearching} />
+        />
         
 
         {/* Stats - clickable filters */}
