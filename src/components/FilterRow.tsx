@@ -32,9 +32,6 @@ interface FilterRowProps {
   allTitles: string[];
   allSources: string[];
   onClearFilters?: () => void;
-  onScrape: () => void;
-  onStopScrape?: () => void;
-  isSearching: boolean;
 }
 
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
