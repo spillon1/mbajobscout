@@ -30,6 +30,7 @@ interface JobCardProps {
   job: Job;
   onApplied?: (job: Job) => void;
   onNotInterested?: (job: Job) => void;
+  onSaved?: (job: Job) => void;
 }
 
 export function JobCard({ job, onApplied, onNotInterested }: JobCardProps) {
