@@ -55,10 +55,11 @@ const DATE_POSTED_OPTIONS: { value: DatePostedFilter; label: string }[] = [
   { value: 'without-date', label: 'Without Date' },
 ];
 
-const SENIORITY_OPTIONS = ['intern', 'junior', 'mid', 'senior', 'unknown'] as const;
+const SENIORITY_OPTIONS = ['intern', 'junior', 'graduate', 'mid', 'senior', 'unknown'] as const;
 const SENIORITY_LABELS: Record<string, string> = {
   intern: 'Intern',
   junior: 'Junior / Entry',
+  graduate: 'Graduate',
   mid: 'Mid-level',
   senior: 'Senior / Lead',
   unknown: 'Unclassified',
