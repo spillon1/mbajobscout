@@ -194,7 +194,4 @@ export function FilterRow({
       </div>
     </div>
   );
-      </div>
-    </div>
-  );
 }
