@@ -1,0 +1,1 @@
+UPDATE scraped_jobs SET alerted = true WHERE alerted = false;
