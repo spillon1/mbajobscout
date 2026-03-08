@@ -42,7 +42,7 @@ import { ToastAction } from '@/components/ui/toast';
 
 const Index = () => {
   const { toast } = useToast();
-  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs } = useJobActions();
+  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs } = useJobActions();
   const sourcesRef = useRef<HTMLDivElement>(null);
   const [selectedCity, setSelectedCity] = useState<string>('London');
   const location = getLocationString(selectedCity);
