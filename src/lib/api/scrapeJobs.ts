@@ -109,23 +109,7 @@ export async function scrapeJobs(
   console.log(`[DEBUG] Dedup: ${allJobs.length} → ${jobs.length}. Dropped by source:`, Object.fromEntries(dedupBySource));
   console.log(`[DEBUG] Kept by source:`, Object.fromEntries(keptBySource));
 
-  // Replace saved rows for successfully scraped sources to prevent stale jobs from lingering
-  const successfulSources = Object.entries(data.sourceStatuses || {})
-    .filter(([, status]) => (status as { status?: string })?.status === 'connected')
-    .map(([sourceName]) => sourceName);
-
-  if (successfulSources.length > 0) {
-    const { error: deleteError } = await supabase
-      .from('scraped_jobs')
-      .delete()
-      .in('source', successfulSources);
-
-    if (deleteError) {
-      console.error('Failed to clear old jobs for sources:', deleteError);
-    }
-  }
-
-  // Save fresh rows (deduplicated by URL)
+  // Upsert fresh rows (preserves alerted flag for existing URLs via onConflict)
   if (jobs.length > 0) {
     const rows = jobs.map((j) => ({
       title: j.title,

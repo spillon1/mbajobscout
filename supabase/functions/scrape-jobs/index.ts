@@ -224,15 +224,7 @@ Deno.serve(async (req) => {
         const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, serviceKey);
 
-        // Delete old jobs for successfully scraped sources
-        const successfulSources = Object.entries(sourceStatuses)
-          .filter(([, s]) => s.status === 'connected')
-          .map(([name]) => name);
-
-        if (successfulSources.length > 0) {
-          await supabase.from('scraped_jobs').delete().in('source', successfulSources);
-        }
-
+        // Upsert jobs (preserves alerted flag for existing URLs, new URLs default to false)
         const rows = dedupedResults.map((j: any) => ({
           title: j.title,
           company: j.company || 'Unknown',
