@@ -1,8 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import { CheckboxFilter } from '@/components/CheckboxFilter';
 import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
-import { SlidersHorizontal, X, Loader2, Square } from 'lucide-react';
+import { SlidersHorizontal, X } from 'lucide-react';
 import { Seniority } from '@/types/jobs';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
@@ -32,9 +31,6 @@ interface FilterRowProps {
   allTitles: string[];
   allSources: string[];
   onClearFilters?: () => void;
-  onScrape: () => void;
-  onStopScrape?: () => void;
-  isSearching: boolean;
 }
 
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
@@ -90,9 +86,6 @@ export function FilterRow({
   allTitles,
   allSources,
   onClearFilters,
-  onScrape,
-  onStopScrape,
-  isSearching,
 }: FilterRowProps) {
   const hasActiveFilters =
     listedPeriod !== 'any' ||
@@ -197,25 +190,6 @@ export function FilterRow({
             Clear
           </button>
         )}
-
-        <div className="ml-auto flex items-center gap-2">
-          {isSearching && onStopScrape && (
-            <Button onClick={onStopScrape} size="sm" variant="destructive" className="font-display text-[10px] uppercase tracking-wider h-7 px-4">
-              <Square className="h-3 w-3 mr-1.5" />
-              Stop
-            </Button>
-          )}
-          <Button onClick={onScrape} disabled={isSearching} size="sm" className="font-display text-[10px] uppercase tracking-wider h-7 px-6">
-            {isSearching ? (
-              <span className="flex items-center gap-1.5">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Searching
-              </span>
-            ) : (
-              'Find jobs'
-            )}
-          </Button>
-        </div>
       </div>
     </div>
   );

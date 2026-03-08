@@ -32,7 +32,8 @@ import { SourceManager } from '@/components/SourceManager';
 import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { AlertConfig } from '@/components/AlertConfig';
-import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin } from 'lucide-react';
+import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useJobActions } from '@/hooks/useJobActions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -347,8 +348,25 @@ const Index = () => {
                     </SelectItem>
                   ))}
                 </SelectContent>
-              </Select>
+            </Select>
             </div>
+
+            <Button
+              onClick={isSearching ? handleStopScrape : handleScrape}
+              size="sm"
+              variant={isSearching ? 'destructive' : 'default'}
+              className="font-display text-[10px] uppercase tracking-wider h-7 px-4 sm:px-6 shrink-0"
+            >
+              {isSearching ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Searching
+                </span>
+              ) : (
+                'Find jobs'
+              )}
+            </Button>
+
             <span className="h-3 w-px bg-border" />
             <div className="flex items-center gap-2 sm:gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
               <button
@@ -401,9 +419,7 @@ const Index = () => {
             setFilterKeywords([]);
             setSelectedType('any');
           }}
-          onScrape={handleScrape}
-          onStopScrape={handleStopScrape}
-          isSearching={isSearching} />
+        />
         
 
         {/* Stats - clickable filters */}
