@@ -245,9 +245,27 @@ const Index = () => {
     // Then filter by specific city if not "All UK"
     if (selectedCity !== 'United Kingdom') {
       const cityLower = selectedCity.toLowerCase();
+      // County/region aliases so e.g. "Oxfordshire" matches "Oxford"
+      const CITY_ALIASES: Record<string, string[]> = {
+        oxford: ['oxfordshire'],
+        cambridge: ['cambridgeshire'],
+        bristol: ['avon'],
+        newcastle: ['tyne and wear', 'tyneside'],
+        nottingham: ['nottinghamshire'],
+        sheffield: ['south yorkshire'],
+        leeds: ['west yorkshire'],
+        liverpool: ['merseyside'],
+        manchester: ['greater manchester'],
+        birmingham: ['west midlands'],
+        southampton: ['hampshire'],
+        bath: ['somerset', 'bath and north east somerset'],
+        aberdeen: ['aberdeenshire'],
+      };
+      const aliases = CITY_ALIASES[cityLower] || [];
       filtered = filtered.filter((j) => {
         const loc = j.location.toLowerCase();
         if (loc.includes(cityLower)) return true;
+        if (aliases.some((a) => loc.includes(a))) return true;
         if (loc.includes('united kingdom') || loc === 'uk' || loc.includes('remote') || loc.includes('various')) return true;
         // Drop if it mentions a different UK city
         const otherCities = UK_CITIES

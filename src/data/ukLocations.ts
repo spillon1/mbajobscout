@@ -34,7 +34,7 @@ function buildSourceUrls(city: string, cityLower: string): Record<string, string
   return {
     eFinancialCareers: `https://www.efinancialcareers.co.uk/jobs/%22venture-capital%22/in-${cityLower.replace(/\s/g, '-')}%2C-uk?q=%22venture+capital%22&location=${cityEncoded}%2C+UK&countryCode=GB&locationPrecision=City&radius=40&radiusUnit=km&pageSize=15&currencyCode=GBP&language=en&includeUnspecifiedSalary=true&enableVectorSearch=true`,
     'Glassdoor UK': `https://www.glassdoor.co.uk/Job/jobs.htm?sc.occupationParam=%22venture+capital%22&sc.keyword=%22venture+capital%22+${cityPlusEncoded}`,
-    'Google Jobs': `https://www.google.com/search?udm=8&q=venture+capital+jobs+${cityLower.replace(/\s/g, '+')}+UK`,
+    'Google Jobs': `https://www.google.com/search?udm=8&q=venture+capital+jobs+${cityPlusEncoded}+UK`,
     'Indeed UK': `https://uk.indeed.com/jobs?q=%22venture+capital%22&l=${cityEncoded}`,
     'John Gannon Blog': `https://johngannonblog.com/?feed=job_feed&job_types&search_location=${ukQualifiedEncoded}&job_categories&search_keywords`,
     'LinkedIn Jobs': `https://www.linkedin.com/jobs/search/?keywords=%22venture+capital%22&location=${ukQualifiedEncoded}`,
