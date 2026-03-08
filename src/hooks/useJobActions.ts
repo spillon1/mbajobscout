@@ -84,5 +84,6 @@ export function useJobActions() {
     actionedUrls,
     appliedJobs,
     notInterestedJobs,
+    savedJobs,
   };
 }

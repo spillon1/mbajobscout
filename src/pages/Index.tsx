@@ -69,7 +69,7 @@ const Index = () => {
   }, []);
 
   // Filters
-  const [viewMode, setViewMode] = useState<'search' | 'applied' | 'not_interested'>('search');
+  const [viewMode, setViewMode] = useState<'search' | 'applied' | 'not_interested' | 'saved'>('search');
   const [selectedType, setSelectedType] = useState<JobType | 'any'>('any');
   const [listedPeriod, setListedPeriod] = useState<ListedPeriod>('any');
   const [jobStatus, setJobStatus] = useState<JobStatus>('any');
