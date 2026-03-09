@@ -243,6 +243,12 @@ function isValidJob(job: Job): boolean {
     /\bsales\s+(dev|representative|exec)/i,
     /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
     /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
+    // HR / People
+    /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
+    /\bhr\s+(partner|manager|director|business\s+partner|advisor)\b/i,
+    /\bhuman\s+resources\b/i,
+    // Generic consulting
+    /\bconsulting\b/i, /\bconsultant\b/i,
   ];
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
 
