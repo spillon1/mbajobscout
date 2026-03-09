@@ -1650,6 +1650,13 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bdoctor\b/i,
     /\bpharmac/i,
     /\bclinical\b/i,
+    // People / HR
+    /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
+    // Generic consulting
+    /\bconsulting\b/i, /\bconsultant\b/i,
+    // Recruiting
+    /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
+    /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
   ];
   if (hardExclude.some(p => p.test(titleLower))) return false;
 
