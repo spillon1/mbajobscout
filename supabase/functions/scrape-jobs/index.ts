@@ -1558,7 +1558,7 @@ function isNotExcludedRole(title: string): boolean {
 
     // Sales / marketing / ops
     /\bb2b\b/i, /\bsales\s+(dev|representative|exec)/i,
-    /\bbdr\b/i, /\bsdr\b/i,
+    /\bbdr\b/i, /\bsdr\b/i, /\bbdm\b/i,
     /\bmarketing\s+(executive|manager|specialist|coordinator|lead)\b/i,
     /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
     /\bbusiness\s+development\b/i,
@@ -1604,7 +1604,7 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bstrategic\s+advisory/i,
     /\bcapital\s+markets?\b/i,
     /\bevent\s+(operations|manager|lead|coordinator|director)/i,
-    /\bbusiness\s+development\b/i,
+    /\bbusiness\s+development\b/i, /\bbdm\b/i,
     /\breal\s+estate\b/i,
     /\bm&a\b/i,
     /\bsearch\s+fund\b/i,                // search funds ≠ VC

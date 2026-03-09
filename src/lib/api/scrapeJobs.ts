@@ -235,7 +235,7 @@ function isValidJob(job: Job): boolean {
     /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
     // HR / admin / sales / marketing
     /\brecruitment\s+(consultant|manager)\b/i, /\bcompliance\s+(administrator|officer|manager)\b/i,
-    /\bbusiness\s+development\b/i, /\bprogram\s+director\b/i,
+    /\bbusiness\s+development\b/i, /\bbdm\b/i, /\bprogram\s+director\b/i,
     /\bir\s+analyst\b/i, /\binvestor\s+relation/i,
     /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
     /\bcontent\s+(manager|writer|specialist)\b/i,
