@@ -1564,6 +1564,16 @@ function isNotExcludedRole(title: string): boolean {
     /\bbusiness\s+development\b/i,
     /\bprogram\s+director\b/i,
 
+    // People / HR
+    /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
+
+    // Generic consulting
+    /\bconsulting\b/i, /\bconsultant\b/i,
+
+    // Recruiting
+    /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
+    /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
+
     // IR
     /\bir\s+analyst\b/i, /\binvestor\s+relation/i,
   ];
