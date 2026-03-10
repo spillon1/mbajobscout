@@ -69,7 +69,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
         } else {
           setStates(prev => ({
             ...prev,
-            [mode]: { isSearching: false, jobs: null, sourceStatuses: result.sourceStatuses },
+            [mode]: { isSearching: false, jobs: null, sourceStatuses: result.sourceStatuses, startedAt: null },
           }));
           toast({
             title: 'Scrape failed',
