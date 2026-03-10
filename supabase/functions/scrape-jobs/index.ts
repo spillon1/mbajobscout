@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
         // Google Jobs: paginate multiple pages
         if (isGoogleJobsUrl(source.url)) {
           const googleJobs = await scrapeGoogleJobsPages(apiKey, keywords, location, source);
-          const vcGoogleJobs = googleJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
+          const vcGoogleJobs = googleJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
           results.push(...vcGoogleJobs);
           sourceStatuses[source.name] = { status: 'connected', count: vcGoogleJobs.length };
           console.log(`Found ${vcGoogleJobs.length} VC-relevant jobs from Google Jobs (filtered from ${googleJobs.length})`);
