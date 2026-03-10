@@ -27,6 +27,7 @@ import { FilterRow, ListedPeriod, JobStatus, SortOption, DatePostedFilter } from
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
 import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
+import { useScrape } from '@/contexts/ScrapeContext';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { AlertConfig } from '@/components/AlertConfig';
 import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin, Loader2, Bookmark } from 'lucide-react';
@@ -49,12 +50,13 @@ function toPEUrl(url: string): string {
 const PEScout = () => {
   const { toast } = useToast();
   const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs } = useJobActions();
+  const { getState, startScrape, stopScrape, consumeResults } = useScrape();
+  const scrapeState = getState('pe');
   const sourcesRef = useRef<HTMLDivElement>(null);
   const [selectedCity, setSelectedCity] = useState<string>('London');
   const location = getLocationString(selectedCity);
   const [sources, setSources] = useState<JobSource[]>(() => getPEDefaultSources('London'));
   const [keywords, setKeywords] = useState<string[]>(PE_DEFAULT_KEYWORDS);
-  const [isSearching, setIsSearching] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [hasScraped, setHasScraped] = useState(false);
@@ -69,6 +71,29 @@ const PEScout = () => {
       setIsLoading(false);
     });
   }, []);
+
+  // Consume results from background scrape when returning to this tab
+  useEffect(() => {
+    const result = consumeResults('pe');
+    if (result) {
+      setJobs(result.jobs);
+      setDismissedIds(new Set());
+      setHasScraped(true);
+      setSources((prev) =>
+        prev.map((s) => {
+          const sourceStatus = result.sourceStatuses[s.name];
+          return {
+            ...s,
+            status: sourceStatus?.status as any || s.status,
+            statusMessage: sourceStatus?.error || (sourceStatus?.status === 'connected'
+              ? `Scraped successfully (${sourceStatus?.count ?? 0} jobs found)`
+              : undefined),
+            lastJobCount: sourceStatus?.count ?? undefined,
+          };
+        })
+      );
+    }
+  }, [scrapeState.isSearching, consumeResults]);
 
   const [viewMode, setViewMode] = useState<'search' | 'applied' | 'not_interested' | 'saved'>('search');
   const [selectedType, setSelectedType] = useState<JobType | 'any'>('any');
@@ -110,52 +135,14 @@ const PEScout = () => {
     setSources((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const isSearching = scrapeState.isSearching;
 
-  const handleScrape = async () => {
-    setIsSearching(true);
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    try {
-      const result = await scrapeJobs(sources, keywords, location, controller.signal, { mode: 'pe' });
-      if (controller.signal.aborted) return;
-      if (result.sourceStatuses) {
-        setSources((prev) =>
-          prev.map((s) => {
-            const sourceStatus = result.sourceStatuses[s.name];
-            return {
-              ...s,
-              status: sourceStatus?.status as any || s.status,
-              statusMessage: sourceStatus?.error || (sourceStatus?.status === 'connected'
-                ? `Scraped successfully (${sourceStatus?.count ?? 0} jobs found)`
-                : undefined),
-              lastJobCount: sourceStatus?.count ?? undefined,
-            };
-          })
-        );
-      }
-      if (result.success) {
-        setJobs(result.jobs);
-        setDismissedIds(new Set());
-        setHasScraped(true);
-        toast({ title: 'Scrape complete', description: `Found ${result.jobs.length} PE jobs` });
-      } else {
-        toast({ title: 'Scrape failed', description: result.error || 'Unknown error', variant: 'destructive' });
-      }
-    } catch (err) {
-      if (controller.signal.aborted) return;
-      toast({ title: 'Scrape error', description: 'Failed to connect to scraping service', variant: 'destructive' });
-    } finally {
-      abortControllerRef.current = null;
-      setIsSearching(false);
-    }
+  const handleScrape = () => {
+    startScrape('pe', sources, keywords, location);
   };
 
   const handleStopScrape = () => {
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = null;
-    setIsSearching(false);
-    toast({ title: 'Search stopped' });
+    stopScrape('pe');
   };
 
   const allCompanies = useMemo(() => [...new Set(jobs.map((j) => j.company))].sort(), [jobs]);
