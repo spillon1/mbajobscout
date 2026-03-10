@@ -5,32 +5,33 @@ import { Progress } from '@/components/ui/progress';
 interface ScrapeProgressProps {
   isSearching: boolean;
   sourceCount: number;
+  startedAt?: number | null;
 }
 
-export function ScrapeProgress({ isSearching, sourceCount }: ScrapeProgressProps) {
+export function ScrapeProgress({ isSearching, sourceCount, startedAt }: ScrapeProgressProps) {
   const [elapsed, setElapsed] = useState(0);
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
-    if (!isSearching) {
+    if (!isSearching || !startedAt) {
       setElapsed(0);
       setPhase(0);
       return;
     }
 
-    const start = Date.now();
-    const interval = setInterval(() => {
-      const seconds = Math.floor((Date.now() - start) / 1000);
+    const update = () => {
+      const seconds = Math.floor((Date.now() - startedAt) / 1000);
       setElapsed(seconds);
-      // Estimate phases based on time
       if (seconds < 5) setPhase(0);
       else if (seconds < 15) setPhase(1);
       else if (seconds < 30) setPhase(2);
       else setPhase(3);
-    }, 1000);
+    };
 
+    update(); // immediately show correct elapsed time
+    const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [isSearching]);
+  }, [isSearching, startedAt]);
 
   if (!isSearching) return null;
 
@@ -41,7 +42,6 @@ export function ScrapeProgress({ isSearching, sourceCount }: ScrapeProgressProps
     'Almost done, processing results...',
   ];
 
-  // Fake progress that slows down over time (never reaches 100)
   const progress = Math.min(95, (1 - Math.exp(-elapsed / 40)) * 100);
 
   const formatTime = (s: number) => {

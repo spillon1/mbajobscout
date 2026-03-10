@@ -7,6 +7,7 @@ interface ScrapeState {
   isSearching: boolean;
   jobs: Job[] | null; // null = not finished yet
   sourceStatuses: Record<string, { status: string; error?: string; count?: number }>;
+  startedAt: number | null; // timestamp when scrape started
 }
 
 interface ScrapeContextValue {
@@ -23,7 +24,7 @@ interface ScrapeContextValue {
 
 const ScrapeContext = createContext<ScrapeContextValue | null>(null);
 
-const defaultState: ScrapeState = { isSearching: false, jobs: null, sourceStatuses: {} };
+const defaultState: ScrapeState = { isSearching: false, jobs: null, sourceStatuses: {}, startedAt: null };
 
 export function ScrapeProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
@@ -48,7 +49,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
 
     setStates(prev => ({
       ...prev,
-      [mode]: { isSearching: true, jobs: null, sourceStatuses: {} },
+      [mode]: { isSearching: true, jobs: null, sourceStatuses: {}, startedAt: Date.now() },
     }));
 
     scrapeJobs(sources, keywords, location, controller.signal, { mode })
@@ -59,7 +60,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
         if (result.success) {
           setStates(prev => ({
             ...prev,
-            [mode]: { isSearching: false, jobs: result.jobs, sourceStatuses: result.sourceStatuses },
+            [mode]: { isSearching: false, jobs: result.jobs, sourceStatuses: result.sourceStatuses, startedAt: null },
           }));
           toast({
             title: `${mode.toUpperCase()} scrape complete`,
@@ -68,7 +69,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
         } else {
           setStates(prev => ({
             ...prev,
-            [mode]: { isSearching: false, jobs: null, sourceStatuses: result.sourceStatuses },
+            [mode]: { isSearching: false, jobs: null, sourceStatuses: result.sourceStatuses, startedAt: null },
           }));
           toast({
             title: 'Scrape failed',
@@ -82,7 +83,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
         delete abortRefs.current[mode];
         setStates(prev => ({
           ...prev,
-          [mode]: { isSearching: false, jobs: null, sourceStatuses: {} },
+          [mode]: { isSearching: false, jobs: null, sourceStatuses: {}, startedAt: null },
         }));
         toast({
           title: 'Scrape error',
@@ -97,7 +98,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
     delete abortRefs.current[mode];
     setStates(prev => ({
       ...prev,
-      [mode]: { ...prev[mode], isSearching: false },
+      [mode]: { ...prev[mode], isSearching: false, startedAt: null },
     }));
     toast({ title: 'Search stopped' });
   }, [toast]);
