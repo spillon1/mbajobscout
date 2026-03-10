@@ -495,7 +495,8 @@ const PEScout = () => {
         </div>
       </main>
     </div>
-  );
+    <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />
+    </>);
 };
 
 export default PEScout;
