@@ -23,6 +23,7 @@ export type Database = {
           job_source: string
           job_title: string
           job_url: string
+          user_id: string | null
         }
         Insert: {
           action: string
@@ -32,6 +33,7 @@ export type Database = {
           job_source?: string
           job_title: string
           job_url: string
+          user_id?: string | null
         }
         Update: {
           action?: string
@@ -41,6 +43,7 @@ export type Database = {
           job_source?: string
           job_title?: string
           job_url?: string
+          user_id?: string | null
         }
         Relationships: []
       }

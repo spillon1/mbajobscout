@@ -30,10 +30,12 @@ import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { useScrape } from '@/contexts/ScrapeContext';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 
-import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin, Loader2, Bookmark } from 'lucide-react';
+import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin, Loader2, Bookmark, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useJobActions } from '@/hooks/useJobActions';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthModal } from '@/components/AuthModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToastAction } from '@/components/ui/toast';
 
@@ -49,7 +51,9 @@ function toPEUrl(url: string): string {
 
 const PEScout = () => {
   const { toast } = useToast();
-  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs } = useJobActions();
+  const { user, signOut } = useAuth();
+  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
   const scrapeState = getState('pe');
   const sourcesRef = useRef<HTMLDivElement>(null);
@@ -240,7 +244,7 @@ const PEScout = () => {
     graduate: baseFilteredJobs.filter((j) => j.type === 'graduate').length,
   }), [baseFilteredJobs]);
 
-  return (
+  return (<>
     <div className="min-h-screen bg-background bg-grid">
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container max-w-6xl mx-auto px-4 py-3">
@@ -310,6 +314,25 @@ const PEScout = () => {
                   {sources.filter((s) => s.enabled).length} Sources
                 </button>
               </div>
+              {/* Auth button */}
+              {user ? (
+                <button
+                  onClick={signOut}
+                  className="shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-display text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{user.email?.split('@')[0]}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border border-border"
+                >
+                  <User className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Sign in</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -346,19 +369,19 @@ const PEScout = () => {
         />
 
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-3">
-          <button onClick={() => setViewMode(viewMode === 'saved' ? 'search' : 'saved')}
+          <button onClick={() => isAuthenticated ? setViewMode(viewMode === 'saved' ? 'search' : 'saved') : setShowAuthModal(true)}
             className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${viewMode === 'saved' ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'}`}>
-            <div className="font-display text-lg sm:text-2xl font-bold text-primary">{savedJobs.length}</div>
+            <div className="font-display text-lg sm:text-2xl font-bold text-primary">{isAuthenticated ? savedJobs.length : '–'}</div>
             <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Saved</div>
           </button>
-          <button onClick={() => setViewMode(viewMode === 'applied' ? 'search' : 'applied')}
+          <button onClick={() => isAuthenticated ? setViewMode(viewMode === 'applied' ? 'search' : 'applied') : setShowAuthModal(true)}
             className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${viewMode === 'applied' ? 'border-success/50 glow-primary' : 'border-border hover:border-success/30'}`}>
-            <div className="font-display text-lg sm:text-2xl font-bold text-success">{appliedJobs.length}</div>
+            <div className="font-display text-lg sm:text-2xl font-bold text-success">{isAuthenticated ? appliedJobs.length : '–'}</div>
             <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Applied</div>
           </button>
-          <button onClick={() => setViewMode(viewMode === 'not_interested' ? 'search' : 'not_interested')}
+          <button onClick={() => isAuthenticated ? setViewMode(viewMode === 'not_interested' ? 'search' : 'not_interested') : setShowAuthModal(true)}
             className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${viewMode === 'not_interested' ? 'border-destructive/50 glow-primary' : 'border-border hover:border-destructive/30'}`}>
-            <div className="font-display text-lg sm:text-2xl font-bold text-destructive">{notInterestedJobs.length}</div>
+            <div className="font-display text-lg sm:text-2xl font-bold text-destructive">{isAuthenticated ? notInterestedJobs.length : '–'}</div>
             <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Dismissed</div>
           </button>
         </div>
@@ -439,21 +462,21 @@ const PEScout = () => {
               <JobCard
                 key={job.id}
                 job={job}
-                onSaved={async (j) => {
+                onSaved={isAuthenticated ? async (j) => {
                   const url = j.jobUrl || j.sourceUrl;
                   const actionId = await addAction(url, j.title, j.company, j.source, 'saved');
                   toast({ title: 'Saved', description: j.title, action: actionId ? <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>Undo</ToastAction> : undefined });
-                }}
-                onApplied={async (j) => {
+                } : () => setShowAuthModal(true)}
+                onApplied={isAuthenticated ? async (j) => {
                   const url = j.jobUrl || j.sourceUrl;
                   const actionId = await addAction(url, j.title, j.company, j.source, 'applied');
                   toast({ title: 'Marked as Applied', description: j.title, action: actionId ? <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>Undo</ToastAction> : undefined });
-                }}
-                onNotInterested={async (j) => {
+                } : () => setShowAuthModal(true)}
+                onNotInterested={isAuthenticated ? async (j) => {
                   const url = j.jobUrl || j.sourceUrl;
                   const actionId = await addAction(url, j.title, j.company, j.source, 'not_interested');
                   toast({ title: 'Not interested', description: j.title, action: actionId ? <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>Undo</ToastAction> : undefined });
-                }}
+                } : () => setShowAuthModal(true)}
               />
             ))}
           </div>
@@ -472,7 +495,8 @@ const PEScout = () => {
         </div>
       </main>
     </div>
-  );
+    <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />
+    </>);
 };
 
 export default PEScout;
