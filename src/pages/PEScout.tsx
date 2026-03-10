@@ -286,7 +286,7 @@ const PEScout = () => {
                   to="/pe"
                   className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider bg-primary/10 text-primary border border-primary/20"
                 >
-                  PEScout
+                  PE Jobs
                 </Link>
               </nav>
             </div>
