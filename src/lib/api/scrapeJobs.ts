@@ -276,6 +276,12 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
       /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
       /\bcredit\s+invest/i,
       /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
+      // Hedge funds & operations roles
+      /\bhedge\s+fund\b/i, /\bfund\s+of\s+(hedge\s+)?funds?\b/i,
+      /\boperations\s+(executive|manager|director|analyst|officer|lead|specialist)\b/i,
+      /\bstrategy\s+(&|and)\s+operations\b/i,
+      /\b(nav|net\s+asset\s+value)\s+(and|&)\s+operations\b/i,
+      /\bfund\s+account/i,
     );
   } else if (mode === 'pe') {
     hardExcludeTitles.push(
