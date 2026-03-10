@@ -83,7 +83,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
         delete abortRefs.current[mode];
         setStates(prev => ({
           ...prev,
-          [mode]: { isSearching: false, jobs: null, sourceStatuses: {} },
+          [mode]: { isSearching: false, jobs: null, sourceStatuses: {}, startedAt: null },
         }));
         toast({
           title: 'Scrape error',
