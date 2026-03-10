@@ -137,6 +137,7 @@ export async function scrapeJobs(
       posted_date: j.postedDate || null,
       description: j.description || null,
       salary: j.salary || null,
+      mode,
     }));
 
     const { error: insertError } = await supabase
@@ -155,10 +156,11 @@ export async function scrapeJobs(
   };
 }
 
-export async function loadSavedJobs(): Promise<Job[]> {
+export async function loadSavedJobs(mode: 'vc' | 'pe' = 'vc'): Promise<Job[]> {
   const { data, error } = await supabase
     .from('scraped_jobs')
     .select('*')
+    .eq('mode', mode)
     .order('scraped_at', { ascending: false });
 
   if (error) {
@@ -179,7 +181,7 @@ export async function loadSavedJobs(): Promise<Job[]> {
     postedDate: row.posted_date || undefined,
     description: row.description || undefined,
     salary: row.salary || undefined,
-  })).filter(j => isValidJob(j, 'vc'));
+  })).filter(j => isValidJob(j, mode));
 
   // Cross-source dedup
   const seen = new Set<string>();

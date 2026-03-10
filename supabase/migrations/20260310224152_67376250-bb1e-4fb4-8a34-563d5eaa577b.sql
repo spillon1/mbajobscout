@@ -1,0 +1,1 @@
+ALTER TABLE public.scraped_jobs ADD COLUMN IF NOT EXISTS mode text NOT NULL DEFAULT 'vc';

@@ -61,13 +61,9 @@ const PEScout = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadSavedJobs().then((saved) => {
-      // Only show PE-relevant jobs (from PE sources or with PE in title)
-      const peJobs = saved.filter((j) =>
-        /private.equity/i.test(j.title) || /private.equity/i.test(j.description || '')
-      );
-      if (peJobs.length > 0) {
-        setJobs(peJobs);
+    loadSavedJobs('pe').then((saved) => {
+      if (saved.length > 0) {
+        setJobs(saved);
         setHasScraped(true);
       }
       setIsLoading(false);

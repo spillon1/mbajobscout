@@ -59,7 +59,7 @@ const Index = () => {
 
   // Load saved jobs on mount
   useEffect(() => {
-    loadSavedJobs().then((savedJobs) => {
+    loadSavedJobs('vc').then((savedJobs) => {
       const cleanedJobs = savedJobs.filter((j) => !isOccSource(`${j.source} ${j.sourceUrl}`));
       if (cleanedJobs.length > 0) {
         setJobs(cleanedJobs);
@@ -132,7 +132,7 @@ const Index = () => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     try {
-      const result = await scrapeJobs(sources, keywords, location, controller.signal);
+      const result = await scrapeJobs(sources, keywords, location, controller.signal, { mode: 'vc' });
 
       if (controller.signal.aborted) return;
 
