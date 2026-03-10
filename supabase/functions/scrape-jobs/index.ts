@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
         // Glassdoor UK: dedicated scraper with Firecrawl extract
         if (source.url.includes('glassdoor.co.uk')) {
           const glassdoorJobs = await scrapeGlassdoor(apiKey, source, keywords, location);
-        const vcGlassdoorJobs = glassdoorJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
+        const vcGlassdoorJobs = glassdoorJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
           results.push(...vcGlassdoorJobs);
           sourceStatuses[source.name] = { status: 'connected', count: vcGlassdoorJobs.length };
           console.log(`Found ${vcGlassdoorJobs.length} VC-relevant jobs from Glassdoor UK (light filter from ${glassdoorJobs.length})`);
