@@ -1884,8 +1884,8 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     ];
     const companyIsVc = companyVcPatterns.some(p => p.test(companyLower));
     if (companyIsVc) {
-      // Any plausible fund role (broad — includes ops, chief of staff, etc.)
-      const fundRoleTitles = /\b(analyst|associate|partner|principal|director|vp|vice\s+president|head|manager|controller|admin|investor\s+relations|investment|fund|portfolio|ir\b|fundrais|chief\s+of\s+staff|operations|finance|legal|compliance|coo|cfo)\b/i;
+      // Investment-focused fund roles only (exclude support: legal, compliance, HR, finance, chief of staff)
+      const fundRoleTitles = /\b(analyst|associate|partner|principal|director|vp|vice\s+president|head\s+of\s+(investments?|portfolio|strategy|growth)|investment|fund\s+manager|portfolio)\b/i;
       if (fundRoleTitles.test(titleLower)) return true;
     }
   }
