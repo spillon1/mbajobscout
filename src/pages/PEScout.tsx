@@ -446,7 +446,7 @@ const PEScout = () => {
                 </div>
               ))
             ) : isSearching ? (
-              <ScrapeProgress isSearching={isSearching} sourceCount={sources.filter((s) => s.enabled).length} />
+              <ScrapeProgress isSearching={isSearching} sourceCount={sources.filter((s) => s.enabled).length} startedAt={scrapeState.startedAt} />
             ) : !hasScraped ? (
               <div className="border border-border rounded-md bg-card p-12 text-center">
                 <Zap className="h-8 w-8 text-primary mx-auto mb-3" />
