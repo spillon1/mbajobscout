@@ -1675,7 +1675,8 @@ function isNotExcludedRole(title: string): boolean {
 
     // Legal
     /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
-    /\bconveyancing\b/i, /\blegal\s+counsel\b/i,
+    /\bconveyancing\b/i, /\blegal\s+counsel\b/i, /\blegal\s+associate\b/i,
+    /\blegal\s+(officer|advisor|specialist|director|manager)\b/i,
     /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
 
     // Finance ops / accounting
