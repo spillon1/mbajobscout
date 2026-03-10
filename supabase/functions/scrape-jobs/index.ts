@@ -10,6 +10,7 @@ interface ScrapeRequest {
   keywords: string[];
   location: string;
   persist?: boolean; // When true, save results directly to DB (used by cron)
+  mode?: 'vc' | 'pe'; // Which job vertical to filter for
 }
 
 Deno.serve(async (req) => {
@@ -26,7 +27,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { sources, keywords, location, persist } = await req.json() as ScrapeRequest;
+    const { sources, keywords, location, persist, mode } = await req.json() as ScrapeRequest;
+    const jobMode = mode || 'vc';
+    const roleFilter = (title: string, company: string, description: string | undefined) =>
+      jobMode === 'pe' ? isLikelyPeRole(title, company, description) : isLikelyVcRole(title, company, description);
 
     if (!sources || sources.length === 0) {
       return new Response(
@@ -58,7 +62,7 @@ Deno.serve(async (req) => {
         // Google Jobs: paginate multiple pages
         if (isGoogleJobsUrl(source.url)) {
           const googleJobs = await scrapeGoogleJobsPages(apiKey, keywords, location, source);
-          const vcGoogleJobs = googleJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
+          const vcGoogleJobs = googleJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
           results.push(...vcGoogleJobs);
           sourceStatuses[source.name] = { status: 'connected', count: vcGoogleJobs.length };
           console.log(`Found ${vcGoogleJobs.length} VC-relevant jobs from Google Jobs (filtered from ${googleJobs.length})`);
@@ -83,10 +87,11 @@ Deno.serve(async (req) => {
 
         // eFinancialCareers: dedicated scraper with structured markdown parsing
         if (source.url.includes('efinancialcareers')) {
-          const efcJobs = await scrapeEFinancialCareers(apiKey, source, location, keywords);
+          const efcJobsRaw = await scrapeEFinancialCareers(apiKey, source, location, keywords);
+          const efcJobs = efcJobsRaw.filter((j: any) => roleFilter(j.title, j.company, j.description));
           results.push(...efcJobs);
           sourceStatuses[source.name] = { status: 'connected', count: efcJobs.length };
-          console.log(`Found ${efcJobs.length} jobs from eFinancialCareers`);
+          console.log(`Found ${efcJobs.length} relevant jobs from eFinancialCareers (filtered from ${efcJobsRaw.length})`);
           continue;
         }
 
@@ -102,7 +107,7 @@ Deno.serve(async (req) => {
         // Indeed UK: dedicated scraper with Firecrawl
         if (source.url.includes('indeed.com')) {
           const indeedJobs = await scrapeIndeed(apiKey, source, keywords, location);
-        const vcIndeedJobs = indeedJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
+        const vcIndeedJobs = indeedJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
           results.push(...vcIndeedJobs);
           sourceStatuses[source.name] = { status: 'connected', count: vcIndeedJobs.length };
           console.log(`Found ${vcIndeedJobs.length} VC-relevant jobs from Indeed UK (light filter from ${indeedJobs.length})`);
@@ -112,7 +117,7 @@ Deno.serve(async (req) => {
         // Glassdoor UK: dedicated scraper with Firecrawl extract
         if (source.url.includes('glassdoor.co.uk')) {
           const glassdoorJobs = await scrapeGlassdoor(apiKey, source, keywords, location);
-        const vcGlassdoorJobs = glassdoorJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
+        const vcGlassdoorJobs = glassdoorJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
           results.push(...vcGlassdoorJobs);
           sourceStatuses[source.name] = { status: 'connected', count: vcGlassdoorJobs.length };
           console.log(`Found ${vcGlassdoorJobs.length} VC-relevant jobs from Glassdoor UK (light filter from ${glassdoorJobs.length})`);
@@ -122,7 +127,7 @@ Deno.serve(async (req) => {
         // LinkedIn Jobs: use guest API
         if (source.url.includes('linkedin.com')) {
           const linkedinJobs = await scrapeLinkedIn(apiKey, source, keywords, location);
-        const vcLinkedinJobs = linkedinJobs.filter((j: any) => isLikelyVcRole(j.title, j.company, j.description));
+        const vcLinkedinJobs = linkedinJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
           results.push(...vcLinkedinJobs);
           sourceStatuses[source.name] = { status: 'connected', count: vcLinkedinJobs.length };
           console.log(`Found ${vcLinkedinJobs.length} VC-relevant jobs from LinkedIn (light filter from ${linkedinJobs.length})`);
@@ -1460,6 +1465,143 @@ function parseOcc12TwentyJobs(
   return jobs;
 }
 
+/** PE-equivalent of isLikelyVcRole: allows PE titles, requires PE/investment signals */
+function isLikelyPeRole(title: string, company: string, description: string | undefined): boolean {
+  const titleLower = title.toLowerCase();
+  const companyLower = company.toLowerCase();
+  const descLower = (description || '').toLowerCase();
+
+  // ── Hard exclusions (same non-investment roles as VC) ──
+  const hardExclude = [
+    /\bsoftware\s+engineer/i,
+    /\bengineer(?:ing)?\b/i,
+    /\bdeveloper\b/i,
+    /\bstrategic\s+advisory/i,
+    /\bevent\s+(operations|manager|lead|coordinator|director)/i,
+    /\bbusiness\s+development\b/i, /\bbdm\b/i,
+    /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+    /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
+    /\bsearch\s+fund\b/i,
+    /\bfund\s+administ/i,
+    /\bcredit\s+invest/i,
+    /\bportfolio\s+monitor/i,
+    /\bportfolio\s+manager\b/i,
+    /\bbook\s+portfolio/i,
+    /\bir\s+analyst\b/i,
+    /\bfund\s+controller\b/i,
+    /\bportfolio\s+controller\b/i,
+    /\blegal\s+counsel\b/i,
+    /\bfinance\s+and\s+portfolio\b/i,
+    /\bfinance\s+analyst\b/i,
+    /\bfinance\s+director\b/i,
+    /\bfinance\s+manager\b/i,
+    /\bhead\s+of\s+finance\b/i,
+    /\binvestment\s+consultant\b/i,
+    /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
+    /\bconveyancing\b/i,
+    /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
+    /\baccountant\b/i, /\bauditor\b/i,
+    /\btax\s+(manager|analyst|advisor|specialist|consultant|director)\b/i,
+    /\bhr\s+(manager|director|business\s+partner|specialist)\b/i,
+    /\bhuman\s+resources\b/i,
+    /\brecruitment\s+(consultant|manager|specialist)\b/i,
+    /\bprocurement\b/i, /\bsupply\s+chain\b/i,
+    /\bdata\s+scientist\b/i,
+    /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i,
+    /\bux\s+(designer|researcher)\b/i, /\bdesigner\b/i,
+    /\bcreative\s+director\b/i,
+    /\bcontent\s+(manager|writer|specialist)\b/i,
+    /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i, /\bclinical\b/i,
+    /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
+    /\bconsulting\b/i, /\bconsultant\b/i,
+    /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
+    /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
+    /\bcapital\s+markets?\b/i,
+  ];
+  if (hardExclude.some(p => p.test(titleLower))) return false;
+
+  // ── PE-specific: block VC titles ──
+  if (/\bventure\s+capital\b/i.test(titleLower)) return false;
+
+  // ── Tier 1a: Ultra-strong PE signals → pass always ──
+  const ultraStrongPePatterns = [
+    /\bprivate\s+equity\b/,
+    /\bleveraged\s+buyout/,
+    /\blbo\b/,
+    /deal\s+(flow|sourcing|origination)/,
+    /carried\s+interest/,
+    /co-?invest/,
+    /\bbuyout\b/,
+  ];
+  if (ultraStrongPePatterns.some(p => p.test(titleLower))) return true;
+
+  // Fund services companies — block
+  const fundServicesCompanies = [
+    /\bss&c\b/i, /\bcarta\b/i, /\bcitco\b/i, /\bjuniper\s+square/i,
+    /\bpreqin\b/i, /\bpitchbook\b/i,
+    /\bstate\s+street\b/i, /\bnt\s+global/i, /\bnorthern\s+trust/i,
+    /\bbritish\s+business\s+bank/i,
+    /\bfinancial\s+services\s+limited/i,
+  ];
+  const isFundServices = fundServicesCompanies.some(p => p.test(companyLower));
+
+  // ── Tier 1b: Strong PE signals in TITLE → pass unless fund services ──
+  const titlePePatterns = [
+    /\bprivate\s+equity\b/,
+    /investment\s+(analyst|associate|manager|director|principal|partner)/,
+    /fund\s+(management|of\s+funds|raising|operations)/,
+  ];
+  if (titlePePatterns.some(p => p.test(titleLower))) {
+    if (isFundServices) return false;
+    return true;
+  }
+
+  // ── Soft exclusions ──
+  const nonPeRoles = [
+    /\bb2b\b/i, /\bsales\s+(dev|representative|exec)/i,
+    /\bbdr\b/i, /\bsdr\b/i,
+    /\bmarketing\s+(executive|manager|specialist|coordinator|lead)\b/i,
+    /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
+    /\bquantitative\s+equity\s+researcher/i,
+    /\bgrowth\s+specialist/i, /\bgrowth\s+marketing/i,
+    /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i,
+    /\bmanagement\s+consult/i,
+  ];
+  if (nonPeRoles.some(p => p.test(titleLower))) return false;
+
+  // ── Tier 2: company looks like a PE fund + title is a fund-type role ──
+  if (!isFundServices) {
+    const companyPePatterns = [
+      /\bprivate\s+equity\b/,
+      /\bcapital\b/,
+      /\bpartners?\b/,
+      /\binvest/,
+      /\bequity\b/,
+      /\bacquisition/,
+      /\bbuyout\b/,
+    ];
+    const companyIsPe = companyPePatterns.some(p => p.test(companyLower));
+    if (companyIsPe) {
+      const fundRoleTitles = /\b(analyst|associate|partner|principal|director|vp|vice\s+president|head|manager|investor|investment|fund|portfolio|chief\s+of\s+staff|operations|coo|cfo)\b/i;
+      if (fundRoleTitles.test(titleLower)) return true;
+    }
+  }
+
+  // ── Tier 3: description-only signals ──
+  if (descLower) {
+    const descSignals = [
+      /private\s+equity/, /\blbo\b/, /leveraged\s+buyout/, /\bbuyout\b/,
+      /deal\s+flow/, /carried\s+interest/, /portfolio\s+companies/,
+      /fund\s+raising/, /limited\s+partners?/, /general\s+partners?/,
+      /co-?investment/, /\bm&a\b/, /bolt-?on\s+acquisition/,
+    ];
+    const matchCount = descSignals.filter(p => p.test(descLower)).length;
+    if (matchCount >= 2) return true;
+  }
+
+  return false;
+}
+
 
 // ---- eFinancialCareers Scraper ----
 
@@ -1889,9 +2031,8 @@ async function scrapeEFinancialCareers(
     }
   }
 
-  const vcJobs = allJobs.filter((j) => isLikelyVcRole(j.title, j.company, j.description));
-  console.log(`eFinancialCareers: ${vcJobs.length} VC-likely jobs out of ${allJobs.length} total`);
-  return vcJobs;
+  // Return all jobs — role filtering is done by the caller
+  return allJobs;
 }
 
 function parseEFinancialCareersJobs(
