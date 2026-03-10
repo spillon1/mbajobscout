@@ -649,7 +649,7 @@ const Index = () => {
                     </ToastAction> :
                   undefined
                 });
-              }} />
+              } : () => setShowAuthModal(true)} />
             )
             }
           </div>
