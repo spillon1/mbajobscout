@@ -1692,7 +1692,8 @@ function isNotExcludedRole(title: string): boolean {
     /\bprocurement\b/i, /\bsupply\s+chain\b/i,
     /\bcontent\s+(manager|writer|specialist)\b/i,
     /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i, /\bclinical\b/i,
-    /\bcompliance\s+(administrator|officer|manager|analyst)\b/i,
+    /\bcompliance\s+(administrator|officer|manager|analyst|specialist|director)\b/i,
+    /\bchief\s+of\s+staff\b/i,
 
     // Non-VC finance roles (by title, not company)
     /\bprivate\s+equity\b/i,                  // PE roles (company can still be PE recruiter)
