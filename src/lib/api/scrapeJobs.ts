@@ -24,7 +24,8 @@ export async function scrapeJobs(
   sources: JobSource[],
   keywords: string[],
   location: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  options?: { mode?: 'vc' | 'pe' }
 ): Promise<ScrapeResult> {
   const enabledSources = sources
     .filter((s) => s.enabled)
@@ -86,8 +87,9 @@ export async function scrapeJobs(
   const v5Before = allRaw.filter(j => j.source === 'Venture5');
   console.log(`[DEBUG] Venture5 raw from edge fn: ${v5Before.length}`);
 
+  const mode = options?.mode || 'vc';
   const allJobs = allRaw.filter((j) => {
-    const valid = isValidJob(j);
+    const valid = isValidJob(j, mode);
     if (!valid && j.source === 'Venture5') {
       console.log(`[DEBUG] Venture5 DROPPED by isValidJob: "${j.title}" @ ${j.company} | loc: ${j.location}`);
     }
@@ -177,7 +179,7 @@ export async function loadSavedJobs(): Promise<Job[]> {
     postedDate: row.posted_date || undefined,
     description: row.description || undefined,
     salary: row.salary || undefined,
-  })).filter(isValidJob);
+  })).filter(j => isValidJob(j, 'vc'));
 
   // Cross-source dedup
   const seen = new Set<string>();
@@ -190,7 +192,7 @@ export async function loadSavedJobs(): Promise<Job[]> {
 }
 
 /** Returns false for non-job entries like category headers, newsletter prompts, etc. */
-function isValidJob(job: Job): boolean {
+function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
   const titleLower = job.title.toLowerCase();
   const descLower = (job.description || '').toLowerCase();
 
@@ -224,8 +226,8 @@ function isValidJob(job: Job): boolean {
   const spamCount = spamSignals.filter(s => descLower.includes(s)).length;
   if (spamCount >= 2) return false;
 
-  // Hard-exclude non-VC role patterns (mirrors edge function isNotExcludedRole)
-  const hardExcludeTitles = [
+  // Hard-exclude non-relevant role patterns
+  const hardExcludeTitles: RegExp[] = [
     // Legal
     /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
     /\blegal\s+counsel\b/i, /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
@@ -237,17 +239,6 @@ function isValidJob(job: Job): boolean {
     // Tech / product
     /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i, /\bdata\s+scientist\b/i,
     /\bdesigner\b/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i,
-    // Non-VC finance (by title)
-    /\bprivate\s+equity\b/i, /\bm&a\b/i, /\bmergers?\s+(and|&)\s+acquisitions?\b/i,
-    /\bcorporate\s+development\b/i, /\bcorporate\s+(finance|m&a)\b/i,
-    /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i, /\binvestment\s+consultant\b/i,
-    /\binvestment\s+fund\w*\s+(senior\s+)?associate\b/i,
-    /\bstrategy\s+consult/i, /\bmanagement\s+consult/i,
-    /\bquantitative\s+(researcher|trader|analyst)\b/i, /\bcommodities\b/i,
-    /\bstructurer\b/i, /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
-    /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
-    /\bcredit\s+invest/i,
-    /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
     // HR / admin / sales / marketing
     /\brecruitment\s+(consultant|manager)\b/i, /\bcompliance\s+(administrator|officer|manager)\b/i,
     /\bbusiness\s+development\b/i, /\bbdm\b/i, /\bprogram\s+director\b/i,
@@ -265,6 +256,33 @@ function isValidJob(job: Job): boolean {
     // Generic consulting
     /\bconsulting\b/i, /\bconsultant\b/i,
   ];
+
+  // Mode-specific exclusions
+  if (mode === 'vc') {
+    hardExcludeTitles.push(
+      /\bprivate\s+equity\b/i, /\bm&a\b/i, /\bmergers?\s+(and|&)\s+acquisitions?\b/i,
+      /\bcorporate\s+development\b/i, /\bcorporate\s+(finance|m&a)\b/i,
+      /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i, /\binvestment\s+consultant\b/i,
+      /\binvestment\s+fund\w*\s+(senior\s+)?associate\b/i,
+      /\bstrategy\s+consult/i, /\bmanagement\s+consult/i,
+      /\bquantitative\s+(researcher|trader|analyst)\b/i, /\bcommodities\b/i,
+      /\bstructurer\b/i, /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+      /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
+      /\bcredit\s+invest/i,
+      /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
+    );
+  } else if (mode === 'pe') {
+    hardExcludeTitles.push(
+      /\bventure\s+capital\b/i,
+      /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i, /\binvestment\s+consultant\b/i,
+      /\bstrategy\s+consult/i, /\bmanagement\s+consult/i,
+      /\bquantitative\s+(researcher|trader|analyst)\b/i, /\bcommodities\b/i,
+      /\bstructurer\b/i, /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+      /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
+      /\bcredit\s+invest/i,
+      /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
+    );
+  }
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
 
   // Skip entries that are clearly not job postings

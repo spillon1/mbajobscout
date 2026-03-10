@@ -121,7 +121,7 @@ const PEScout = () => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     try {
-      const result = await scrapeJobs(sources, keywords, location, controller.signal);
+      const result = await scrapeJobs(sources, keywords, location, controller.signal, { mode: 'pe' });
       if (controller.signal.aborted) return;
       if (result.sourceStatuses) {
         setSources((prev) =>
