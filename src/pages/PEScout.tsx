@@ -50,12 +50,13 @@ function toPEUrl(url: string): string {
 const PEScout = () => {
   const { toast } = useToast();
   const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs } = useJobActions();
+  const { getState, startScrape, stopScrape, consumeResults } = useScrape();
+  const scrapeState = getState('pe');
   const sourcesRef = useRef<HTMLDivElement>(null);
   const [selectedCity, setSelectedCity] = useState<string>('London');
   const location = getLocationString(selectedCity);
   const [sources, setSources] = useState<JobSource[]>(() => getPEDefaultSources('London'));
   const [keywords, setKeywords] = useState<string[]>(PE_DEFAULT_KEYWORDS);
-  const [isSearching, setIsSearching] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [hasScraped, setHasScraped] = useState(false);
@@ -70,6 +71,29 @@ const PEScout = () => {
       setIsLoading(false);
     });
   }, []);
+
+  // Consume results from background scrape when returning to this tab
+  useEffect(() => {
+    const result = consumeResults('pe');
+    if (result) {
+      setJobs(result.jobs);
+      setDismissedIds(new Set());
+      setHasScraped(true);
+      setSources((prev) =>
+        prev.map((s) => {
+          const sourceStatus = result.sourceStatuses[s.name];
+          return {
+            ...s,
+            status: sourceStatus?.status as any || s.status,
+            statusMessage: sourceStatus?.error || (sourceStatus?.status === 'connected'
+              ? `Scraped successfully (${sourceStatus?.count ?? 0} jobs found)`
+              : undefined),
+            lastJobCount: sourceStatus?.count ?? undefined,
+          };
+        })
+      );
+    }
+  }, [scrapeState.isSearching, consumeResults]);
 
   const [viewMode, setViewMode] = useState<'search' | 'applied' | 'not_interested' | 'saved'>('search');
   const [selectedType, setSelectedType] = useState<JobType | 'any'>('any');
