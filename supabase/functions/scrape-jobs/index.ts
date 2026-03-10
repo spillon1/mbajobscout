@@ -2083,12 +2083,18 @@ function parseEFinancialCareersJobs(
     let contractType = 'Permanent';
     if (lineIdx < lines.length) {
       const locLine = lines[lineIdx];
+      // Strip trailing contract type AND category suffixes like "Internships & Graduate Trainee"
       const typeMatch = locLine.match(/(Permanent|Contract|Temporary|Freelance|Part Time|Internship)\s*$/i);
+      const categorySuffixes = /(Internships?\s*&\s*Graduate\s*Trainee|Graduate\s*Trainee|Internships?|Fixed\s*Income|Equities|Technology|Operations|Compliance|Risk|Sales|Trading)\s*$/i;
+      let cleaned = locLine;
       if (typeMatch) {
         contractType = typeMatch[1];
-        jobLocation = locLine.substring(0, typeMatch.index).trim();
-      } else {
-        jobLocation = locLine;
+        cleaned = locLine.substring(0, typeMatch.index).trim();
+      }
+      // Also strip category text that may follow the location
+      cleaned = cleaned.replace(categorySuffixes, '').trim();
+      if (cleaned.length > 0) {
+        jobLocation = cleaned;
       }
       lineIdx++;
     }
