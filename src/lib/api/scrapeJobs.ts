@@ -137,6 +137,7 @@ export async function scrapeJobs(
       posted_date: j.postedDate || null,
       description: j.description || null,
       salary: j.salary || null,
+      mode,
     }));
 
     const { error: insertError } = await supabase
