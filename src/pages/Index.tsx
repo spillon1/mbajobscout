@@ -348,7 +348,7 @@ const Index = () => {
                   VC<span className="text-primary">SCOUT</span>
                 </h1>
                 <p className="text-[10px] font-display text-muted-foreground uppercase tracking-widest">
-                  {selectedCity} VC Job Aggregator   
+                  UK VC Job Aggregator   
                 </p>
               </div>
             </div>
