@@ -314,6 +314,25 @@ const PEScout = () => {
                   {sources.filter((s) => s.enabled).length} Sources
                 </button>
               </div>
+              {/* Auth button */}
+              {user ? (
+                <button
+                  onClick={signOut}
+                  className="shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-display text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{user.email?.split('@')[0]}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border border-border"
+                >
+                  <User className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Sign in</span>
+                </button>
+              )}
             </div>
           </div>
 
