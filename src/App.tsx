@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ScrapeProvider } from "@/contexts/ScrapeContext";
 import Index from "./pages/Index";
 import PEScout from "./pages/PEScout";
 import OutboundRedirect from "./pages/OutboundRedirect";
@@ -16,13 +17,15 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/pe" element={<PEScout />} />
-          <Route path="/out" element={<OutboundRedirect />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <ScrapeProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/pe" element={<PEScout />} />
+            <Route path="/out" element={<OutboundRedirect />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ScrapeProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
