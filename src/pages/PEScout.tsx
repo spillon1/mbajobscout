@@ -30,10 +30,12 @@ import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { useScrape } from '@/contexts/ScrapeContext';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 
-import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin, Loader2, Bookmark } from 'lucide-react';
+import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin, Loader2, Bookmark, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useJobActions } from '@/hooks/useJobActions';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthModal } from '@/components/AuthModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToastAction } from '@/components/ui/toast';
 
@@ -49,7 +51,9 @@ function toPEUrl(url: string): string {
 
 const PEScout = () => {
   const { toast } = useToast();
-  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs } = useJobActions();
+  const { user, signOut } = useAuth();
+  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
   const scrapeState = getState('pe');
   const sourcesRef = useRef<HTMLDivElement>(null);
