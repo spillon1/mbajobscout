@@ -81,7 +81,7 @@ export function useJobActions() {
     return !error;
   }, []);
 
-  const actionedUrls = new Set(actions.filter(a => a.action !== 'saved').map(a => a.job_url));
+  const actionedUrls = new Set(actions.map(a => a.job_url));
   const appliedJobs = actions.filter(a => a.action === 'applied');
   const notInterestedJobs = actions.filter(a => a.action === 'not_interested');
   const savedJobs = actions.filter(a => a.action === 'saved');
