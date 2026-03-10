@@ -231,7 +231,9 @@ function isValidJob(job: Job): boolean {
     /\binvestment\s+fund\w*\s+(senior\s+)?associate\b/i,
     /\bstrategy\s+consult/i, /\bmanagement\s+consult/i,
     /\bquantitative\s+(researcher|trader|analyst)\b/i, /\bcommodities\b/i,
-    /\bstructurer\b/i, /\breal\s+estate\b/i, /\bcredit\s+invest/i,
+    /\bstructurer\b/i, /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+    /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
+    /\bcredit\s+invest/i,
     /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
     // HR / admin / sales / marketing
     /\brecruitment\s+(consultant|manager)\b/i, /\bcompliance\s+(administrator|officer|manager)\b/i,

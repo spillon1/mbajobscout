@@ -1551,7 +1551,8 @@ function isNotExcludedRole(title: string): boolean {
     /\bquantitative\s+(researcher|trader|analyst)\b/i,
     /\bcommodities\b/i,
     /\bstructurer\b/i,
-    /\breal\s+estate\b/i,
+    /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+    /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
     /\bcredit\s+invest/i,
     /\bsearch\s+fund\b/i,
     /\bcapital\s+markets?\b/i,
@@ -1605,7 +1606,8 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bcapital\s+markets?\b/i,
     /\bevent\s+(operations|manager|lead|coordinator|director)/i,
     /\bbusiness\s+development\b/i, /\bbdm\b/i,
-    /\breal\s+estate\b/i,
+    /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+    /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
     /\bm&a\b/i,
     /\bsearch\s+fund\b/i,                // search funds ≠ VC
     /\bcorporate\s+development\b/i,       // corp dev roles
