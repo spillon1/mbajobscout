@@ -1893,9 +1893,8 @@ async function scrapeEFinancialCareers(
     }
   }
 
-  const vcJobs = allJobs.filter((j) => isLikelyVcRole(j.title, j.company, j.description));
-  console.log(`eFinancialCareers: ${vcJobs.length} VC-likely jobs out of ${allJobs.length} total`);
-  return vcJobs;
+  // Return all jobs — role filtering is done by the caller
+  return allJobs;
 }
 
 function parseEFinancialCareersJobs(
