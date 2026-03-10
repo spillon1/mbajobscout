@@ -87,10 +87,11 @@ Deno.serve(async (req) => {
 
         // eFinancialCareers: dedicated scraper with structured markdown parsing
         if (source.url.includes('efinancialcareers')) {
-          const efcJobs = await scrapeEFinancialCareers(apiKey, source, location, keywords);
+          const efcJobsRaw = await scrapeEFinancialCareers(apiKey, source, location, keywords);
+          const efcJobs = efcJobsRaw.filter((j: any) => roleFilter(j.title, j.company, j.description));
           results.push(...efcJobs);
           sourceStatuses[source.name] = { status: 'connected', count: efcJobs.length };
-          console.log(`Found ${efcJobs.length} jobs from eFinancialCareers`);
+          console.log(`Found ${efcJobs.length} relevant jobs from eFinancialCareers (filtered from ${efcJobsRaw.length})`);
           continue;
         }
 
