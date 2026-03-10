@@ -462,21 +462,21 @@ const PEScout = () => {
               <JobCard
                 key={job.id}
                 job={job}
-                onSaved={async (j) => {
+                onSaved={isAuthenticated ? async (j) => {
                   const url = j.jobUrl || j.sourceUrl;
                   const actionId = await addAction(url, j.title, j.company, j.source, 'saved');
                   toast({ title: 'Saved', description: j.title, action: actionId ? <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>Undo</ToastAction> : undefined });
-                }}
-                onApplied={async (j) => {
+                } : () => setShowAuthModal(true)}
+                onApplied={isAuthenticated ? async (j) => {
                   const url = j.jobUrl || j.sourceUrl;
                   const actionId = await addAction(url, j.title, j.company, j.source, 'applied');
                   toast({ title: 'Marked as Applied', description: j.title, action: actionId ? <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>Undo</ToastAction> : undefined });
-                }}
-                onNotInterested={async (j) => {
+                } : () => setShowAuthModal(true)}
+                onNotInterested={isAuthenticated ? async (j) => {
                   const url = j.jobUrl || j.sourceUrl;
                   const actionId = await addAction(url, j.title, j.company, j.source, 'not_interested');
                   toast({ title: 'Not interested', description: j.title, action: actionId ? <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>Undo</ToastAction> : undefined });
-                }}
+                } : () => setShowAuthModal(true)}
               />
             ))}
           </div>
