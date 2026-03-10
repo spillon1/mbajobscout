@@ -59,7 +59,7 @@ const Index = () => {
 
   // Load saved jobs on mount
   useEffect(() => {
-    loadSavedJobs().then((savedJobs) => {
+    loadSavedJobs('vc').then((savedJobs) => {
       const cleanedJobs = savedJobs.filter((j) => !isOccSource(`${j.source} ${j.sourceUrl}`));
       if (cleanedJobs.length > 0) {
         setJobs(cleanedJobs);
