@@ -274,7 +274,7 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
       /\bquantitative\s+(researcher|trader|analyst)\b/i, /\bcommodities\b/i,
       /\bstructurer\b/i, /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
       /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
-      /\bcredit\s+invest/i,
+      /\bcredit\b/i,
       /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
       // Hedge funds & operations roles
       /\bhedge\s+fund\b/i, /\bfund\s+of\s+(hedge\s+)?funds?\b/i,
@@ -282,6 +282,12 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
       /\bstrategy\s+(&|and)\s+operations\b/i,
       /\b(nav|net\s+asset\s+value)\s+(and|&)\s+operations\b/i,
       /\bfund\s+account/i,
+      // Non-VC finance roles
+      /\brisk\s+(&|and)\s+valuation\b/i, /\brisk\s+retention\b/i,
+      /\bpublic\s+markets?\b/i,
+      /\btransactions?\s+management\b/i,
+      /\bopportunistic\b/i,
+      /\bprivate\s+assets?\b/i,
     );
   } else if (mode === 'pe') {
     hardExcludeTitles.push(
