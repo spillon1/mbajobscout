@@ -1675,7 +1675,8 @@ function isNotExcludedRole(title: string): boolean {
 
     // Legal
     /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
-    /\bconveyancing\b/i, /\blegal\s+counsel\b/i,
+    /\bconveyancing\b/i, /\blegal\s+counsel\b/i, /\blegal\s+associate\b/i,
+    /\blegal\s+(officer|advisor|specialist|director|manager)\b/i,
     /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
 
     // Finance ops / accounting
@@ -1691,7 +1692,8 @@ function isNotExcludedRole(title: string): boolean {
     /\bprocurement\b/i, /\bsupply\s+chain\b/i,
     /\bcontent\s+(manager|writer|specialist)\b/i,
     /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i, /\bclinical\b/i,
-    /\bcompliance\s+(administrator|officer|manager|analyst)\b/i,
+    /\bcompliance\s+(administrator|officer|manager|analyst|specialist|director)\b/i,
+    /\bchief\s+of\s+staff\b/i,
 
     // Non-VC finance roles (by title, not company)
     /\bprivate\s+equity\b/i,                  // PE roles (company can still be PE recruiter)
@@ -1883,8 +1885,8 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     ];
     const companyIsVc = companyVcPatterns.some(p => p.test(companyLower));
     if (companyIsVc) {
-      // Any plausible fund role (broad — includes ops, chief of staff, etc.)
-      const fundRoleTitles = /\b(analyst|associate|partner|principal|director|vp|vice\s+president|head|manager|controller|admin|investor\s+relations|investment|fund|portfolio|ir\b|fundrais|chief\s+of\s+staff|operations|finance|legal|compliance|coo|cfo)\b/i;
+      // Investment-focused fund roles only (exclude support: legal, compliance, HR, finance, chief of staff)
+      const fundRoleTitles = /\b(analyst|associate|partner|principal|director|vp|vice\s+president|head\s+of\s+(investments?|portfolio|strategy|growth)|investment|fund\s+manager|portfolio)\b/i;
       if (fundRoleTitles.test(titleLower)) return true;
     }
   }

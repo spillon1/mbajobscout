@@ -232,7 +232,11 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
   const hardExcludeTitles: RegExp[] = [
     // Legal
     /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
-    /\blegal\s+counsel\b/i, /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
+    /\blegal\s+counsel\b/i, /\blegal\s+associate\b/i,
+    /\blegal\s+(officer|advisor|specialist|director|manager)\b/i,
+    /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
+    // Chief of Staff / Compliance
+    /\bchief\s+of\s+staff\b/i,
     // Finance ops
     /\baccountant\b/i, /\bauditor\b/i, /\bfund\s+controller\b/i, /\bfinancial\s+controller\b/i,
     /\bportfolio\s+(controller|monitor|manager)\b/i, /\bfund\s+administ/i,
@@ -242,7 +246,7 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
     /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i, /\bdata\s+scientist\b/i,
     /\bdesigner\b/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i,
     // HR / admin / sales / marketing
-    /\brecruitment\s+(consultant|manager)\b/i, /\bcompliance\s+(administrator|officer|manager)\b/i,
+    /\brecruitment\s+(consultant|manager)\b/i, /\bcompliance\s+(administrator|officer|manager|analyst|specialist|director)\b/i,
     /\bbusiness\s+development\b/i, /\bbdm\b/i, /\bprogram\s+director\b/i,
     /\bir\s+analyst\b/i, /\binvestor\s+relation/i,
     /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
