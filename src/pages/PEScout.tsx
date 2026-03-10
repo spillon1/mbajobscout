@@ -280,7 +280,7 @@ const PEScout = () => {
                   to="/"
                   className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
-                  VCScout
+                  VC Jobs
                 </Link>
                 <Link
                   to="/pe"
