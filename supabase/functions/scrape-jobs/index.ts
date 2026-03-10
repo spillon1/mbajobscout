@@ -1517,6 +1517,25 @@ function isLikelyPeRole(title: string, company: string, description: string | un
     /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
     /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
     /\bcapital\s+markets?\b/i,
+    // PE-specific hard exclusions
+    /\bequity\s+sales\b/i,
+    /\bequity\s+trading\b/i,
+    /\bequity\s+research\b/i,
+    /\bhedge\s+fund\b/i,
+    /\basset\s+management\b/i,
+    /\bwealth\s+management\b/i,
+    /\bfund\s+accounting\b/i,
+    /\bfund\s+operations\b/i,
+    /\bcommodities\b/i,
+    /\bstructurer\b/i,
+    /\bquantitative\s+(researcher|trader|analyst)\b/i,
+    /\btrading\b/i,
+    /\btrader\b/i,
+    /\binvestor\s+relation/i,
+    /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
+    /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
+    /\bsales\s+(dev|representative|exec)/i,
+    /\bb2b\b/i, /\bbdr\b/i, /\bsdr\b/i,
   ];
   if (hardExclude.some(p => p.test(titleLower))) return false;
 
@@ -1542,6 +1561,7 @@ function isLikelyPeRole(title: string, company: string, description: string | un
     /\bstate\s+street\b/i, /\bnt\s+global/i, /\bnorthern\s+trust/i,
     /\bbritish\s+business\s+bank/i,
     /\bfinancial\s+services\s+limited/i,
+    /\bprivate\s+equity\s+recruitment/i,
   ];
   const isFundServices = fundServicesCompanies.some(p => p.test(companyLower));
 
@@ -1549,7 +1569,6 @@ function isLikelyPeRole(title: string, company: string, description: string | un
   const titlePePatterns = [
     /\bprivate\s+equity\b/,
     /investment\s+(analyst|associate|manager|director|principal|partner)/,
-    /fund\s+(management|of\s+funds|raising|operations)/,
   ];
   if (titlePePatterns.some(p => p.test(titleLower))) {
     if (isFundServices) return false;
@@ -1558,11 +1577,6 @@ function isLikelyPeRole(title: string, company: string, description: string | un
 
   // ── Soft exclusions ──
   const nonPeRoles = [
-    /\bb2b\b/i, /\bsales\s+(dev|representative|exec)/i,
-    /\bbdr\b/i, /\bsdr\b/i,
-    /\bmarketing\s+(executive|manager|specialist|coordinator|lead)\b/i,
-    /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
-    /\bquantitative\s+equity\s+researcher/i,
     /\bgrowth\s+specialist/i, /\bgrowth\s+marketing/i,
     /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i,
     /\bmanagement\s+consult/i,
@@ -1573,12 +1587,10 @@ function isLikelyPeRole(title: string, company: string, description: string | un
   if (!isFundServices) {
     const companyPePatterns = [
       /\bprivate\s+equity\b/,
-      /\bcapital\b/,
-      /\bpartners?\b/,
-      /\binvest/,
-      /\bequity\b/,
-      /\bacquisition/,
       /\bbuyout\b/,
+      /\bacquisition/,
+      /\bcapital\s+partners?\b/,
+      /\bpe\s+(fund|firm|partners?)\b/i,
     ];
     const companyIsPe = companyPePatterns.some(p => p.test(companyLower));
     if (companyIsPe) {

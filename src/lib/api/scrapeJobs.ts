@@ -281,6 +281,11 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
       /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
       /\bcredit\s+invest/i,
       /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
+      /\bequity\s+sales\b/i, /\bequity\s+trading\b/i, /\bequity\s+research\b/i,
+      /\bhedge\s+fund\b/i, /\basset\s+management\b/i, /\bwealth\s+management\b/i,
+      /\bfund\s+accounting\b/i, /\bfund\s+operations\b/i,
+      /\btrading\b/i, /\btrader\b/i,
+      /\binvestor\s+relation/i,
     );
   }
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
