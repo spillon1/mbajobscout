@@ -45,6 +45,8 @@ import { ToastAction } from '@/components/ui/toast';
 const Index = () => {
   const { toast } = useToast();
   const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs } = useJobActions();
+  const { getState, startScrape, stopScrape, consumeResults } = useScrape();
+  const scrapeState = getState('vc');
   const sourcesRef = useRef<HTMLDivElement>(null);
   const [selectedCity, setSelectedCity] = useState<string>('London');
   const location = getLocationString(selectedCity);
@@ -52,7 +54,6 @@ const Index = () => {
   getDefaultSources('London').filter((s) => !isOccSource(`${s.name} ${s.url}`))
   );
   const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
-  const [isSearching, setIsSearching] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [hasScraped, setHasScraped] = useState(false);
@@ -69,6 +70,30 @@ const Index = () => {
       setIsLoading(false);
     });
   }, []);
+
+  // Consume results from background scrape when returning to this tab
+  useEffect(() => {
+    const result = consumeResults('vc');
+    if (result) {
+      const cleanedJobs = result.jobs.filter((j) => !isOccSource(`${j.source} ${j.sourceUrl}`));
+      setJobs(cleanedJobs);
+      setDismissedIds(new Set());
+      setHasScraped(true);
+      setSources((prev) =>
+        prev.map((s) => {
+          const sourceStatus = result.sourceStatuses[s.name];
+          return {
+            ...s,
+            status: sourceStatus?.status as any || s.status,
+            statusMessage: sourceStatus?.error || (sourceStatus?.status === 'connected'
+              ? `Scraped successfully (${sourceStatus?.count ?? 0} jobs found)`
+              : undefined),
+            lastJobCount: sourceStatus?.count ?? undefined,
+          };
+        })
+      );
+    }
+  }, [scrapeState.isSearching, consumeResults]);
 
   // Filters
   const [viewMode, setViewMode] = useState<'search' | 'applied' | 'not_interested' | 'saved'>('search');
