@@ -132,7 +132,7 @@ const Index = () => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     try {
-      const result = await scrapeJobs(sources, keywords, location, controller.signal);
+      const result = await scrapeJobs(sources, keywords, location, controller.signal, { mode: 'vc' });
 
       if (controller.signal.aborted) return;
 
