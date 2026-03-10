@@ -135,52 +135,14 @@ const PEScout = () => {
     setSources((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const isSearching = scrapeState.isSearching;
 
-  const handleScrape = async () => {
-    setIsSearching(true);
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    try {
-      const result = await scrapeJobs(sources, keywords, location, controller.signal, { mode: 'pe' });
-      if (controller.signal.aborted) return;
-      if (result.sourceStatuses) {
-        setSources((prev) =>
-          prev.map((s) => {
-            const sourceStatus = result.sourceStatuses[s.name];
-            return {
-              ...s,
-              status: sourceStatus?.status as any || s.status,
-              statusMessage: sourceStatus?.error || (sourceStatus?.status === 'connected'
-                ? `Scraped successfully (${sourceStatus?.count ?? 0} jobs found)`
-                : undefined),
-              lastJobCount: sourceStatus?.count ?? undefined,
-            };
-          })
-        );
-      }
-      if (result.success) {
-        setJobs(result.jobs);
-        setDismissedIds(new Set());
-        setHasScraped(true);
-        toast({ title: 'Scrape complete', description: `Found ${result.jobs.length} PE jobs` });
-      } else {
-        toast({ title: 'Scrape failed', description: result.error || 'Unknown error', variant: 'destructive' });
-      }
-    } catch (err) {
-      if (controller.signal.aborted) return;
-      toast({ title: 'Scrape error', description: 'Failed to connect to scraping service', variant: 'destructive' });
-    } finally {
-      abortControllerRef.current = null;
-      setIsSearching(false);
-    }
+  const handleScrape = () => {
+    startScrape('pe', sources, keywords, location);
   };
 
   const handleStopScrape = () => {
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = null;
-    setIsSearching(false);
-    toast({ title: 'Search stopped' });
+    stopScrape('pe');
   };
 
   const allCompanies = useMemo(() => [...new Set(jobs.map((j) => j.company))].sort(), [jobs]);
