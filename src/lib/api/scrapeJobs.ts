@@ -226,8 +226,8 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
   const spamCount = spamSignals.filter(s => descLower.includes(s)).length;
   if (spamCount >= 2) return false;
 
-  // Hard-exclude non-VC role patterns (mirrors edge function isNotExcludedRole)
-  const hardExcludeTitles = [
+  // Hard-exclude non-relevant role patterns
+  const hardExcludeTitles: RegExp[] = [
     // Legal
     /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
     /\blegal\s+counsel\b/i, /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
@@ -239,17 +239,6 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
     // Tech / product
     /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i, /\bdata\s+scientist\b/i,
     /\bdesigner\b/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i,
-    // Non-VC finance (by title)
-    /\bprivate\s+equity\b/i, /\bm&a\b/i, /\bmergers?\s+(and|&)\s+acquisitions?\b/i,
-    /\bcorporate\s+development\b/i, /\bcorporate\s+(finance|m&a)\b/i,
-    /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i, /\binvestment\s+consultant\b/i,
-    /\binvestment\s+fund\w*\s+(senior\s+)?associate\b/i,
-    /\bstrategy\s+consult/i, /\bmanagement\s+consult/i,
-    /\bquantitative\s+(researcher|trader|analyst)\b/i, /\bcommodities\b/i,
-    /\bstructurer\b/i, /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
-    /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
-    /\bcredit\s+invest/i,
-    /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
     // HR / admin / sales / marketing
     /\brecruitment\s+(consultant|manager)\b/i, /\bcompliance\s+(administrator|officer|manager)\b/i,
     /\bbusiness\s+development\b/i, /\bbdm\b/i, /\bprogram\s+director\b/i,
@@ -267,6 +256,33 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
     // Generic consulting
     /\bconsulting\b/i, /\bconsultant\b/i,
   ];
+
+  // Mode-specific exclusions
+  if (mode === 'vc') {
+    hardExcludeTitles.push(
+      /\bprivate\s+equity\b/i, /\bm&a\b/i, /\bmergers?\s+(and|&)\s+acquisitions?\b/i,
+      /\bcorporate\s+development\b/i, /\bcorporate\s+(finance|m&a)\b/i,
+      /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i, /\binvestment\s+consultant\b/i,
+      /\binvestment\s+fund\w*\s+(senior\s+)?associate\b/i,
+      /\bstrategy\s+consult/i, /\bmanagement\s+consult/i,
+      /\bquantitative\s+(researcher|trader|analyst)\b/i, /\bcommodities\b/i,
+      /\bstructurer\b/i, /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+      /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
+      /\bcredit\s+invest/i,
+      /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
+    );
+  } else if (mode === 'pe') {
+    hardExcludeTitles.push(
+      /\bventure\s+capital\b/i,
+      /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i, /\binvestment\s+consultant\b/i,
+      /\bstrategy\s+consult/i, /\bmanagement\s+consult/i,
+      /\bquantitative\s+(researcher|trader|analyst)\b/i, /\bcommodities\b/i,
+      /\bstructurer\b/i, /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+      /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
+      /\bcredit\s+invest/i,
+      /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
+    );
+  }
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
 
   // Skip entries that are clearly not job postings
