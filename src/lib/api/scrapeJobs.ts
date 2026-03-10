@@ -87,8 +87,9 @@ export async function scrapeJobs(
   const v5Before = allRaw.filter(j => j.source === 'Venture5');
   console.log(`[DEBUG] Venture5 raw from edge fn: ${v5Before.length}`);
 
+  const mode = options?.mode || 'vc';
   const allJobs = allRaw.filter((j) => {
-    const valid = isValidJob(j);
+    const valid = isValidJob(j, mode);
     if (!valid && j.source === 'Venture5') {
       console.log(`[DEBUG] Venture5 DROPPED by isValidJob: "${j.title}" @ ${j.company} | loc: ${j.location}`);
     }
