@@ -192,7 +192,7 @@ export async function loadSavedJobs(): Promise<Job[]> {
 }
 
 /** Returns false for non-job entries like category headers, newsletter prompts, etc. */
-function isValidJob(job: Job): boolean {
+function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
   const titleLower = job.title.toLowerCase();
   const descLower = (job.description || '').toLowerCase();
 
