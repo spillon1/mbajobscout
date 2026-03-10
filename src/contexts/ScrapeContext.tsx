@@ -7,6 +7,7 @@ interface ScrapeState {
   isSearching: boolean;
   jobs: Job[] | null; // null = not finished yet
   sourceStatuses: Record<string, { status: string; error?: string; count?: number }>;
+  startedAt: number | null; // timestamp when scrape started
 }
 
 interface ScrapeContextValue {
