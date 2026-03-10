@@ -24,7 +24,7 @@ interface ScrapeContextValue {
 
 const ScrapeContext = createContext<ScrapeContextValue | null>(null);
 
-const defaultState: ScrapeState = { isSearching: false, jobs: null, sourceStatuses: {} };
+const defaultState: ScrapeState = { isSearching: false, jobs: null, sourceStatuses: {}, startedAt: null };
 
 export function ScrapeProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
