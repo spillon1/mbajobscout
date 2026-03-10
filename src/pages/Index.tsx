@@ -33,7 +33,7 @@ import { SourceManager } from '@/components/SourceManager';
 import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { useScrape } from '@/contexts/ScrapeContext';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
-import { AlertConfig } from '@/components/AlertConfig';
+
 import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin, Loader2, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -633,7 +633,7 @@ const Index = () => {
 
           {/* Sidebar */}
           <div ref={sourcesRef} className="space-y-4">
-            <AlertConfig />
+            
             <SourceManager
               sources={sources}
               onToggleSource={handleToggleSource}
