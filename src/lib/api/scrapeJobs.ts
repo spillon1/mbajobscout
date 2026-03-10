@@ -41,7 +41,8 @@ export async function scrapeJobs(
     : new AbortController();
   const timeoutId = !signal ? setTimeout(() => controller?.abort(), 300_000) : undefined; // 5 min
 
-  const fetchOptions: any = { body: { sources: enabledSources, keywords, location } };
+  const mode = options?.mode || 'vc';
+  const fetchOptions: any = { body: { sources: enabledSources, keywords, location, mode } };
   fetchOptions.signal = signal || controller?.signal;
 
   let data: any, error: any;
