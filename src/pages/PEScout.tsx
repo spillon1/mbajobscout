@@ -369,19 +369,19 @@ const PEScout = () => {
         />
 
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-3">
-          <button onClick={() => setViewMode(viewMode === 'saved' ? 'search' : 'saved')}
+          <button onClick={() => isAuthenticated ? setViewMode(viewMode === 'saved' ? 'search' : 'saved') : setShowAuthModal(true)}
             className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${viewMode === 'saved' ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'}`}>
-            <div className="font-display text-lg sm:text-2xl font-bold text-primary">{savedJobs.length}</div>
+            <div className="font-display text-lg sm:text-2xl font-bold text-primary">{isAuthenticated ? savedJobs.length : '–'}</div>
             <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Saved</div>
           </button>
-          <button onClick={() => setViewMode(viewMode === 'applied' ? 'search' : 'applied')}
+          <button onClick={() => isAuthenticated ? setViewMode(viewMode === 'applied' ? 'search' : 'applied') : setShowAuthModal(true)}
             className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${viewMode === 'applied' ? 'border-success/50 glow-primary' : 'border-border hover:border-success/30'}`}>
-            <div className="font-display text-lg sm:text-2xl font-bold text-success">{appliedJobs.length}</div>
+            <div className="font-display text-lg sm:text-2xl font-bold text-success">{isAuthenticated ? appliedJobs.length : '–'}</div>
             <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Applied</div>
           </button>
-          <button onClick={() => setViewMode(viewMode === 'not_interested' ? 'search' : 'not_interested')}
+          <button onClick={() => isAuthenticated ? setViewMode(viewMode === 'not_interested' ? 'search' : 'not_interested') : setShowAuthModal(true)}
             className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${viewMode === 'not_interested' ? 'border-destructive/50 glow-primary' : 'border-border hover:border-destructive/30'}`}>
-            <div className="font-display text-lg sm:text-2xl font-bold text-destructive">{notInterestedJobs.length}</div>
+            <div className="font-display text-lg sm:text-2xl font-bold text-destructive">{isAuthenticated ? notInterestedJobs.length : '–'}</div>
             <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Dismissed</div>
           </button>
         </div>
