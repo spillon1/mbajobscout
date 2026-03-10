@@ -358,7 +358,7 @@ const Index = () => {
                   to="/"
                   className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
                   
-                  VCScout
+                  VC Jobs 
                 </Link>
                 <Link
                   to="/pe"
