@@ -16,6 +16,7 @@ interface SourceManagerProps {
   onToggleAll: (enabled: boolean) => void;
   onAddSource: (name: string, url: string) => void;
   onRemoveSource: (id: string) => void;
+  hideManualSources?: boolean;
 }
 
 const statusConfig: Record<ConnectionStatus, { icon: typeof CheckCircle2; className: string; label: string }> = {
