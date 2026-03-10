@@ -458,7 +458,7 @@ const Index = () => {
         
 
         {/* Stats - clickable filters */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-3">
           <button
             onClick={() => setViewMode(viewMode === 'saved' ? 'search' : 'saved')}
             className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
