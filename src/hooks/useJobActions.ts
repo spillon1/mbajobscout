@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export type JobAction = 'applied' | 'not_interested' | 'saved';
 
@@ -14,20 +15,27 @@ export interface JobActionRecord {
 }
 
 export function useJobActions() {
+  const { user } = useAuth();
   const [actions, setActions] = useState<JobActionRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchActions = useCallback(async () => {
+    if (!user) {
+      setActions([]);
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase
       .from('job_actions')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
       setActions(data as unknown as JobActionRecord[]);
     }
     setLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchActions();
@@ -40,15 +48,17 @@ export function useJobActions() {
     jobSource: string,
     action: JobAction
   ): Promise<string | null> => {
+    if (!user) return null;
     const { data, error } = await supabase
       .from('job_actions')
       .upsert({
+        user_id: user.id,
         job_url: jobUrl,
         job_title: jobTitle,
         job_company: jobCompany,
         job_source: jobSource,
         action,
-      }, { onConflict: 'job_url,action' })
+      }, { onConflict: 'user_id,job_url,action' })
       .select('id')
       .single();
 
@@ -57,7 +67,7 @@ export function useJobActions() {
       return data?.id ?? null;
     }
     return null;
-  }, [fetchActions]);
+  }, [fetchActions, user]);
 
   const removeAction = useCallback(async (id: string) => {
     const { error } = await supabase
@@ -85,5 +95,6 @@ export function useJobActions() {
     appliedJobs,
     notInterestedJobs,
     savedJobs,
+    isAuthenticated: !!user,
   };
 }
