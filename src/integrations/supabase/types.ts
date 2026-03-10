@@ -90,6 +90,7 @@ export type Database = {
           description: string | null
           id: string
           location: string
+          mode: string
           posted_date: string | null
           salary: string | null
           scraped_at: string
@@ -105,6 +106,7 @@ export type Database = {
           description?: string | null
           id?: string
           location?: string
+          mode?: string
           posted_date?: string | null
           salary?: string | null
           scraped_at?: string
@@ -120,6 +122,7 @@ export type Database = {
           description?: string | null
           id?: string
           location?: string
+          mode?: string
           posted_date?: string | null
           salary?: string | null
           scraped_at?: string
