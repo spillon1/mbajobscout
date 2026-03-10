@@ -5,6 +5,10 @@ const corsHeaders = {
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Hardcoded alert config — independent of site activity and job_alerts table
+const ALERT_EMAIL = 'spillon@gmail.com';
+const ALERT_MODE = 'vc';
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -23,28 +27,12 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get enabled alerts
-    const { data: alertRecipients } = await supabase
-      .from('job_alerts')
-      .select('*')
-      .eq('enabled', true)
-      .limit(10);
-
-    if (!alertRecipients || alertRecipients.length === 0) {
-      console.log('No alerts configured');
-      return new Response(
-        JSON.stringify({ success: true, message: 'No alerts configured', count: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    let totalSent = 0;
-
-    // Fetch all un-alerted jobs once (shared across all recipients)
+    // Fetch un-alerted VC-mode jobs only
     const { data: newJobs, error: jobsError } = await supabase
       .from('scraped_jobs')
       .select('*')
       .eq('alerted', false)
+      .eq('mode', ALERT_MODE)
       .order('scraped_at', { ascending: false });
 
     if (jobsError) {
@@ -56,114 +44,102 @@ Deno.serve(async (req) => {
     }
 
     if (!newJobs || newJobs.length === 0) {
-      console.log('No new (un-alerted) jobs to send');
+      console.log('No new (un-alerted) VC jobs to send');
       return new Response(
         JSON.stringify({ success: true, message: 'No new jobs', count: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Found ${newJobs.length} un-alerted jobs to send`);
+    console.log(`Found ${newJobs.length} un-alerted VC jobs to send to ${ALERT_EMAIL}`);
 
-    for (const alert of alertRecipients) {
+    // Build HTML email
+    const jobRows = newJobs.map(job => `
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+          <a href="${escapeHtml(job.url)}" style="color: #3b82f6; text-decoration: none; font-weight: 600; font-size: 15px;">
+            ${escapeHtml(job.title)}
+          </a>
+          <div style="color: #6b7280; font-size: 13px; margin-top: 4px;">
+            ${escapeHtml(job.company)} · ${escapeHtml(job.location)}
+            ${job.salary ? ` · <span style="color: #059669; font-weight: 500;">${escapeHtml(job.salary)}</span>` : ''}
+            ${job.posted_date ? ` · ${escapeHtml(job.posted_date)}` : ''}
+          </div>
+          <div style="margin-top: 4px;">
+            <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: ${job.type === 'internship' ? '#fef3c7' : job.type === 'graduate' ? '#dbeafe' : '#dcfce7'}; color: ${job.type === 'internship' ? '#92400e' : job.type === 'graduate' ? '#1e40af' : '#166534'};">
+              ${escapeHtml(job.type)}
+            </span>
+            <span style="color: #9ca3af; font-size: 11px; margin-left: 8px;">${escapeHtml(job.source)}</span>
+          </div>
+        </td>
+      </tr>
+    `).join('');
 
-      console.log(`Sending ${newJobs.length} new jobs to ${alert.email}`);
-
-      // Build HTML email
-      const jobRows = newJobs.map(job => `
-        <tr>
-          <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
-            <a href="${escapeHtml(job.url)}" style="color: #3b82f6; text-decoration: none; font-weight: 600; font-size: 15px;">
-              ${escapeHtml(job.title)}
-            </a>
-            <div style="color: #6b7280; font-size: 13px; margin-top: 4px;">
-              ${escapeHtml(job.company)} · ${escapeHtml(job.location)}
-              ${job.salary ? ` · <span style="color: #059669; font-weight: 500;">${escapeHtml(job.salary)}</span>` : ''}
-              ${job.posted_date ? ` · ${escapeHtml(job.posted_date)}` : ''}
-            </div>
-            <div style="margin-top: 4px;">
-              <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: ${job.type === 'internship' ? '#fef3c7' : job.type === 'graduate' ? '#dbeafe' : '#dcfce7'}; color: ${job.type === 'internship' ? '#92400e' : job.type === 'graduate' ? '#1e40af' : '#166534'};">
-                ${escapeHtml(job.type)}
-              </span>
-              <span style="color: #9ca3af; font-size: 11px; margin-left: 8px;">${escapeHtml(job.source)}</span>
-            </div>
-          </td>
-        </tr>
-      `).join('');
-
-      const html = `
-        <!DOCTYPE html>
-        <html>
-        <body style="margin: 0; padding: 0; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          <div style="max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h1 style="font-size: 20px; color: #111827; margin: 0;">
-                ⚡ VC<span style="color: #3b82f6;">SCOUT</span> Daily Alert
-              </h1>
-              <p style="color: #6b7280; font-size: 14px; margin: 4px 0 0;">
-                ${newJobs.length} new job${newJobs.length === 1 ? '' : 's'} since your last alert
-              </p>
-            </div>
-            <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              ${jobRows}
-            </table>
-            <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 24px;">
-              Sent by VCScout Job Aggregator
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <body style="margin: 0; padding: 0; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 24px;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="font-size: 20px; color: #111827; margin: 0;">
+              ⚡ VC<span style="color: #3b82f6;">SCOUT</span> Daily Alert
+            </h1>
+            <p style="color: #6b7280; font-size: 14px; margin: 4px 0 0;">
+              ${newJobs.length} new VC job${newJobs.length === 1 ? '' : 's'} since your last alert
             </p>
           </div>
-        </body>
-        </html>
-      `;
+          <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            ${jobRows}
+          </table>
+          <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 24px;">
+            Sent by VCScout Job Aggregator
+          </p>
+        </div>
+      </body>
+      </html>
+    `;
 
-      const emailResponse = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'VCScout <onboarding@resend.dev>',
-          to: [alert.email],
-          subject: `⚡ ${newJobs.length} new VC job${newJobs.length === 1 ? '' : 's'} found`,
-          html,
-        }),
-      });
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'VCScout <onboarding@resend.dev>',
+        to: [ALERT_EMAIL],
+        subject: `⚡ ${newJobs.length} new VC job${newJobs.length === 1 ? '' : 's'} found`,
+        html,
+      }),
+    });
 
-      const emailData = await emailResponse.json();
+    const emailData = await emailResponse.json();
 
-      if (!emailResponse.ok) {
-        console.error(`Resend error for ${alert.email}:`, emailData);
-        continue;
-      }
-
-      console.log(`Email sent to ${alert.email}:`, emailData.id);
-
-      // Update last_alerted_at timestamp
-      await supabase
-        .from('job_alerts')
-        .update({ last_alerted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-        .eq('id', alert.id);
-
-      totalSent++;
+    if (!emailResponse.ok) {
+      console.error(`Resend error:`, emailData);
+      return new Response(
+        JSON.stringify({ success: false, error: emailData }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Mark all sent jobs as alerted so they aren't sent again
-    if (totalSent > 0) {
-      const jobIds = newJobs.map(j => j.id);
-      const { error: markError } = await supabase
-        .from('scraped_jobs')
-        .update({ alerted: true })
-        .in('id', jobIds);
+    console.log(`Email sent to ${ALERT_EMAIL}:`, emailData.id);
 
-      if (markError) {
-        console.error('Failed to mark jobs as alerted:', markError.message);
-      } else {
-        console.log(`Marked ${jobIds.length} jobs as alerted`);
-      }
+    // Mark all sent jobs as alerted
+    const jobIds = newJobs.map(j => j.id);
+    const { error: markError } = await supabase
+      .from('scraped_jobs')
+      .update({ alerted: true })
+      .in('id', jobIds);
+
+    if (markError) {
+      console.error('Failed to mark jobs as alerted:', markError.message);
+    } else {
+      console.log(`Marked ${jobIds.length} jobs as alerted`);
     }
 
     return new Response(
-      JSON.stringify({ success: true, sent: totalSent }),
+      JSON.stringify({ success: true, sent: 1, jobCount: newJobs.length }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

@@ -459,7 +459,7 @@ const PEScout = () => {
           </div>
 
           <div ref={sourcesRef} className="space-y-4">
-            <AlertConfig />
+            
             <SourceManager
               sources={sources}
               onToggleSource={handleToggleSource}
