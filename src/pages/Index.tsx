@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 
 /** Parse freetext posted date into a Date for sorting. Unknown dates → now (appear first). */
 function parsePostedDate(dateStr?: string): Date {
@@ -351,6 +352,21 @@ const Index = () => {
                   UK VC Job Aggregator   
                 </p>
               </div>
+              {/* Nav tabs */}
+              <nav className="flex items-center gap-1 ml-2 sm:ml-4">
+                <Link
+                  to="/"
+                  className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider bg-primary/10 text-primary border border-primary/20"
+                >
+                  VCScout
+                </Link>
+                <Link
+                  to="/pe"
+                  className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  PEScout
+                </Link>
+              </nav>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">

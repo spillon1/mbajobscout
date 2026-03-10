@@ -16,6 +16,7 @@ interface SourceManagerProps {
   onToggleAll: (enabled: boolean) => void;
   onAddSource: (name: string, url: string) => void;
   onRemoveSource: (id: string) => void;
+  hideManualSources?: boolean;
 }
 
 const statusConfig: Record<ConnectionStatus, { icon: typeof CheckCircle2; className: string; label: string }> = {
@@ -25,7 +26,7 @@ const statusConfig: Record<ConnectionStatus, { icon: typeof CheckCircle2; classN
   unknown: { icon: HelpCircle, className: 'text-muted-foreground', label: 'Not yet scraped' },
 };
 
-export function SourceManager({ sources, onToggleSource, onToggleAll, onAddSource, onRemoveSource }: SourceManagerProps) {
+export function SourceManager({ sources, onToggleSource, onToggleAll, onAddSource, onRemoveSource, hideManualSources }: SourceManagerProps) {
   const [newName, setNewName] = useState('');
   const [newUrl, setNewUrl] = useState('');
   const [showAdd, setShowAdd] = useState(false);
@@ -149,7 +150,7 @@ export function SourceManager({ sources, onToggleSource, onToggleAll, onAddSourc
       </div>
 
       {/* Other Sources - manual check only */}
-      {MANUAL_SOURCES.length > 0 && (
+      {!hideManualSources && MANUAL_SOURCES.length > 0 && (
         <div className="mt-4 pt-3 border-t border-border">
           <h3 className="font-display text-xs uppercase tracking-wider text-muted-foreground mb-2">
             Other Sources (manual)
