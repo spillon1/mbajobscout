@@ -48,7 +48,7 @@ const Index = () => {
   const [selectedCity, setSelectedCity] = useState<string>('London');
   const location = getLocationString(selectedCity);
   const [sources, setSources] = useState<JobSource[]>(() =>
-    getDefaultSources('London').filter((s) => !isOccSource(`${s.name} ${s.url}`))
+  getDefaultSources('London').filter((s) => !isOccSource(`${s.name} ${s.url}`))
   );
   const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
   const [isSearching, setIsSearching] = useState(false);
@@ -91,12 +91,12 @@ const Index = () => {
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
     setSources((prev) =>
-      prev.map((s) => ({
-        ...s,
-        url: getSourceUrlForLocation(s.name, city) || s.url,
-        status: 'unknown' as const,
-        statusMessage: undefined,
-      }))
+    prev.map((s) => ({
+      ...s,
+      url: getSourceUrlForLocation(s.name, city) || s.url,
+      status: 'unknown' as const,
+      statusMessage: undefined
+    }))
     );
     // Clear existing jobs since they're for a different location
     setJobs([]);
@@ -227,13 +227,13 @@ const Index = () => {
     // Client-side location filter: reject jobs clearly outside the UK
     // US state abbreviations and non-UK country indicators
     const NON_UK_INDICATORS = [
-      // US state abbreviations (2-letter, typically after comma)
-      /,\s*\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/,
-      // US state full names
-      /\b(massachusetts|california|new york|texas|florida|illinois|pennsylvania|ohio|georgia|michigan|connecticut|new jersey|virginia|maryland|colorado|washington state|minnesota|north carolina)\b/i,
-      // Non-UK countries
-      /\b(united states|usa|\bUS\b|canada|australia|germany|france|india|singapore|hong kong|japan|china|brazil|israel|netherlands|switzerland|ireland|spain|italy|sweden|denmark|norway|finland|austria|belgium|portugal|south korea|taiwan|thailand|vietnam|mexico|argentina|chile|south africa|nigeria|kenya|uae|dubai|saudi|qatar)\b/i,
-    ];
+    // US state abbreviations (2-letter, typically after comma)
+    /,\s*\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/,
+    // US state full names
+    /\b(massachusetts|california|new york|texas|florida|illinois|pennsylvania|ohio|georgia|michigan|connecticut|new jersey|virginia|maryland|colorado|washington state|minnesota|north carolina)\b/i,
+    // Non-UK countries
+    /\b(united states|usa|\bUS\b|canada|australia|germany|france|india|singapore|hong kong|japan|china|brazil|israel|netherlands|switzerland|ireland|spain|italy|sweden|denmark|norway|finland|austria|belgium|portugal|south korea|taiwan|thailand|vietnam|mexico|argentina|chile|south africa|nigeria|kenya|uae|dubai|saudi|qatar)\b/i];
+
 
     // Always filter out non-UK jobs regardless of city selection
     filtered = filtered.filter((j) => {
@@ -260,7 +260,7 @@ const Index = () => {
         birmingham: ['west midlands'],
         southampton: ['hampshire'],
         bath: ['somerset', 'bath and north east somerset'],
-        aberdeen: ['aberdeenshire'],
+        aberdeen: ['aberdeenshire']
       };
       const aliases = CITY_ALIASES[cityLower] || [];
       filtered = filtered.filter((j) => {
@@ -269,9 +269,9 @@ const Index = () => {
         if (aliases.some((a) => loc.includes(a))) return true;
         if (loc.includes('united kingdom') || loc === 'uk' || loc.includes('remote') || loc.includes('various')) return true;
         // Drop if it mentions a different UK city
-        const otherCities = UK_CITIES
-          .filter((c) => c.value !== 'United Kingdom' && c.value.toLowerCase() !== cityLower)
-          .map((c) => c.value.toLowerCase());
+        const otherCities = UK_CITIES.
+        filter((c) => c.value !== 'United Kingdom' && c.value.toLowerCase() !== cityLower).
+        map((c) => c.value.toLowerCase());
         if (otherCities.some((c) => loc.includes(c))) return false;
         return true;
       });
@@ -356,15 +356,15 @@ const Index = () => {
               <nav className="flex items-center gap-1 ml-2 sm:ml-4">
                 <Link
                   to="/"
-                  className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider bg-primary/10 text-primary border border-primary/20"
-                >
+                  className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                  
                   VCScout
                 </Link>
                 <Link
                   to="/pe"
-                  className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  PEScout
+                  className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                  
+                  PE Jobs
                 </Link>
               </nav>
             </div>
@@ -377,11 +377,11 @@ const Index = () => {
                     <SelectValue placeholder="Location" />
                   </SelectTrigger>
                   <SelectContent>
-                    {UK_CITIES.map((loc) => (
-                      <SelectItem key={loc.value} value={loc.value} className="text-xs">
+                    {UK_CITIES.map((loc) =>
+                    <SelectItem key={loc.value} value={loc.value} className="text-xs">
                         {loc.label}
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -390,16 +390,16 @@ const Index = () => {
                 onClick={isSearching ? handleStopScrape : handleScrape}
                 size="sm"
                 variant="default"
-                className="font-display text-[10px] uppercase tracking-wider h-7 px-4 sm:px-6 shrink-0"
-              >
-                {isSearching ? (
-                  <span className="flex items-center gap-1.5">
+                className="font-display text-[10px] uppercase tracking-wider h-7 px-4 sm:px-6 shrink-0">
+                
+                {isSearching ?
+                <span className="flex items-center gap-1.5">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Searching
-                  </span>
-                ) : (
-                  'Find jobs'
-                )}
+                  </span> :
+
+                'Find jobs'
+                }
               </Button>
 
               <span className="hidden sm:block h-3 w-px bg-border" />
@@ -469,8 +469,8 @@ const Index = () => {
             setSelectedSources([]);
             setFilterKeywords([]);
             setSelectedType('any');
-          }}
-        />
+          }} />
+        
         
 
         {/* Stats - clickable filters */}
@@ -478,27 +478,27 @@ const Index = () => {
           <button
             onClick={() => setViewMode(viewMode === 'saved' ? 'search' : 'saved')}
             className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
-              viewMode === 'saved' ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'
-            }`}
-          >
+            viewMode === 'saved' ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'}`
+            }>
+            
             <div className="font-display text-lg sm:text-2xl font-bold text-primary">{savedJobs.length}</div>
             <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Saved</div>
           </button>
           <button
             onClick={() => setViewMode(viewMode === 'applied' ? 'search' : 'applied')}
             className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
-              viewMode === 'applied' ? 'border-success/50 glow-primary' : 'border-border hover:border-success/30'
-            }`}
-          >
+            viewMode === 'applied' ? 'border-success/50 glow-primary' : 'border-border hover:border-success/30'}`
+            }>
+            
             <div className="font-display text-lg sm:text-2xl font-bold text-success">{appliedJobs.length}</div>
             <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Applied</div>
           </button>
           <button
             onClick={() => setViewMode(viewMode === 'not_interested' ? 'search' : 'not_interested')}
             className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${
-              viewMode === 'not_interested' ? 'border-destructive/50 glow-primary' : 'border-border hover:border-destructive/30'
-            }`}
-          >
+            viewMode === 'not_interested' ? 'border-destructive/50 glow-primary' : 'border-border hover:border-destructive/30'}`
+            }>
+            
             <div className="font-display text-lg sm:text-2xl font-bold text-destructive">{notInterestedJobs.length}</div>
             <div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Dismissed</div>
           </button>
@@ -507,15 +507,15 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Job list */}
           <div className="lg:col-span-3 space-y-2">
-            {viewMode === 'saved' ? (
-              savedJobs.length === 0 ? (
-                <div className="border border-border rounded-md bg-card p-12 text-center">
+            {viewMode === 'saved' ?
+            savedJobs.length === 0 ?
+            <div className="border border-border rounded-md bg-card p-12 text-center">
                   <Bookmark className="h-8 w-8 text-primary mx-auto mb-3" />
                   <p className="font-display text-sm text-muted-foreground">No saved jobs yet</p>
-                </div>
-              ) : (
-                savedJobs.filter(a => selectedCompanies.length === 0 || selectedCompanies.includes(a.job_company)).map((action) => (
-                  <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
+                </div> :
+
+            savedJobs.filter((a) => selectedCompanies.length === 0 || selectedCompanies.includes(a.job_company)).map((action) =>
+            <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <Bookmark className="h-3.5 w-3.5 text-primary" />
@@ -525,27 +525,27 @@ const Index = () => {
                       <p className="text-sm text-muted-foreground">{action.job_company}</p>
                     </div>
                     <button
-                      onClick={() => {
-                        removeAction(action.id);
-                        toast({ title: 'Removed from Saved', description: action.job_title });
-                      }}
-                      className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors sm:opacity-0 sm:group-hover:opacity-100"
-                      title="Remove from saved"
-                    >
+                onClick={() => {
+                  removeAction(action.id);
+                  toast({ title: 'Removed from Saved', description: action.job_title });
+                }}
+                className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+                title="Remove from saved">
+                
                       <Undo2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                ))
-              )
-            ) : viewMode === 'applied' ? (
-              appliedJobs.length === 0 ? (
-                <div className="border border-border rounded-md bg-card p-12 text-center">
+            ) :
+
+            viewMode === 'applied' ?
+            appliedJobs.length === 0 ?
+            <div className="border border-border rounded-md bg-card p-12 text-center">
                   <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-3" />
                   <p className="font-display text-sm text-muted-foreground">No applications yet</p>
-                </div>
-              ) : (
-                appliedJobs.filter(a => selectedCompanies.length === 0 || selectedCompanies.includes(a.job_company)).map((action) => (
-                  <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
+                </div> :
+
+            appliedJobs.filter((a) => selectedCompanies.length === 0 || selectedCompanies.includes(a.job_company)).map((action) =>
+            <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <CheckCircle2 className="h-3.5 w-3.5 text-success" />
@@ -555,27 +555,27 @@ const Index = () => {
                       <p className="text-sm text-muted-foreground">{action.job_company}</p>
                     </div>
                     <button
-                      onClick={() => {
-                        removeAction(action.id);
-                        toast({ title: 'Removed from Applied', description: action.job_title });
-                      }}
-                      className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors sm:opacity-0 sm:group-hover:opacity-100"
-                      title="Remove (re-shows in results)"
-                    >
+                onClick={() => {
+                  removeAction(action.id);
+                  toast({ title: 'Removed from Applied', description: action.job_title });
+                }}
+                className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+                title="Remove (re-shows in results)">
+                
                       <Undo2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                ))
-              )
-            ) : viewMode === 'not_interested' ? (
-              notInterestedJobs.length === 0 ? (
-                <div className="border border-border rounded-md bg-card p-12 text-center">
+            ) :
+
+            viewMode === 'not_interested' ?
+            notInterestedJobs.length === 0 ?
+            <div className="border border-border rounded-md bg-card p-12 text-center">
                   <XCircle className="h-8 w-8 text-destructive mx-auto mb-3" />
                   <p className="font-display text-sm text-muted-foreground">No dismissed roles</p>
-                </div>
-              ) : (
-                notInterestedJobs.filter(a => selectedCompanies.length === 0 || selectedCompanies.includes(a.job_company)).map((action) => (
-                  <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
+                </div> :
+
+            notInterestedJobs.filter((a) => selectedCompanies.length === 0 || selectedCompanies.includes(a.job_company)).map((action) =>
+            <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <XCircle className="h-3.5 w-3.5 text-destructive" />
@@ -585,19 +585,19 @@ const Index = () => {
                       <p className="text-sm text-muted-foreground">{action.job_company}</p>
                     </div>
                     <button
-                      onClick={() => {
-                        removeAction(action.id);
-                        toast({ title: 'Removed from Dismissed', description: action.job_title });
-                      }}
-                      className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors sm:opacity-0 sm:group-hover:opacity-100"
-                      title="Remove (re-shows in results)"
-                    >
+                onClick={() => {
+                  removeAction(action.id);
+                  toast({ title: 'Removed from Dismissed', description: action.job_title });
+                }}
+                className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+                title="Remove (re-shows in results)">
+                
                       <Undo2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                ))
-              )
-            ) : isSearching ?
+            ) :
+
+            isSearching ?
             <ScrapeProgress isSearching={isSearching} sourceCount={sources.filter((s) => s.enabled).length} /> :
             !hasScraped ?
             <div className="border border-border rounded-md bg-card p-12 text-center">
@@ -621,11 +621,11 @@ const Index = () => {
                 toast({
                   title: 'Saved',
                   description: j.title,
-                  action: actionId ? (
-                    <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>
+                  action: actionId ?
+                  <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>
                       Undo
-                    </ToastAction>
-                  ) : undefined,
+                    </ToastAction> :
+                  undefined
                 });
               }}
               onApplied={async (j) => {
@@ -634,11 +634,11 @@ const Index = () => {
                 toast({
                   title: 'Marked as Applied',
                   description: j.title,
-                  action: actionId ? (
-                    <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>
+                  action: actionId ?
+                  <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>
                       Undo
-                    </ToastAction>
-                  ) : undefined,
+                    </ToastAction> :
+                  undefined
                 });
               }}
               onNotInterested={async (j) => {
@@ -647,11 +647,11 @@ const Index = () => {
                 toast({
                   title: 'Not interested',
                   description: j.title,
-                  action: actionId ? (
-                    <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>
+                  action: actionId ?
+                  <ToastAction altText="Undo" onClick={() => removeAction(actionId)}>
                       Undo
-                    </ToastAction>
-                  ) : undefined,
+                    </ToastAction> :
+                  undefined
                 });
               }} />
             )
