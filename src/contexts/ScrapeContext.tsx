@@ -60,7 +60,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
         if (result.success) {
           setStates(prev => ({
             ...prev,
-            [mode]: { isSearching: false, jobs: result.jobs, sourceStatuses: result.sourceStatuses },
+            [mode]: { isSearching: false, jobs: result.jobs, sourceStatuses: result.sourceStatuses, startedAt: null },
           }));
           toast({
             title: `${mode.toUpperCase()} scrape complete`,
