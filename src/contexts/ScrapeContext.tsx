@@ -49,7 +49,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
 
     setStates(prev => ({
       ...prev,
-      [mode]: { isSearching: true, jobs: null, sourceStatuses: {} },
+      [mode]: { isSearching: true, jobs: null, sourceStatuses: {}, startedAt: Date.now() },
     }));
 
     scrapeJobs(sources, keywords, location, controller.signal, { mode })
