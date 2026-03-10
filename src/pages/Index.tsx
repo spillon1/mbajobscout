@@ -667,7 +667,9 @@ const Index = () => {
           </div>
         </div>
       </main>
-    </div>);
+    </div>
+    <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />
+    </>);
 
 };
 
