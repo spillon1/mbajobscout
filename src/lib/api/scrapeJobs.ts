@@ -34,10 +34,23 @@ export async function scrapeJobs(
     return { success: false, jobs: [], sourceStatuses: {}, error: 'No sources enabled' };
   }
 
-  const fetchOptions: any = { body: { sources: enabledSources, keywords, location } };
-  if (signal) fetchOptions.signal = signal;
+  // Use a long timeout — LinkedIn alone can take 40+ seconds with pagination
+  const controller = signal
+    ? undefined
+    : new AbortController();
+  const timeoutId = !signal ? setTimeout(() => controller?.abort(), 300_000) : undefined; // 5 min
 
-  const { data, error } = await supabase.functions.invoke('scrape-jobs', fetchOptions);
+  const fetchOptions: any = { body: { sources: enabledSources, keywords, location } };
+  fetchOptions.signal = signal || controller?.signal;
+
+  let data: any, error: any;
+  try {
+    const result = await supabase.functions.invoke('scrape-jobs', fetchOptions);
+    data = result.data;
+    error = result.error;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
 
   if (error) {
     console.error('Scrape error:', error);
