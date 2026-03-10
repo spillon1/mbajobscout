@@ -181,7 +181,7 @@ export async function loadSavedJobs(mode: 'vc' | 'pe' = 'vc'): Promise<Job[]> {
     postedDate: row.posted_date || undefined,
     description: row.description || undefined,
     salary: row.salary || undefined,
-  })).filter(j => isValidJob(j, 'vc'));
+  })).filter(j => isValidJob(j, mode));
 
   // Cross-source dedup
   const seen = new Set<string>();
