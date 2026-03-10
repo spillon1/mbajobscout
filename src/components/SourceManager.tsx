@@ -150,7 +150,7 @@ export function SourceManager({ sources, onToggleSource, onToggleAll, onAddSourc
       </div>
 
       {/* Other Sources - manual check only */}
-      {MANUAL_SOURCES.length > 0 && (
+      {!hideManualSources && MANUAL_SOURCES.length > 0 && (
         <div className="mt-4 pt-3 border-t border-border">
           <h3 className="font-display text-xs uppercase tracking-wider text-muted-foreground mb-2">
             Other Sources (manual)
