@@ -30,6 +30,7 @@ Deno.serve(async (req) => {
     const { sources, keywords, location, persist, mode } = await req.json() as ScrapeRequest;
     const jobMode = mode || 'vc';
     const roleFilter = (title: string, company: string, description: string | undefined) =>
+      jobMode === 'ib' ? isLikelyIbRole(title, company, description) :
       jobMode === 'pe' ? isLikelyPeRole(title, company, description) : isLikelyVcRole(title, company, description);
 
     if (!sources || sources.length === 0) {
