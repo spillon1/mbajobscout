@@ -11,15 +11,15 @@ interface ScrapeState {
 }
 
 interface ScrapeContextValue {
-  getState: (mode: 'vc' | 'pe' | 'ib') => ScrapeState;
+  getState: (mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc') => ScrapeState;
   startScrape: (
-    mode: 'vc' | 'pe' | 'ib',
+    mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc',
     sources: JobSource[],
     keywords: string[],
     location: string,
   ) => void;
-  stopScrape: (mode: 'vc' | 'pe' | 'ib') => void;
-  consumeResults: (mode: 'vc' | 'pe' | 'ib') => { jobs: Job[]; sourceStatuses: Record<string, { status: string; error?: string; count?: number }> } | null;
+  stopScrape: (mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc') => void;
+  consumeResults: (mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc') => { jobs: Job[]; sourceStatuses: Record<string, { status: string; error?: string; count?: number }> } | null;
 }
 
 const ScrapeContext = createContext<ScrapeContextValue | null>(null);
