@@ -252,7 +252,7 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
     /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
     /\bcontent\s+(manager|writer|specialist)\b/i,
     /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
-    /\bsales\s+(dev|representative|exec)/i,
+    /\bsales\s+(dev|representative|exec|associate|manager|lead|director)/i,
     /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
     /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
     // HR / People
