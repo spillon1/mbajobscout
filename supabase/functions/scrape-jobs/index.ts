@@ -1905,15 +1905,10 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     }
   }
 
-  // ── Tier 3: description-only signals (weakest — need 2+ signals) ──
+  // ── Tier 3: description-only — require explicit "venture capital" or "VC" mention ──
   if (descLower) {
-    const descSignals = [
-      /venture\s+capital/, /\bvc\s+fund/, /deal\s+flow/, /carried\s+interest/,
-      /portfolio\s+companies/, /fund\s+raising/, /limited\s+partners?/,
-      /general\s+partners?/, /co-?investment/,
-    ];
-    const matchCount = descSignals.filter(p => p.test(descLower)).length;
-    if (matchCount >= 2) return true;
+    if (/venture\s+capital/.test(descLower)) return true;
+    if (/\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower)) return true;
   }
 
   return false;
