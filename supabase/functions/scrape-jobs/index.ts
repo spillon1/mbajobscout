@@ -1051,10 +1051,11 @@ async function scrapeGlassdoor(
   location: string
 ): Promise<any[]> {
   const searchCity = location.split(',')[0]?.trim() || 'London';
+  const searchKeyword = keywords[0] || 'venture capital';
+  const encodedKeyword = encodeURIComponent(`"${searchKeyword}"`);
 
-  // Always use the targeted search URL regardless of what the client sends
-  // Glassdoor redirects generic URLs to homepage
-  const glassdoorSearchUrl = 'https://www.glassdoor.co.uk/Job/jobs.htm?sc.occupationParam=%22venture+capital%22&sc.locationSeoString=London%2C+England+%28UK%29&locId=2671300&locT=C';
+  // Build Glassdoor search URL dynamically based on keywords
+  const glassdoorSearchUrl = `https://www.glassdoor.co.uk/Job/jobs.htm?sc.occupationParam=${encodedKeyword}&sc.keyword=${encodedKeyword}+${encodeURIComponent(searchCity)}`;
 
   console.log(`Glassdoor: scraping URL: ${glassdoorSearchUrl}`);
 
