@@ -10,7 +10,7 @@ interface ScrapeRequest {
   keywords: string[];
   location: string;
   persist?: boolean; // When true, save results directly to DB (used by cron)
-  mode?: 'vc' | 'pe'; // Which job vertical to filter for
+  mode?: 'vc' | 'pe' | 'ib'; // Which job vertical to filter for
 }
 
 Deno.serve(async (req) => {
@@ -30,6 +30,7 @@ Deno.serve(async (req) => {
     const { sources, keywords, location, persist, mode } = await req.json() as ScrapeRequest;
     const jobMode = mode || 'vc';
     const roleFilter = (title: string, company: string, description: string | undefined) =>
+      jobMode === 'ib' ? isLikelyIbRole(title, company, description) :
       jobMode === 'pe' ? isLikelyPeRole(title, company, description) : isLikelyVcRole(title, company, description);
 
     if (!sources || sources.length === 0) {
@@ -283,11 +284,21 @@ function expandKeywords(keywords: string[]): string[] {
     if (lower.includes('vc')) {
       expanded.add(lower.replace('vc', 'venture capital'));
     }
+    if (lower.includes('investment banking')) {
+      expanded.add(lower.replace('investment banking', 'ib'));
+    }
+    if (lower.includes('ib') && !lower.includes('lib')) {
+      expanded.add(lower.replace(/\bib\b/, 'investment banking'));
+    }
   }
   // Always include 'vc' and 'venture capital' as standalone matches
   if (keywords.some(k => k.toLowerCase().includes('venture capital') || k.toLowerCase().includes('vc'))) {
     expanded.add('vc');
     expanded.add('venture capital');
+  }
+  // Always include 'investment banking' for IB keywords
+  if (keywords.some(k => k.toLowerCase().includes('investment banking'))) {
+    expanded.add('investment banking');
   }
   return [...expanded];
 }
@@ -1606,6 +1617,120 @@ function isLikelyPeRole(title: string, company: string, description: string | un
       /deal\s+flow/, /carried\s+interest/, /portfolio\s+companies/,
       /fund\s+raising/, /limited\s+partners?/, /general\s+partners?/,
       /co-?investment/, /\bm&a\b/, /bolt-?on\s+acquisition/,
+    ];
+    const matchCount = descSignals.filter(p => p.test(descLower)).length;
+    if (matchCount >= 2) return true;
+  }
+
+  return false;
+}
+
+/** IB-equivalent of isLikelyVcRole: allows Investment Banking titles, requires IB signals */
+function isLikelyIbRole(title: string, company: string, description: string | undefined): boolean {
+  const titleLower = title.toLowerCase();
+  const companyLower = company.toLowerCase();
+  const descLower = (description || '').toLowerCase();
+
+  // ── Hard exclusions (non-IB roles) ──
+  const hardExclude = [
+    /\bsoftware\s+engineer/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i,
+    /\bdata\s+scientist\b/i, /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i,
+    /\bux\s+(designer|researcher)\b/i, /\bdesigner\b/i, /\bcreative\s+director\b/i,
+    /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
+    /\blegal\s+counsel\b/i, /\blegal\s+associate\b/i,
+    /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
+    /\baccountant\b/i, /\bauditor\b/i, /\bfund\s+controller\b/i,
+    /\bportfolio\s+controller\b/i, /\bfund\s+administ/i,
+    /\bfinance\s+(analyst|director|manager|business\s+partner)\b/i,
+    /\bhead\s+of\s+finance\b/i,
+    /\btax\s+(manager|analyst|advisor|specialist|consultant|director)\b/i,
+    /\bhr\s+(manager|director|business\s+partner|specialist)\b/i,
+    /\bhuman\s+resources\b/i, /\brecruitment\s+(consultant|manager|specialist)\b/i,
+    /\bcontent\s+(manager|writer|specialist)\b/i,
+    /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i, /\bclinical\b/i,
+    /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
+    /\bconsulting\b/i, /\bconsultant\b/i,
+    /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
+    /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
+    /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
+    /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
+    /\bsales\s+(dev|representative|exec)/i,
+    /\bb2b\b/i, /\bbdr\b/i, /\bsdr\b/i, /\bbdm\b/i,
+    /\bbusiness\s+development\b/i,
+    // Non-IB finance
+    /\bventure\s+capital\b/i, /\bprivate\s+equity\b/i,
+    /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+    /\bhedge\s+fund\b/i, /\basset\s+management\b/i, /\bwealth\s+management\b/i,
+    /\btrading\b/i, /\btrader\b/i, /\bcommodities\b/i,
+    /\bsearch\s+fund\b/i, /\bfund\s+of\s+funds\b/i,
+    /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i,
+    /\binvestor\s+relation/i,
+    /\bir\s+analyst\b/i,
+    /\bfund\s+accounting\b/i, /\bfund\s+operations\b/i,
+    /\bequity\s+research\b/i, /\bequity\s+sales\b/i, /\bequity\s+trading\b/i,
+    /\bquantitative\s+(researcher|trader|analyst)\b/i,
+    /\bstructurer\b/i,
+    /\bcompliance\s+(administrator|officer|manager|analyst|specialist|director)\b/i,
+  ];
+  if (hardExclude.some(p => p.test(titleLower))) return false;
+
+  // ── Tier 1: Ultra-strong IB signals → pass always ──
+  const ultraStrongIbPatterns = [
+    /\binvestment\s+bank/,
+    /\bcorporate\s+finance\b/,
+    /\bm&a\b/,
+    /\bmergers?\s+(and|&)\s+acquisitions?\b/,
+    /\bcorporate\s+development\b/,
+    /\bdebt\s+(capital|advisory|finance)\b/,
+    /\becm\b/,
+    /\bdcm\b/,
+    /\bleveraged\s+finance\b/,
+    /\bcapital\s+markets?\b/,
+  ];
+  if (ultraStrongIbPatterns.some(p => p.test(titleLower))) return true;
+
+  // ── Tier 1b: Strong IB title patterns ──
+  const titleIbPatterns = [
+    /\b(analyst|associate|director|managing\s+director|vp|vice\s+president)\b.*\b(advisory|coverage|origination)\b/,
+    /\b(advisory|coverage|origination)\b.*\b(analyst|associate|director|vp)\b/,
+    /\bfinancial\s+sponsor/,
+    /\bdeal\s+(execution|advisory|origination)/,
+  ];
+  if (titleIbPatterns.some(p => p.test(titleLower))) return true;
+
+  // Fund services / recruiting companies — block
+  const excludedCompanies = [
+    /\binvestment\s+banking\s+recruitment/i,
+    /\bfinancial\s+services\s+limited/i,
+  ];
+  if (excludedCompanies.some(p => p.test(companyLower))) return false;
+
+  // ── Tier 2: company looks like a bank + title is a banking role ──
+  const bankPatterns = [
+    /\bbank\b/, /\bbanking\b/, /\bbarclays\b/, /\bjpmorgan\b/, /\bmorgan\s+stanley\b/,
+    /\bgoldman\s+sachs\b/, /\bciti\b/, /\bubs\b/, /\bhsbc\b/, /\bbofa\b/,
+    /\bbank\s+of\s+america\b/, /\bdeutsche\s+bank\b/, /\bnomura\b/, /\blazard\b/,
+    /\bevercore\b/, /\bmoelis\b/, /\bcenterview\b/, /\bperella\s+weinberg\b/,
+    /\bpjt\s+partners\b/, /\brothschild\b/, /\bgreenhill\b/, /\bhoulihan\s+lokey\b/,
+    /\bjefferies\b/, /\brbc\b/, /\bcredit\s+suisse\b/, /\bsociete\s+generale\b/,
+    /\bbnp\s+paribas\b/, /\bmacquarie\b/, /\bcanaccord\b/, /\bstifel\b/,
+    /\badvisory\b/, /\bcorporate\s+finance\b/,
+  ];
+  const companyIsBank = bankPatterns.some(p => p.test(companyLower));
+  if (companyIsBank) {
+    const bankRoleTitles = /\b(analyst|associate|director|vp|vice\s+president|managing\s+director|md|partner|head|intern|graduate|trainee)\b/i;
+    if (bankRoleTitles.test(titleLower)) return true;
+  }
+
+  // ── Tier 3: description-only signals ──
+  if (descLower) {
+    const descSignals = [
+      /investment\s+bank/, /\bm&a\b/, /mergers?\s+(and|&)\s+acquisitions?/,
+      /corporate\s+finance/, /deal\s+execution/, /pitch\s+book/,
+      /financial\s+modelling/, /financial\s+modeling/, /dcf\b/,
+      /leveraged\s+finance/, /debt\s+capital/, /equity\s+capital\s+markets/,
+      /capital\s+markets?/, /\becm\b/, /\bdcm\b/,
+      /origination/, /coverage\s+group/, /advisory\s+mandate/,
     ];
     const matchCount = descSignals.filter(p => p.test(descLower)).length;
     if (matchCount >= 2) return true;
