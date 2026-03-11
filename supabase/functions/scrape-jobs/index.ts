@@ -1748,22 +1748,53 @@ function isLikelyVcRole(title: string, company: string, description: string | un
   const titleLower = title.toLowerCase();
   const companyLower = company.toLowerCase();
   const descLower = (description || '').toLowerCase();
-  const combined = `${titleLower} ${companyLower} ${descLower}`;
 
-  // Simple rule: "venture capital" must appear somewhere in title, company, or description
+  // ── Hard exclusions: non-investment roles even at VC firms ──
+  const nonInvestmentRoles = [
+    /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director|officer)\b/i,
+    /\bcontent\s+(manager|writer|specialist|strategist)\b/i,
+    /\bsocial\s+media\b/i,
+    /\bcommunications?\s+(manager|director|officer|lead)\b/i,
+    /\bpr\s+(manager|director|officer)\b/i,
+    /\boperations\s+(executive|manager|director|analyst|officer|lead|specialist)\b/i,
+    /\boffice\s+manager\b/i, /\badmin\s+(assistant|coordinator|manager)\b/i,
+    /\bexecutive\s+assistant\b/i, /\bpersonal\s+assistant\b/i,
+    /\bfinance\s+(analyst|director|manager|controller|officer)\b/i,
+    /\bhead\s+of\s+finance\b/i, /\bcfo\b/i,
+    /\baccountant\b/i, /\bauditor\b/i, /\bbookkeeper\b/i,
+    /\bfund\s+controller\b/i, /\bfund\s+administ/i,
+    /\bfinancial\s+controller\b/i,
+    /\blegal\s+counsel\b/i, /\bsolicitor\b/i, /\blawyer\b/i, /\bparalegal\b/i,
+    /\bgeneral\s+counsel\b/i,
+    /\bcompliance\s+(officer|manager|analyst|director)\b/i,
+    /\bhr\s+(manager|director|business\s+partner|specialist|officer)\b/i,
+    /\bhuman\s+resources\b/i, /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
+    /\btalent\s+(acquisition|partner|manager)\b/i, /\brecruitment\b/i,
+    /\bheadhunt/i, /\bexecutive\s+search\b/i,
+    /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i, /\bsoftware\b/i,
+    /\bdata\s+scientist\b/i, /\bdata\s+engineer\b/i,
+    /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i,
+    /\bdesigner\b/i, /\bux\b/i, /\bcreative\s+director\b/i,
+    /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
+    /\bsales\s+(dev|representative|exec|manager|director)/i,
+    /\bbusiness\s+development\b/i, /\bbdm\b/i,
+    /\btax\s+(manager|analyst|advisor|specialist|director)\b/i,
+    /\bprocurement\b/i, /\bsupply\s+chain\b/i,
+    /\bevent\s+(manager|coordinator|director|operations)\b/i,
+    /\binvestor\s+relation/i, /\bir\s+(manager|director|analyst)\b/i,
+    /\bchief\s+of\s+staff\b/i,
+  ];
+  if (nonInvestmentRoles.some(p => p.test(titleLower))) return false;
+
+  // Simple rule: "venture capital" must appear in title, company, or description
   const vcSignals = [
     /venture\s+capital/,
     /\bvc\s+(fund|firm|portfolio|backed|investment|analyst|associate|partner|principal|director)/,
-    /\bventure(s|\s+partners?)\b/,  // company names like "X Ventures" or "X Venture Partners"
+    /\bventure(s|\s+partners?)\b/,
   ];
 
-  // Check title first
   if (vcSignals.some(p => p.test(titleLower))) return true;
-
-  // Check company name — "X Ventures" is a strong VC signal
   if (vcSignals.some(p => p.test(companyLower))) return true;
-
-  // Check description — must explicitly mention venture capital
   if (/venture\s+capital/.test(descLower)) return true;
   if (/\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower)) return true;
 
