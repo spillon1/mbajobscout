@@ -18,8 +18,8 @@ interface ScrapeContextValue {
     keywords: string[],
     location: string,
   ) => void;
-  stopScrape: (mode: 'vc' | 'pe') => void;
-  consumeResults: (mode: 'vc' | 'pe') => { jobs: Job[]; sourceStatuses: Record<string, { status: string; error?: string; count?: number }> } | null;
+  stopScrape: (mode: 'vc' | 'pe' | 'ib') => void;
+  consumeResults: (mode: 'vc' | 'pe' | 'ib') => { jobs: Job[]; sourceStatuses: Record<string, { status: string; error?: string; count?: number }> } | null;
 }
 
 const ScrapeContext = createContext<ScrapeContextValue | null>(null);
