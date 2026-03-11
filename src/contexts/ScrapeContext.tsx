@@ -11,15 +11,15 @@ interface ScrapeState {
 }
 
 interface ScrapeContextValue {
-  getState: (mode: 'vc' | 'pe') => ScrapeState;
+  getState: (mode: 'vc' | 'pe' | 'ib') => ScrapeState;
   startScrape: (
-    mode: 'vc' | 'pe',
+    mode: 'vc' | 'pe' | 'ib',
     sources: JobSource[],
     keywords: string[],
     location: string,
   ) => void;
-  stopScrape: (mode: 'vc' | 'pe') => void;
-  consumeResults: (mode: 'vc' | 'pe') => { jobs: Job[]; sourceStatuses: Record<string, { status: string; error?: string; count?: number }> } | null;
+  stopScrape: (mode: 'vc' | 'pe' | 'ib') => void;
+  consumeResults: (mode: 'vc' | 'pe' | 'ib') => { jobs: Job[]; sourceStatuses: Record<string, { status: string; error?: string; count?: number }> } | null;
 }
 
 const ScrapeContext = createContext<ScrapeContextValue | null>(null);
@@ -31,12 +31,12 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
   const [states, setStates] = useState<Record<string, ScrapeState>>({});
   const abortRefs = useRef<Record<string, AbortController>>({});
 
-  const getState = useCallback((mode: 'vc' | 'pe'): ScrapeState => {
+  const getState = useCallback((mode: 'vc' | 'pe' | 'ib'): ScrapeState => {
     return states[mode] || defaultState;
   }, [states]);
 
   const startScrape = useCallback((
-    mode: 'vc' | 'pe',
+    mode: 'vc' | 'pe' | 'ib',
     sources: JobSource[],
     keywords: string[],
     location: string,
@@ -93,7 +93,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
       });
   }, [toast]);
 
-  const stopScrape = useCallback((mode: 'vc' | 'pe') => {
+  const stopScrape = useCallback((mode: 'vc' | 'pe' | 'ib') => {
     abortRefs.current[mode]?.abort();
     delete abortRefs.current[mode];
     setStates(prev => ({
@@ -103,7 +103,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
     toast({ title: 'Search stopped' });
   }, [toast]);
 
-  const consumeResults = useCallback((mode: 'vc' | 'pe') => {
+  const consumeResults = useCallback((mode: 'vc' | 'pe' | 'ib') => {
     const state = states[mode];
     if (!state?.jobs) return null;
     const result = { jobs: state.jobs, sourceStatuses: state.sourceStatuses };

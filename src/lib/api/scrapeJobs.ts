@@ -25,7 +25,7 @@ export async function scrapeJobs(
   keywords: string[],
   location: string,
   signal?: AbortSignal,
-  options?: { mode?: 'vc' | 'pe' }
+  options?: { mode?: 'vc' | 'pe' | 'ib' }
 ): Promise<ScrapeResult> {
   const enabledSources = sources
     .filter((s) => s.enabled)
@@ -156,7 +156,7 @@ export async function scrapeJobs(
   };
 }
 
-export async function loadSavedJobs(mode: 'vc' | 'pe' = 'vc'): Promise<Job[]> {
+export async function loadSavedJobs(mode: 'vc' | 'pe' | 'ib' = 'vc'): Promise<Job[]> {
   const { data, error } = await supabase
     .from('scraped_jobs')
     .select('*')
@@ -194,7 +194,7 @@ export async function loadSavedJobs(mode: 'vc' | 'pe' = 'vc'): Promise<Job[]> {
 }
 
 /** Returns false for non-job entries like category headers, newsletter prompts, etc. */
-function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
+function isValidJob(job: Job, mode: 'vc' | 'pe' | 'ib' = 'vc'): boolean {
   const titleLower = job.title.toLowerCase();
   const descLower = (job.description || '').toLowerCase();
 
@@ -311,6 +311,18 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
       /\bfund\s+accounting\b/i, /\bfund\s+operations\b/i,
       /\btrading\b/i, /\btrader\b/i,
       /\binvestor\s+relation/i,
+    );
+  } else if (mode === 'ib') {
+    hardExcludeTitles.push(
+      /\bventure\s+capital\b/i,
+      /\bprivate\s+equity\b/i,
+      /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+      /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i,
+      /\bhedge\s+fund\b/i, /\basset\s+management\b/i, /\bwealth\s+management\b/i,
+      /\btrading\b/i, /\btrader\b/i,
+      /\bcommodities\b/i,
+      /\bsearch\s+fund\b/i,
+      /\bfund\s+of\s+funds\b/i,
     );
   }
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;

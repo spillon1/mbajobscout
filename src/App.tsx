@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ScrapeProvider } from "@/contexts/ScrapeContext";
 import Index from "./pages/Index";
 import PEScout from "./pages/PEScout";
+import IBScout from "./pages/IBScout";
 import OutboundRedirect from "./pages/OutboundRedirect";
 import NotFound from "./pages/NotFound";
 
@@ -21,6 +22,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/pe" element={<PEScout />} />
+            <Route path="/ib" element={<IBScout />} />
             <Route path="/out" element={<OutboundRedirect />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
