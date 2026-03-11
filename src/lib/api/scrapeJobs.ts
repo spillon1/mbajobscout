@@ -327,6 +327,17 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
     }
   }
 
+  // For VC mode + LinkedIn source: require positive VC signals (matches edge function logic)
+  if (mode === 'vc' && job.source.toLowerCase().includes('linkedin')) {
+    const combined = `${titleLower} ${job.company.toLowerCase()} ${descLower}`;
+    const vcSignals = [
+      /venture\s+capital/,
+      /\bvc\s+(fund|firm|portfolio|backed|investment|analyst|associate|partner|principal|director)/,
+      /\bventure(s|\s+partners?)\b/,
+    ];
+    if (!vcSignals.some(p => p.test(combined))) return false;
+  }
+
   return true;
 }
 
