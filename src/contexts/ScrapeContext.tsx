@@ -93,7 +93,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
       });
   }, [toast]);
 
-  const stopScrape = useCallback((mode: 'vc' | 'pe') => {
+  const stopScrape = useCallback((mode: 'vc' | 'pe' | 'ib') => {
     abortRefs.current[mode]?.abort();
     delete abortRefs.current[mode];
     setStates(prev => ({
