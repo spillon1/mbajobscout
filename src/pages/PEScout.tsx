@@ -433,7 +433,7 @@ const PEScout = () => {
                   <XCircle className="h-8 w-8 text-destructive mx-auto mb-3" />
                   <p className="font-display text-sm text-muted-foreground">No dismissed roles</p>
                 </div>
-              ) : notInterestedJobs.filter(a => selectedCompanies.length === 0 || selectedCompanies.includes(a.job_company)).map((action) => (
+              ) : notInterestedJobs.map((action) => (
                 <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1"><XCircle className="h-3.5 w-3.5 text-destructive" /><span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">{action.job_source}</span></div>
