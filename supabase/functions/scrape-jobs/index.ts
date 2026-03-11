@@ -1845,14 +1845,12 @@ function isLikelyVcRole(title: string, company: string, description: string | un
   // Only pass if not at a fund services/fintech company
   if (/limited\s+partner|general\s+partner|\blp\b|\bgp\b/.test(titleLower) && !isFundServices) return true;
 
-  // ── Tier 1b: Strong VC signals in TITLE → pass unless fund services ──
-  const titleVcPatterns = [
+  // ── Tier 1b: Explicit VC in TITLE → pass unless fund services ──
+  const titleExplicitVcPatterns = [
     /venture\s+capital/,
     /\bvc\s+(fund|firm|analyst|associate|partner|principal|director|investment)/,
-    /fund\s+(management|of\s+funds|raising|operations|accounting|controller)/,
-    /investment\s+(analyst|associate|manager|director|principal|partner)/,
   ];
-  if (titleVcPatterns.some(p => p.test(titleLower))) {
+  if (titleExplicitVcPatterns.some(p => p.test(titleLower))) {
     if (isFundServices) return false;
     return true;
   }
