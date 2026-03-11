@@ -255,10 +255,10 @@ const PEScout = () => {
               </div>
               <div className="hidden sm:block">
                 <h1 className="font-display text-sm font-bold tracking-tight text-foreground">
-                  PE<span className="text-primary">SCOUT</span>
+                  VCPE<span className="text-primary">SCOUT</span>
                 </h1>
                 <p className="text-[10px] font-display text-muted-foreground uppercase tracking-widest">
-                  UK PE Job Aggregator
+                  UK VC/PE Job Aggregator
                 </p>
               </div>
               {/* Nav tabs */}
