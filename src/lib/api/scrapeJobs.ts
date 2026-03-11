@@ -324,6 +324,30 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc' = 'vc'): bo
       /\bsearch\s+fund\b/i,
       /\bfund\s+of\s+funds\b/i,
     );
+  } else if (mode === 'st') {
+    // S&T: remove non-S&T finance roles but keep trading/sales
+    hardExcludeTitles.push(
+      /\bventure\s+capital\b/i,
+      /\bprivate\s+equity\b/i,
+      /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i,
+      /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+      /\bsearch\s+fund\b/i,
+      /\bfund\s+of\s+funds\b/i,
+    );
+    // Remove generic consulting exclusion for S&T — it doesn't apply
+  } else if (mode === 'mc') {
+    // MC: remove non-consulting finance roles but keep consulting/consultant
+    hardExcludeTitles.push(
+      /\bventure\s+capital\b/i,
+      /\bprivate\s+equity\b/i,
+      /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i,
+      /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+      /\bhedge\s+fund\b/i, /\basset\s+management\b/i, /\bwealth\s+management\b/i,
+      /\btrading\b/i, /\btrader\b/i,
+      /\bcommodities\b/i,
+      /\bsearch\s+fund\b/i,
+      /\bfund\s+of\s+funds\b/i,
+    );
   }
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
 
