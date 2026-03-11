@@ -372,20 +372,6 @@ const Index = () => {
                 }
               </Button>
 
-              <span className="hidden sm:block h-3 w-px bg-border" />
-              <div className="hidden sm:flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
-                <button
-                  className="hover:text-foreground transition-colors whitespace-nowrap"
-                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                  {stats.total} Jobs
-                </button>
-                <span className="h-3 w-px bg-border" />
-                <button
-                  className="hover:text-foreground transition-colors whitespace-nowrap"
-                  onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-                  {sources.filter((s) => s.enabled).length} Sources
-                </button>
-              </div>
               {/* Auth button */}
               {user ? (
                 <button
