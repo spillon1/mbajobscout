@@ -1892,15 +1892,14 @@ function isLikelyVcRole(title: string, company: string, description: string | un
       if (fundRoleTitles.test(titleLower)) {
         // Strong VC company name → pass directly
         if (companyIsStrongVc) return true;
-        // Weak/generic company name → require at least 1 VC signal in description
+        // Weak/generic company name → require explicit "venture capital" or "VC" mention in description
         if (descLower) {
-          const vcDescSignals = [
-            /venture\s+capital/, /\bvc\s+fund/, /\bvc\b/, /deal\s+flow/, /carried\s+interest/,
-            /portfolio\s+companies/, /fund\s+raising/, /limited\s+partners?/,
-            /general\s+partners?/, /co-?investment/, /seed\s+stage/, /series\s+[a-c]/,
-            /early.stage/, /start-?up/, /deep\s*tech/,
+          const vcExplicitSignals = [
+            /venture\s+capital/,
+            /\bvc\s+(fund|firm|portfolio|backed|investment)/,
+            /\bvc\b.*\b(fund|firm|invest)/,
           ];
-          if (vcDescSignals.some(p => p.test(descLower))) return true;
+          if (vcExplicitSignals.some(p => p.test(descLower))) return true;
         }
       }
     }
