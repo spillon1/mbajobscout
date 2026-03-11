@@ -293,6 +293,8 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
       /\bpan.european\b.*\bpe\b/i,
       /\bmerchant\s+capital\b/i,
       /\bgp\s+stakes?\b/i, /\bemerging\s+manager/i, /\bfund\s+of\s+funds\b/i,
+      /\binfra(structure)?\s*\/?\s*real\s+assets?\b/i, /\breal\s+assets?\s+invest/i,
+      /\binfrastructure\s+invest/i,
     );
   } else if (mode === 'pe') {
     hardExcludeTitles.push(
