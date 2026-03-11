@@ -156,7 +156,7 @@ export async function scrapeJobs(
   };
 }
 
-export async function loadSavedJobs(mode: 'vc' | 'pe' = 'vc'): Promise<Job[]> {
+export async function loadSavedJobs(mode: 'vc' | 'pe' | 'ib' = 'vc'): Promise<Job[]> {
   const { data, error } = await supabase
     .from('scraped_jobs')
     .select('*')
