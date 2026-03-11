@@ -1877,17 +1877,32 @@ function isLikelyVcRole(title: string, company: string, description: string | un
 
   // ── Tier 2: company looks like a VC fund + title is a fund-type role ──
   if (!isFundServices) {
-    const companyVcPatterns = [
+    const companyStrongVcPatterns = [
       /venture(s|\s+capital|\s+partners?)\b/,
-      /\bcapital\b/,
-      /\bpartners?\b/,
       /\bvc\b/,
     ];
-    const companyIsVc = companyVcPatterns.some(p => p.test(companyLower));
-    if (companyIsVc) {
-      // Investment-focused fund roles only (exclude support: legal, compliance, HR, finance, chief of staff)
+    const companyWeakVcPatterns = [
+      /\bcapital\b/,
+      /\bpartners?\b/,
+    ];
+    const companyIsStrongVc = companyStrongVcPatterns.some(p => p.test(companyLower));
+    const companyIsWeakVc = companyWeakVcPatterns.some(p => p.test(companyLower));
+    if (companyIsStrongVc || companyIsWeakVc) {
       const fundRoleTitles = /\b(analyst|associate|partner|principal|director|vp|vice\s+president|head\s+of\s+(investments?|portfolio|strategy|growth)|investment|fund\s+manager|portfolio)\b/i;
-      if (fundRoleTitles.test(titleLower)) return true;
+      if (fundRoleTitles.test(titleLower)) {
+        // Strong VC company name → pass directly
+        if (companyIsStrongVc) return true;
+        // Weak/generic company name → require at least 1 VC signal in description
+        if (descLower) {
+          const vcDescSignals = [
+            /venture\s+capital/, /\bvc\s+fund/, /\bvc\b/, /deal\s+flow/, /carried\s+interest/,
+            /portfolio\s+companies/, /fund\s+raising/, /limited\s+partners?/,
+            /general\s+partners?/, /co-?investment/, /seed\s+stage/, /series\s+[a-c]/,
+            /early.stage/, /start-?up/, /deep\s*tech/,
+          ];
+          if (vcDescSignals.some(p => p.test(descLower))) return true;
+        }
+      }
     }
   }
 
