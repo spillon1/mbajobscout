@@ -53,7 +53,7 @@ const Index = () => {
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
   const scrapeState = getState('vc');
   const sourcesRef = useRef<HTMLDivElement>(null);
-  const [selectedCity, setSelectedCity] = useState<string>('London');
+  const [selectedCity, setSelectedCity] = usePersistedState<string>('vc-city', 'London');
   const location = getLocationString(selectedCity);
   const [sources, setSources] = useState<JobSource[]>(() =>
   getDefaultSources('London').filter((s) => !isOccSource(`${s.name} ${s.url}`))
