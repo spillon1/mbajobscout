@@ -10,7 +10,7 @@ interface ScrapeRequest {
   keywords: string[];
   location: string;
   persist?: boolean; // When true, save results directly to DB (used by cron)
-  mode?: 'vc' | 'pe'; // Which job vertical to filter for
+  mode?: 'vc' | 'pe' | 'ib'; // Which job vertical to filter for
 }
 
 Deno.serve(async (req) => {
