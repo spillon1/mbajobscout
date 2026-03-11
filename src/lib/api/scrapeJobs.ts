@@ -292,6 +292,7 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
       /\blarge.cap\s+pe\b/i, /\bmid.cap\s+pe\b/i,
       /\bpan.european\b.*\bpe\b/i,
       /\bmerchant\s+capital\b/i,
+      /\bgp\s+stakes?\b/i, /\bemerging\s+manager/i, /\bfund\s+of\s+funds\b/i,
     );
   } else if (mode === 'pe') {
     hardExcludeTitles.push(
