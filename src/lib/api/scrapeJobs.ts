@@ -239,7 +239,7 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
     /\bchief\s+of\s+staff\b/i,
     // Finance ops
     /\baccountant\b/i, /\bauditor\b/i, /\bfund\s+controller\b/i, /\bfinancial\s+controller\b/i,
-    /\bportfolio\s+(controller|monitor|manager)\b/i, /\bfund\s+administ/i,
+    /\bportfolio\s+(controller|monitor|manager|management)\b/i, /\bfund\s+administ/i,
     /\bfinance\s+(analyst|director|manager|business\s+partner|and\s+portfolio)\b/i,
     /\bhead\s+of\s+finance\b/i,
     // Tech / product
