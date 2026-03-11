@@ -284,11 +284,21 @@ function expandKeywords(keywords: string[]): string[] {
     if (lower.includes('vc')) {
       expanded.add(lower.replace('vc', 'venture capital'));
     }
+    if (lower.includes('investment banking')) {
+      expanded.add(lower.replace('investment banking', 'ib'));
+    }
+    if (lower.includes('ib') && !lower.includes('lib')) {
+      expanded.add(lower.replace(/\bib\b/, 'investment banking'));
+    }
   }
   // Always include 'vc' and 'venture capital' as standalone matches
   if (keywords.some(k => k.toLowerCase().includes('venture capital') || k.toLowerCase().includes('vc'))) {
     expanded.add('vc');
     expanded.add('venture capital');
+  }
+  // Always include 'investment banking' for IB keywords
+  if (keywords.some(k => k.toLowerCase().includes('investment banking'))) {
+    expanded.add('investment banking');
   }
   return [...expanded];
 }
