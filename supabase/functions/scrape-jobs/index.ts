@@ -1756,7 +1756,7 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bsocial\s+media\b/i,
     /\bcommunications?\s+(manager|director|officer|lead)\b/i,
     /\bpr\s+(manager|director|officer)\b/i,
-    /\boperations\s+(executive|manager|director|analyst|officer|lead|specialist)\b/i,
+    /\boperations\s+(associate|executive|manager|director|analyst|officer|lead|specialist|coordinator)\b/i,
     /\boffice\s+manager\b/i, /\badmin\s+(assistant|coordinator|manager)\b/i,
     /\bexecutive\s+assistant\b/i, /\bpersonal\s+assistant\b/i,
     /\bfinance\s+(analyst|director|manager|controller|officer)\b/i,

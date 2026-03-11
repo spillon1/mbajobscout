@@ -278,7 +278,7 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
       /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
       // Hedge funds & operations roles
       /\bhedge\s+fund\b/i, /\bfund\s+of\s+(hedge\s+)?funds?\b/i,
-      /\boperations\s+(executive|manager|director|analyst|officer|lead|specialist)\b/i,
+      /\boperations\s+(associate|executive|manager|director|analyst|officer|lead|specialist|coordinator)\b/i,
       /\bstrategy\s+(&|and)\s+operations\b/i,
       /\b(nav|net\s+asset\s+value)\s+(and|&)\s+operations\b/i,
       /\bfund\s+account/i,
