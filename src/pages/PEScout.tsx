@@ -276,6 +276,12 @@ const PEScout = () => {
                 >
                   PE Jobs
                 </Link>
+                <Link
+                  to="/ib"
+                  className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  IB Jobs
+                </Link>
               </nav>
             </div>
 

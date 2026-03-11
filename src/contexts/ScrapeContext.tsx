@@ -103,7 +103,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
     toast({ title: 'Search stopped' });
   }, [toast]);
 
-  const consumeResults = useCallback((mode: 'vc' | 'pe') => {
+  const consumeResults = useCallback((mode: 'vc' | 'pe' | 'ib') => {
     const state = states[mode];
     if (!state?.jobs) return null;
     const result = { jobs: state.jobs, sourceStatuses: state.sourceStatuses };
