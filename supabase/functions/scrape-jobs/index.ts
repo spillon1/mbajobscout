@@ -1783,7 +1783,7 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bevent\s+(manager|coordinator|director|operations)\b/i,
     /\binvestor\s+relation/i, /\bir\s+(manager|director|analyst)\b/i,
     /\bchief\s+of\s+staff\b/i,
-    /\bco-?founder\b/i,
+    /\b(?:co-?)?founder\b/i,
   ];
   if (nonInvestmentRoles.some(p => p.test(titleLower))) return false;
 
