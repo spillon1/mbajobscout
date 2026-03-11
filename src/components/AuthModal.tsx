@@ -23,14 +23,17 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-      const { error } = await lovable.auth.signInWithOAuth('google', {
+      const result = await lovable.auth.signInWithOAuth('google', {
         redirect_uri: window.location.origin,
       });
-      if (error) {
-        toast({ title: 'Google sign-in failed', description: error.message, variant: 'destructive' });
+      if (result.error) {
+        const msg = result.error.message?.toLowerCase() ?? '';
+        // Silently ignore user-initiated cancellations
+        if (msg.includes('cancel') || msg.includes('closed') || msg.includes('popup')) return;
+        toast({ title: 'Google sign-in failed', description: result.error.message, variant: 'destructive' });
       }
     } catch {
-      toast({ title: 'Google sign-in failed', description: 'Please try again', variant: 'destructive' });
+      // Ignore — likely a popup closure
     } finally {
       setGoogleLoading(false);
     }
