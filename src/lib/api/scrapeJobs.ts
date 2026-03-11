@@ -244,7 +244,7 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
     /\bhead\s+of\s+finance\b/i,
     // Tech / product
     /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i, /\bdata\s+scientist\b/i,
-    /\bdesigner\b/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i,
+    /\bdesigner\b/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i, /\bco-?founder\b/i,
     // HR / admin / sales / marketing
     /\brecruitment\s+(consultant|manager)\b/i, /\bcompliance\s+(administrator|officer|manager|analyst|specialist|director)\b/i,
     /\bbusiness\s+development\b/i, /\bbdm\b/i, /\bprogram\s+director\b/i,
