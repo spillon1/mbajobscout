@@ -511,7 +511,7 @@ const Index = () => {
                   <p className="font-display text-sm text-muted-foreground">No saved jobs yet</p>
                 </div> :
 
-            savedJobs.filter((a) => selectedCompanies.length === 0 || selectedCompanies.includes(a.job_company)).map((action) =>
+            savedJobs.map((action) =>
             <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -541,7 +541,7 @@ const Index = () => {
                   <p className="font-display text-sm text-muted-foreground">No applications yet</p>
                 </div> :
 
-            appliedJobs.filter((a) => selectedCompanies.length === 0 || selectedCompanies.includes(a.job_company)).map((action) =>
+            appliedJobs.map((action) =>
             <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -571,7 +571,7 @@ const Index = () => {
                   <p className="font-display text-sm text-muted-foreground">No dismissed roles</p>
                 </div> :
 
-            notInterestedJobs.filter((a) => selectedCompanies.length === 0 || selectedCompanies.includes(a.job_company)).map((action) =>
+            notInterestedJobs.map((action) =>
             <div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
