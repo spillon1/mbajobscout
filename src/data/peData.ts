@@ -18,7 +18,7 @@ const PE_SOURCE_TEMPLATES: { id: string; name: string; defaultUrl: string; enabl
   { id: 'pe-10', name: 'Glassdoor UK', defaultUrl: 'https://www.glassdoor.co.uk/Job/jobs.htm', enabled: true, status: 'unknown' },
   { id: 'pe-m0', name: 'Google Jobs', defaultUrl: 'https://www.google.com/search?udm=8&q=private+equity+jobs', enabled: true, status: 'unknown' },
   { id: 'pe-9', name: 'Indeed UK', defaultUrl: 'https://uk.indeed.com/jobs?q=%22private+equity%22', enabled: true, status: 'unknown' },
-  { id: 'pe-11', name: 'InnovatorsRoom', defaultUrl: 'https://innovatorsroom.beehiiv.com/archive?tags=%F0%9F%92%B6+Junior+Investor+JobDrop', enabled: true, status: 'unknown' },
+  
   { id: 'pe-2', name: 'LinkedIn Jobs', defaultUrl: 'https://www.linkedin.com/jobs/search/?keywords=%22private+equity%22', enabled: true, status: 'unknown' },
 ];
 
