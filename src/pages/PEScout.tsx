@@ -58,7 +58,7 @@ const PEScout = () => {
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
   const scrapeState = getState('pe');
   const sourcesRef = useRef<HTMLDivElement>(null);
-  const [selectedCity, setSelectedCity] = useState<string>('London');
+  const [selectedCity, setSelectedCity] = usePersistedState<string>('pe-city', 'London');
   const location = getLocationString(selectedCity);
   const [sources, setSources] = useState<JobSource[]>(() => getPEDefaultSources('London'));
   const [keywords, setKeywords] = useState<string[]>(PE_DEFAULT_KEYWORDS);
