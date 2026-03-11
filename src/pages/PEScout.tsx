@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { Link } from 'react-router-dom';
 
 function parsePostedDate(dateStr?: string): Date {
@@ -57,7 +58,7 @@ const PEScout = () => {
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
   const scrapeState = getState('pe');
   const sourcesRef = useRef<HTMLDivElement>(null);
-  const [selectedCity, setSelectedCity] = useState<string>('London');
+  const [selectedCity, setSelectedCity] = usePersistedState<string>('pe-city', 'London');
   const location = getLocationString(selectedCity);
   const [sources, setSources] = useState<JobSource[]>(() => getPEDefaultSources('London'));
   const [keywords, setKeywords] = useState<string[]>(PE_DEFAULT_KEYWORDS);
@@ -100,16 +101,16 @@ const PEScout = () => {
   }, [scrapeState.isSearching, consumeResults]);
 
   const [viewMode, setViewMode] = useState<'search' | 'applied' | 'not_interested' | 'saved'>('search');
-  const [selectedType, setSelectedType] = useState<JobType | 'any'>('any');
-  const [listedPeriod, setListedPeriod] = useState<ListedPeriod>('any');
-  const [jobStatus, setJobStatus] = useState<JobStatus>('any');
-  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
-  const [selectedTitles, setSelectedTitles] = useState<string[]>([]);
-  const [selectedSources, setSelectedSources] = useState<string[]>([]);
-  const [filterKeywords, setFilterKeywords] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
-  const [datePostedFilter, setDatePostedFilter] = useState<DatePostedFilter>('all');
-  const [selectedSeniorities, setSelectedSeniorities] = useState<Seniority[]>([]);
+  const [selectedType, setSelectedType] = usePersistedState<JobType | 'any'>('pe-type', 'any');
+  const [listedPeriod, setListedPeriod] = usePersistedState<ListedPeriod>('pe-period', 'any');
+  const [jobStatus, setJobStatus] = usePersistedState<JobStatus>('pe-status', 'any');
+  const [selectedCompanies, setSelectedCompanies] = usePersistedState<string[]>('pe-companies', []);
+  const [selectedTitles, setSelectedTitles] = usePersistedState<string[]>('pe-titles', []);
+  const [selectedSources, setSelectedSources] = usePersistedState<string[]>('pe-sources', []);
+  const [filterKeywords, setFilterKeywords] = usePersistedState<string[]>('pe-keywords', []);
+  const [sortBy, setSortBy] = usePersistedState<SortOption>('pe-sort', 'date-desc');
+  const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('pe-datePosted', 'all');
+  const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('pe-seniorities', []);
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);

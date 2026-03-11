@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { Link } from 'react-router-dom';
 
 /** Parse freetext posted date into a Date for sorting. Unknown dates → now (appear first). */
@@ -52,7 +53,7 @@ const Index = () => {
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
   const scrapeState = getState('vc');
   const sourcesRef = useRef<HTMLDivElement>(null);
-  const [selectedCity, setSelectedCity] = useState<string>('London');
+  const [selectedCity, setSelectedCity] = usePersistedState<string>('vc-city', 'London');
   const location = getLocationString(selectedCity);
   const [sources, setSources] = useState<JobSource[]>(() =>
   getDefaultSources('London').filter((s) => !isOccSource(`${s.name} ${s.url}`))
@@ -101,16 +102,16 @@ const Index = () => {
 
   // Filters
   const [viewMode, setViewMode] = useState<'search' | 'applied' | 'not_interested' | 'saved'>('search');
-  const [selectedType, setSelectedType] = useState<JobType | 'any'>('any');
-  const [listedPeriod, setListedPeriod] = useState<ListedPeriod>('any');
-  const [jobStatus, setJobStatus] = useState<JobStatus>('any');
-  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
-  const [selectedTitles, setSelectedTitles] = useState<string[]>([]);
-  const [selectedSources, setSelectedSources] = useState<string[]>([]);
-  const [filterKeywords, setFilterKeywords] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
-  const [datePostedFilter, setDatePostedFilter] = useState<DatePostedFilter>('all');
-  const [selectedSeniorities, setSelectedSeniorities] = useState<Seniority[]>([]);
+  const [selectedType, setSelectedType] = usePersistedState<JobType | 'any'>('vc-type', 'any');
+  const [listedPeriod, setListedPeriod] = usePersistedState<ListedPeriod>('vc-period', 'any');
+  const [jobStatus, setJobStatus] = usePersistedState<JobStatus>('vc-status', 'any');
+  const [selectedCompanies, setSelectedCompanies] = usePersistedState<string[]>('vc-companies', []);
+  const [selectedTitles, setSelectedTitles] = usePersistedState<string[]>('vc-titles', []);
+  const [selectedSources, setSelectedSources] = usePersistedState<string[]>('vc-sources', []);
+  const [filterKeywords, setFilterKeywords] = usePersistedState<string[]>('vc-keywords', []);
+  const [sortBy, setSortBy] = usePersistedState<SortOption>('vc-sort', 'date-desc');
+  const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('vc-datePosted', 'all');
+  const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('vc-seniorities', []);
 
   useEffect(() => {
     setSources((prev) => prev.filter((s) => !isOccSource(`${s.name} ${s.url}`)));
