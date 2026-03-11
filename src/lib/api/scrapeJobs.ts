@@ -25,7 +25,7 @@ export async function scrapeJobs(
   keywords: string[],
   location: string,
   signal?: AbortSignal,
-  options?: { mode?: 'vc' | 'pe' | 'ib' }
+  options?: { mode?: 'vc' | 'pe' | 'ib' | 'st' | 'mc' }
 ): Promise<ScrapeResult> {
   const enabledSources = sources
     .filter((s) => s.enabled)
