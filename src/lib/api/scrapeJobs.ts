@@ -252,7 +252,7 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
     /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
     /\bcontent\s+(manager|writer|specialist)\b/i,
     /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
-    /\bsales\s+(dev|representative|exec)/i,
+    /\bsales\s+(dev|representative|exec|associate|manager|lead|director)/i,
     /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
     /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
     // HR / People
@@ -327,12 +327,15 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
     }
   }
 
+  // Exclude portfolio-company roles advertised as "at VC Backed Startup" etc.
+  if (mode === 'vc' && /\bvc[\s-]backed\b/i.test(titleLower)) return false;
+
   // For VC mode + LinkedIn source: require positive VC signals (matches edge function logic)
   if (mode === 'vc' && job.source.toLowerCase().includes('linkedin')) {
     const combined = `${titleLower} ${job.company.toLowerCase()} ${descLower}`;
     const vcSignals = [
       /venture\s+capital/,
-      /\bvc\s+(fund|firm|portfolio|backed|investment|analyst|associate|partner|principal|director)/,
+      /\bvc\s+(fund|firm|portfolio|investment|analyst|associate|partner|principal|director)/,
       /\bventure(s|\s+partners?)\b/,
     ];
     if (!vcSignals.some(p => p.test(combined))) return false;
