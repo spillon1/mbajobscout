@@ -178,12 +178,6 @@ const STScout = () => {
               <Button onClick={isSearching ? handleStopScrape : handleScrape} size="sm" variant="default" className="font-display text-[10px] uppercase tracking-wider h-7 px-4 sm:px-6 shrink-0">
                 {isSearching ? (<span className="flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" />Searching</span>) : 'Find jobs'}
               </Button>
-              <span className="hidden sm:block h-3 w-px bg-border" />
-              <div className="hidden sm:flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
-                <button className="hover:text-foreground transition-colors whitespace-nowrap" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>{stats.total} Jobs</button>
-                <span className="h-3 w-px bg-border" />
-                <button className="hover:text-foreground transition-colors whitespace-nowrap" onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{sources.filter((s) => s.enabled).length} Sources</button>
-              </div>
               {user ? (
                 <button onClick={signOut} className="shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-display text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Sign out"><LogOut className="h-3.5 w-3.5" /><span className="hidden sm:inline">{user.email?.split('@')[0]}</span></button>
               ) : (
@@ -191,13 +185,16 @@ const STScout = () => {
               )}
             </div>
           </div>
-          <div className="flex sm:hidden items-center gap-3 mt-2 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
-            <button className="hover:text-foreground transition-colors whitespace-nowrap" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>{stats.total} Jobs</button>
-            <span className="h-3 w-px bg-border" />
-            <button className="hover:text-foreground transition-colors whitespace-nowrap" onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{sources.filter((s) => s.enabled).length} Sources</button>
-          </div>
         </div>
       </header>
+
+      <div className="border-b border-border bg-muted/40 sticky top-[53px] z-40">
+        <div className="container max-w-6xl mx-auto px-4 py-1.5 flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
+          <button className="hover:text-foreground transition-colors whitespace-nowrap" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>{stats.total} Jobs</button>
+          <span className="h-3 w-px bg-border" />
+          <button className="hover:text-foreground transition-colors whitespace-nowrap" onClick={() => sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{sources.filter((s) => s.enabled).length} Sources</button>
+        </div>
+      </div>
 
       <main className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
         <FilterRow listedPeriod={listedPeriod} onListedPeriodChange={setListedPeriod} sortBy={sortBy} onSortByChange={setSortBy} datePostedFilter={datePostedFilter} onDatePostedFilterChange={setDatePostedFilter} selectedSeniorities={selectedSeniorities} onSenioritiesChange={setSelectedSeniorities} selectedCompanies={selectedCompanies} onCompaniesChange={setSelectedCompanies} selectedTitles={selectedTitles} onTitlesChange={setSelectedTitles} selectedSources={selectedSources} onSourcesChange={setSelectedSources} filterKeywords={filterKeywords} onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])} onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))} allCompanies={allCompanies} allTitles={allTitles} allSources={allSources} onClearFilters={() => { setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]); setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]); setFilterKeywords([]); setSelectedType('any'); }} />
