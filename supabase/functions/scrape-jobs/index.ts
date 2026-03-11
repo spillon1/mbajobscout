@@ -302,6 +302,17 @@ function expandKeywords(keywords: string[]): string[] {
   if (keywords.some(k => k.toLowerCase().includes('investment banking'))) {
     expanded.add('investment banking');
   }
+  // S&T expansions
+  if (keywords.some(k => k.toLowerCase().includes('sales') && k.toLowerCase().includes('trading'))) {
+    expanded.add('sales and trading');
+    expanded.add('sales trading');
+  }
+  // MC expansions
+  if (keywords.some(k => k.toLowerCase().includes('management consulting') || k.toLowerCase().includes('strategy consulting'))) {
+    expanded.add('management consulting');
+    expanded.add('strategy consulting');
+    expanded.add('consultant');
+  }
   return [...expanded];
 }
 
