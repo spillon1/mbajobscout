@@ -259,9 +259,12 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc' = 'vc'): bo
     /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
     /\bhr\s+(partner|manager|director|business\s+partner|advisor)\b/i,
     /\bhuman\s+resources\b/i,
-    // Generic consulting
-    /\bconsulting\b/i, /\bconsultant\b/i,
   ];
+
+  // Only add consulting exclusion for modes that aren't MC
+  if (mode !== 'mc') {
+    hardExcludeTitles.push(/\bconsulting\b/i, /\bconsultant\b/i);
+  }
 
   // Mode-specific exclusions
   if (mode === 'vc') {
