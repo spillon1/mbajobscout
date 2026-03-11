@@ -36,7 +36,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
   }, [states]);
 
   const startScrape = useCallback((
-    mode: 'vc' | 'pe' | 'ib',
+    mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc',
     sources: JobSource[],
     keywords: string[],
     location: string,
