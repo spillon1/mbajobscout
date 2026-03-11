@@ -1748,166 +1748,24 @@ function isLikelyVcRole(title: string, company: string, description: string | un
   const titleLower = title.toLowerCase();
   const companyLower = company.toLowerCase();
   const descLower = (description || '').toLowerCase();
+  const combined = `${titleLower} ${companyLower} ${descLower}`;
 
-  // ── Hard exclusions (title-only, always block) ──
-  const hardExclude = [
-    /vc[\s-]*backed/i,
-    /venture[\s-]*backed/i,
-    /\bat\s+(a\s+)?vc\b/i,
-    /\b(for|within)\s+(a\s+)?vc\b/i,
-    /\bsoftware\s+engineer/i,
-    /\bengineer(?:ing)?\b/i,
-    /\bdeveloper\b/i,
-    /\bstrategic\s+advisory/i,
-    /\bcapital\s+markets?\b/i,
-    /\bevent\s+(operations|manager|lead|coordinator|director)/i,
-    /\bbusiness\s+development\b/i, /\bbdm\b/i,
-    /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
-    /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
-    /\bm&a\b/i,
-    /\bsearch\s+fund\b/i,                // search funds ≠ VC
-    /\bcorporate\s+development\b/i,       // corp dev roles
-    /\bfund\s+administ/i,                 // fund administrator/administration
-    /\bcredit\s+invest/i,                 // credit/debt fund roles
-    /\bportfolio\s+monitor/i,             // PE ops/fund services
-    /\bportfolio\s+manager\b/i,           // asset mgmt, not VC (VC uses "portfolio lead/director")
-    /\bbook\s+portfolio/i,                // quant trading
-    /\bir\s+analyst\b/i,                   // investor relations analyst
-    /\bfund\s+controller\b/i,               // fund ops/accounting
-    /\bportfolio\s+controller\b/i,          // fund admin
-    /\blegal\s+counsel\b/i,                 // legal roles
-    /\bfinance\s+and\s+portfolio\b/i,       // fund services
-    /\bfinance\s+analyst\b/i,               // accounting/recruitment, not VC investment
-    /\bfinance\s+director\b/i,              // CFO-type roles
-    /\bfinance\s+manager\b/i,               // finance ops
-    /\bhead\s+of\s+finance\b/i,             // finance leadership
-    /\binvestment\s+consultant\b/i,          // consulting, not VC investment
-    /\bsolicitor\b/i,                       // legal profession
-    /\blawyer\b/i,                          // legal profession
-    /\bbarrister\b/i,                       // legal profession
-    /\bparalegal\b/i,                       // legal profession
-    /\bconveyancing\b/i,                    // legal/property
-    /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,  // corporate legal
-    /\baccountant\b/i,                      // accounting
-    /\bauditor\b/i,                         // audit
-    /\btax\s+(manager|analyst|advisor|specialist|consultant|director)\b/i,
-    /\bhr\s+(manager|director|business\s+partner|specialist)\b/i,
-    /\bhuman\s+resources\b/i,
-    /\brecruitment\s+(consultant|manager|specialist)\b/i,
-    /\bprocurement\b/i,
-    /\bsupply\s+chain\b/i,
-    /\bdata\s+scientist\b/i,
-    /\bproduct\s+manager\b/i,
-    /\bproject\s+manager\b/i,
-    /\bux\s+(designer|researcher)\b/i,
-    /\bdesigner\b/i,
-    /\bcreative\s+director\b/i,
-    /\bcontent\s+(manager|writer|specialist)\b/i,
-    /\bteacher\b/i,
-    /\bnurse\b/i,
-    /\bdoctor\b/i,
-    /\bpharmac/i,
-    /\bclinical\b/i,
-    // People / HR
-    /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
-    // Generic consulting
-    /\bconsulting\b/i, /\bconsultant\b/i,
-    // Recruiting
-    /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
-    /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
-  ];
-  if (hardExclude.some(p => p.test(titleLower))) return false;
-
-  // ── Soft exclusions: private equity in title blocks even ultra-strong signals ──
-  // (PE co-investment roles should not pass via co-invest signal)
-  if (/\bprivate\s+equity\b/i.test(titleLower)) return false;
-
-  // ── Tier 1a: Ultra-strong VC signals → pass always ──
-  const ultraStrongVcPatterns = [
-    /deal\s+(flow|sourcing|origination)/,
-    /carried\s+interest/,
-    /co-?invest/,
-  ];
-  if (ultraStrongVcPatterns.some(p => p.test(titleLower))) return true;
-
-  // "limited partner" / "general partner" as role context (not product names at fintech co's)
-  const fundServicesCompanies = [
-    /\bss&c\b/i, /\bcarta\b/i, /\bcitco\b/i, /\bjuniper\s+square/i,
-    /\bprivate\s+equity\s+insights/i, /\bpreqin\b/i, /\bpitchbook\b/i,
-    /\bstate\s+street\b/i, /\bnt\s+global/i, /\bnorthern\s+trust/i,
-    /\bbritish\s+business\s+bank/i,       // government development bank
-    /\bprivate\s+equity\s+recruitment/i,   // PE recruitment agency
-    /\bfinancial\s+services\s+limited/i,   // fund services companies
-  ];
-  const isFundServices = fundServicesCompanies.some(p => p.test(companyLower));
-
-  // "limited partner" / "general partner" as role context (not product names)
-  // Only pass if not at a fund services/fintech company
-  if (/limited\s+partner|general\s+partner|\blp\b|\bgp\b/.test(titleLower) && !isFundServices) return true;
-
-  // ── Tier 1b: Explicit VC in TITLE → pass unless fund services ──
-  const titleExplicitVcPatterns = [
+  // Simple rule: "venture capital" must appear somewhere in title, company, or description
+  const vcSignals = [
     /venture\s+capital/,
-    /\bvc\s+(fund|firm|analyst|associate|partner|principal|director|investment)/,
+    /\bvc\s+(fund|firm|portfolio|backed|investment|analyst|associate|partner|principal|director)/,
+    /\bventure(s|\s+partners?)\b/,  // company names like "X Ventures" or "X Venture Partners"
   ];
-  if (titleExplicitVcPatterns.some(p => p.test(titleLower))) {
-    if (isFundServices) return false;
-    return true;
-  }
 
-  // ── Soft exclusions (title-only): block generic non-VC roles ──
-  const nonVcRoles = [
-    /\bb2b\b/i, /\bsales\s+(dev|representative|exec)/i,
-    /\bbdr\b/i, /\bsdr\b/i,
-    /\bmarketing\s+(executive|manager|specialist|coordinator|lead)\b/i,
-    /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
-    /\bquantitative\s+equity\s+researcher/i,
-    /\bequity\s+research(?!.*private\s+equity)/i,
-    /\bgrowth\s+specialist/i, /\bgrowth\s+marketing/i,
-    /\bgrowth\s+hacker/i,
-    /\bfounding\s+(business|sales|marketing|product|engineer)/i,
-    // private equity already caught by hard exclude above
-    /\binvestment\s+banking\b/i,        // IB in title only
-    /\binvestment\s+bank\b/i,
-    /\bmanagement\s+consult/i,          // consulting in title only
-  ];
-  if (nonVcRoles.some(p => p.test(titleLower))) return false;
+  // Check title first
+  if (vcSignals.some(p => p.test(titleLower))) return true;
 
-  // ── Tier 2: company looks like a VC fund + title is a fund-type role ──
-  if (!isFundServices) {
-    const companyStrongVcPatterns = [
-      /venture(s|\s+capital|\s+partners?)\b/,
-      /\bvc\b/,
-    ];
-    const companyWeakVcPatterns = [
-      /\bcapital\b/,
-      /\bpartners?\b/,
-    ];
-    const companyIsStrongVc = companyStrongVcPatterns.some(p => p.test(companyLower));
-    const companyIsWeakVc = companyWeakVcPatterns.some(p => p.test(companyLower));
-    if (companyIsStrongVc || companyIsWeakVc) {
-      const fundRoleTitles = /\b(analyst|associate|partner|principal|director|vp|vice\s+president|head\s+of\s+(investments?|portfolio|strategy|growth)|investment|fund\s+manager|portfolio)\b/i;
-      if (fundRoleTitles.test(titleLower)) {
-        // Strong VC company name → pass directly
-        if (companyIsStrongVc) return true;
-        // Weak/generic company name → require explicit "venture capital" or "VC" mention in description
-        if (descLower) {
-          const vcExplicitSignals = [
-            /venture\s+capital/,
-            /\bvc\s+(fund|firm|portfolio|backed|investment)/,
-            /\bvc\b.*\b(fund|firm|invest)/,
-          ];
-          if (vcExplicitSignals.some(p => p.test(descLower))) return true;
-        }
-      }
-    }
-  }
+  // Check company name — "X Ventures" is a strong VC signal
+  if (vcSignals.some(p => p.test(companyLower))) return true;
 
-  // ── Tier 3: description-only — require explicit "venture capital" or "VC" mention ──
-  if (descLower) {
-    if (/venture\s+capital/.test(descLower)) return true;
-    if (/\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower)) return true;
-  }
+  // Check description — must explicitly mention venture capital
+  if (/venture\s+capital/.test(descLower)) return true;
+  if (/\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower)) return true;
 
   return false;
 }
