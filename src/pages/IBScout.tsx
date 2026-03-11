@@ -257,7 +257,7 @@ const IBScout = () => {
                   VCPE<span className="text-primary">SCOUT</span>
                 </h1>
                 <p className="text-[10px] font-display text-muted-foreground uppercase tracking-widest">
-                  UK VC/PE/IB Job Aggregator
+                  UK JOB AGGREGATOR
                 </p>
               </div>
               <nav className="flex items-center gap-1 ml-2 sm:ml-4">

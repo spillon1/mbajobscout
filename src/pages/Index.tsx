@@ -327,7 +327,7 @@ const Index = () => {
                   VCPE<span className="text-primary">SCOUT</span>
                 </h1>
                 <p className="text-[10px] font-display text-muted-foreground uppercase tracking-widest">
-                  UK VC/PE Job Aggregator   
+                  UK JOB AGGREGATOR
                 </p>
               </div>
               {/* Nav tabs */}
