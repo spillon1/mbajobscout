@@ -11,7 +11,7 @@ interface ScrapeState {
 }
 
 interface ScrapeContextValue {
-  getState: (mode: 'vc' | 'pe') => ScrapeState;
+  getState: (mode: 'vc' | 'pe' | 'ib') => ScrapeState;
   startScrape: (
     mode: 'vc' | 'pe',
     sources: JobSource[],
