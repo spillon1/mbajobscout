@@ -13,7 +13,7 @@ interface ScrapeState {
 interface ScrapeContextValue {
   getState: (mode: 'vc' | 'pe' | 'ib') => ScrapeState;
   startScrape: (
-    mode: 'vc' | 'pe',
+    mode: 'vc' | 'pe' | 'ib',
     sources: JobSource[],
     keywords: string[],
     location: string,
