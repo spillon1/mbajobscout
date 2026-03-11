@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -16,26 +16,35 @@ export interface JobActionRecord {
 
 export function useJobActions() {
   const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [actions, setActions] = useState<JobActionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const fetchIdRef = useRef(0);
 
   const fetchActions = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setActions([]);
       setLoading(false);
       return;
     }
+
+    const id = ++fetchIdRef.current;
+    setLoading(true);
+
     const { data, error } = await supabase
       .from('job_actions')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
+
+    // Only apply results from the latest fetch
+    if (id !== fetchIdRef.current) return;
 
     if (!error && data) {
       setActions(data as unknown as JobActionRecord[]);
     }
     setLoading(false);
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     fetchActions();
@@ -48,11 +57,11 @@ export function useJobActions() {
     jobSource: string,
     action: JobAction
   ): Promise<string | null> => {
-    if (!user) return null;
+    if (!userId) return null;
     const { data, error } = await supabase
       .from('job_actions')
       .upsert({
-        user_id: user.id,
+        user_id: userId,
         job_url: jobUrl,
         job_title: jobTitle,
         job_company: jobCompany,
@@ -67,7 +76,7 @@ export function useJobActions() {
       return data?.id ?? null;
     }
     return null;
-  }, [fetchActions, user]);
+  }, [fetchActions, userId]);
 
   const removeAction = useCallback(async (id: string) => {
     const { error } = await supabase
@@ -95,6 +104,6 @@ export function useJobActions() {
     appliedJobs,
     notInterestedJobs,
     savedJobs,
-    isAuthenticated: !!user,
+    isAuthenticated: !!userId,
   };
 }
