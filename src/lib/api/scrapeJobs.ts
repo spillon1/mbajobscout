@@ -288,6 +288,10 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' = 'vc'): boolean {
       /\btransactions?\s+management\b/i,
       /\bopportunistic\b/i,
       /\bprivate\s+assets?\b/i,
+      /\bdebt\s+advisory\b/i, /\bdebt\s+capital\b/i, /\bdebt\s+finance\b/i,
+      /\blarge.cap\s+pe\b/i, /\bmid.cap\s+pe\b/i,
+      /\bpan.european\b.*\bpe\b/i,
+      /\bmerchant\s+capital\b/i,
     );
   } else if (mode === 'pe') {
     hardExcludeTitles.push(
