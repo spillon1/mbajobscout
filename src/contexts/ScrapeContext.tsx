@@ -31,7 +31,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
   const [states, setStates] = useState<Record<string, ScrapeState>>({});
   const abortRefs = useRef<Record<string, AbortController>>({});
 
-  const getState = useCallback((mode: 'vc' | 'pe' | 'ib'): ScrapeState => {
+  const getState = useCallback((mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc'): ScrapeState => {
     return states[mode] || defaultState;
   }, [states]);
 
