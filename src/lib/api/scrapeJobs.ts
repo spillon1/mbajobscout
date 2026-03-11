@@ -312,6 +312,18 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' | 'ib' = 'vc'): boolean {
       /\btrading\b/i, /\btrader\b/i,
       /\binvestor\s+relation/i,
     );
+  } else if (mode === 'ib') {
+    hardExcludeTitles.push(
+      /\bventure\s+capital\b/i,
+      /\bprivate\s+equity\b/i,
+      /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+      /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i,
+      /\bhedge\s+fund\b/i, /\basset\s+management\b/i, /\bwealth\s+management\b/i,
+      /\btrading\b/i, /\btrader\b/i,
+      /\bcommodities\b/i,
+      /\bsearch\s+fund\b/i,
+      /\bfund\s+of\s+funds\b/i,
+    );
   }
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
 
