@@ -11,15 +11,15 @@ interface ScrapeState {
 }
 
 interface ScrapeContextValue {
-  getState: (mode: 'vc' | 'pe' | 'ib') => ScrapeState;
+  getState: (mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc') => ScrapeState;
   startScrape: (
-    mode: 'vc' | 'pe' | 'ib',
+    mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc',
     sources: JobSource[],
     keywords: string[],
     location: string,
   ) => void;
-  stopScrape: (mode: 'vc' | 'pe' | 'ib') => void;
-  consumeResults: (mode: 'vc' | 'pe' | 'ib') => { jobs: Job[]; sourceStatuses: Record<string, { status: string; error?: string; count?: number }> } | null;
+  stopScrape: (mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc') => void;
+  consumeResults: (mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc') => { jobs: Job[]; sourceStatuses: Record<string, { status: string; error?: string; count?: number }> } | null;
 }
 
 const ScrapeContext = createContext<ScrapeContextValue | null>(null);
@@ -31,12 +31,12 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
   const [states, setStates] = useState<Record<string, ScrapeState>>({});
   const abortRefs = useRef<Record<string, AbortController>>({});
 
-  const getState = useCallback((mode: 'vc' | 'pe' | 'ib'): ScrapeState => {
+  const getState = useCallback((mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc'): ScrapeState => {
     return states[mode] || defaultState;
   }, [states]);
 
   const startScrape = useCallback((
-    mode: 'vc' | 'pe' | 'ib',
+    mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc',
     sources: JobSource[],
     keywords: string[],
     location: string,
@@ -93,7 +93,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
       });
   }, [toast]);
 
-  const stopScrape = useCallback((mode: 'vc' | 'pe' | 'ib') => {
+  const stopScrape = useCallback((mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc') => {
     abortRefs.current[mode]?.abort();
     delete abortRefs.current[mode];
     setStates(prev => ({
@@ -103,7 +103,7 @@ export function ScrapeProvider({ children }: { children: ReactNode }) {
     toast({ title: 'Search stopped' });
   }, [toast]);
 
-  const consumeResults = useCallback((mode: 'vc' | 'pe' | 'ib') => {
+  const consumeResults = useCallback((mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc') => {
     const state = states[mode];
     if (!state?.jobs) return null;
     const result = { jobs: state.jobs, sourceStatuses: state.sourceStatuses };

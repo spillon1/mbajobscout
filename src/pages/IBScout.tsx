@@ -261,15 +261,11 @@ const IBScout = () => {
                 </p>
               </div>
               <nav className="flex items-center gap-1 ml-2 sm:ml-4">
-                <Link to="/" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                  VC Jobs
-                </Link>
-                <Link to="/pe" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                  PE Jobs
-                </Link>
-                <Link to="/ib" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                  IB Jobs
-                </Link>
+                <Link to="/" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">VC</Link>
+                <Link to="/pe" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">PE</Link>
+                <Link to="/ib" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">IB</Link>
+                <Link to="/st" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">S&T</Link>
+                <Link to="/mc" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">MC</Link>
               </nav>
             </div>
 

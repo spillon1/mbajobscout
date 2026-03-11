@@ -25,7 +25,7 @@ export async function scrapeJobs(
   keywords: string[],
   location: string,
   signal?: AbortSignal,
-  options?: { mode?: 'vc' | 'pe' | 'ib' }
+  options?: { mode?: 'vc' | 'pe' | 'ib' | 'st' | 'mc' }
 ): Promise<ScrapeResult> {
   const enabledSources = sources
     .filter((s) => s.enabled)
@@ -156,7 +156,7 @@ export async function scrapeJobs(
   };
 }
 
-export async function loadSavedJobs(mode: 'vc' | 'pe' | 'ib' = 'vc'): Promise<Job[]> {
+export async function loadSavedJobs(mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc' = 'vc'): Promise<Job[]> {
   const { data, error } = await supabase
     .from('scraped_jobs')
     .select('*')
@@ -194,7 +194,7 @@ export async function loadSavedJobs(mode: 'vc' | 'pe' | 'ib' = 'vc'): Promise<Jo
 }
 
 /** Returns false for non-job entries like category headers, newsletter prompts, etc. */
-function isValidJob(job: Job, mode: 'vc' | 'pe' | 'ib' = 'vc'): boolean {
+function isValidJob(job: Job, mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc' = 'vc'): boolean {
   const titleLower = job.title.toLowerCase();
   const descLower = (job.description || '').toLowerCase();
 
@@ -259,9 +259,12 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' | 'ib' = 'vc'): boolean {
     /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
     /\bhr\s+(partner|manager|director|business\s+partner|advisor)\b/i,
     /\bhuman\s+resources\b/i,
-    // Generic consulting
-    /\bconsulting\b/i, /\bconsultant\b/i,
   ];
+
+  // Only add consulting exclusion for modes that aren't MC
+  if (mode !== 'mc') {
+    hardExcludeTitles.push(/\bconsulting\b/i, /\bconsultant\b/i);
+  }
 
   // Mode-specific exclusions
   if (mode === 'vc') {
@@ -318,6 +321,30 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' | 'ib' = 'vc'): boolean {
       /\bprivate\s+equity\b/i,
       /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
       /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i,
+      /\bhedge\s+fund\b/i, /\basset\s+management\b/i, /\bwealth\s+management\b/i,
+      /\btrading\b/i, /\btrader\b/i,
+      /\bcommodities\b/i,
+      /\bsearch\s+fund\b/i,
+      /\bfund\s+of\s+funds\b/i,
+    );
+  } else if (mode === 'st') {
+    // S&T: remove non-S&T finance roles but keep trading/sales
+    hardExcludeTitles.push(
+      /\bventure\s+capital\b/i,
+      /\bprivate\s+equity\b/i,
+      /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i,
+      /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+      /\bsearch\s+fund\b/i,
+      /\bfund\s+of\s+funds\b/i,
+    );
+    // Remove generic consulting exclusion for S&T — it doesn't apply
+  } else if (mode === 'mc') {
+    // MC: remove non-consulting finance roles but keep consulting/consultant
+    hardExcludeTitles.push(
+      /\bventure\s+capital\b/i,
+      /\bprivate\s+equity\b/i,
+      /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i,
+      /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
       /\bhedge\s+fund\b/i, /\basset\s+management\b/i, /\bwealth\s+management\b/i,
       /\btrading\b/i, /\btrader\b/i,
       /\bcommodities\b/i,

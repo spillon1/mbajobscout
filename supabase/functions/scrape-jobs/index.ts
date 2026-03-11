@@ -10,7 +10,7 @@ interface ScrapeRequest {
   keywords: string[];
   location: string;
   persist?: boolean; // When true, save results directly to DB (used by cron)
-  mode?: 'vc' | 'pe' | 'ib'; // Which job vertical to filter for
+  mode?: 'vc' | 'pe' | 'ib' | 'st' | 'mc'; // Which job vertical to filter for
 }
 
 Deno.serve(async (req) => {
@@ -30,6 +30,8 @@ Deno.serve(async (req) => {
     const { sources, keywords, location, persist, mode } = await req.json() as ScrapeRequest;
     const jobMode = mode || 'vc';
     const roleFilter = (title: string, company: string, description: string | undefined) =>
+      jobMode === 'st' ? isLikelyStRole(title, company, description) :
+      jobMode === 'mc' ? isLikelyMcRole(title, company, description) :
       jobMode === 'ib' ? isLikelyIbRole(title, company, description) :
       jobMode === 'pe' ? isLikelyPeRole(title, company, description) : isLikelyVcRole(title, company, description);
 
@@ -299,6 +301,17 @@ function expandKeywords(keywords: string[]): string[] {
   // Always include 'investment banking' for IB keywords
   if (keywords.some(k => k.toLowerCase().includes('investment banking'))) {
     expanded.add('investment banking');
+  }
+  // S&T expansions
+  if (keywords.some(k => k.toLowerCase().includes('sales') && k.toLowerCase().includes('trading'))) {
+    expanded.add('sales and trading');
+    expanded.add('sales trading');
+  }
+  // MC expansions
+  if (keywords.some(k => k.toLowerCase().includes('management consulting') || k.toLowerCase().includes('strategy consulting'))) {
+    expanded.add('management consulting');
+    expanded.add('strategy consulting');
+    expanded.add('consultant');
   }
   return [...expanded];
 }
@@ -1740,6 +1753,159 @@ function isLikelyIbRole(title: string, company: string, description: string | un
   return false;
 }
 
+/** S&T role filter: allows Sales & Trading titles */
+function isLikelyStRole(title: string, company: string, description: string | undefined): boolean {
+  const titleLower = title.toLowerCase();
+  const companyLower = company.toLowerCase();
+  const descLower = (description || '').toLowerCase();
+
+  // Hard exclusions
+  const hardExclude = [
+    /\bsoftware\s+engineer/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i,
+    /\bdata\s+scientist\b/i, /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i,
+    /\bdesigner\b/i, /\bcreative\s+director\b/i,
+    /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
+    /\blegal\s+counsel\b/i,
+    /\baccountant\b/i, /\bauditor\b/i,
+    /\bhr\s+(manager|director|business\s+partner)\b/i, /\bhuman\s+resources\b/i,
+    /\brecruitment\s+(consultant|manager)\b/i,
+    /\bcontent\s+(manager|writer)\b/i,
+    /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i,
+    /\bpeople\s+(partner|manager|director)\b/i,
+    /\bventure\s+capital\b/i, /\bprivate\s+equity\b/i,
+    /\binvestment\s+banking\b/i,
+    /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+    /\bsearch\s+fund\b/i,
+    /\bconsulting\b/i, /\bconsultant\b/i,
+    /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
+    /\bcustomer\s+success/i,
+    /\bbusiness\s+development\b/i, /\bbdm\b/i,
+  ];
+  if (hardExclude.some(p => p.test(titleLower))) return false;
+
+  // Ultra-strong S&T signals
+  const strongPatterns = [
+    /\bsales\s+(?:and|&)\s+trading\b/,
+    /\bsales\s+trading\b/,
+    /\bequity\s+sales\b/,
+    /\bfixed\s+income\s+sales\b/,
+    /\bfx\s+(?:sales|trading|trader)\b/,
+    /\brates\s+(?:sales|trading|trader)\b/,
+    /\bcredit\s+(?:sales|trading|trader)\b/,
+    /\bcommodit(?:y|ies)\s+(?:sales|trading|trader)\b/,
+    /\bequit(?:y|ies)\s+(?:trading|trader)\b/,
+    /\bderivatives?\s+(?:sales|trading|trader)\b/,
+    /\bstructured\s+products?\b/,
+    /\bmarket\s+making\b/,
+    /\bflow\s+trading\b/,
+    /\bprop(?:rietary)?\s+trading\b/,
+    /\btrading\s+(?:desk|floor|analyst|associate|director)\b/,
+    /\bsales\s+(?:analyst|associate|director|manager|trader)\b/,
+  ];
+  if (strongPatterns.some(p => p.test(titleLower))) return true;
+
+  // Company looks like a bank + title involves trading/sales
+  const bankPatterns = [
+    /\bbank\b/, /\bbarclays\b/, /\bjpmorgan\b/, /\bmorgan\s+stanley\b/,
+    /\bgoldman\s+sachs\b/, /\bciti\b/, /\bubs\b/, /\bhsbc\b/,
+    /\bdeutsche\s+bank\b/, /\bnomura\b/, /\bjefferies\b/,
+    /\bbnp\s+paribas\b/, /\bsociete\s+generale\b/, /\bmacquarie\b/,
+    /\bcredit\s+suisse\b/,
+  ];
+  if (bankPatterns.some(p => p.test(companyLower))) {
+    if (/\b(trader|trading|sales|execution|desk)\b/i.test(titleLower)) return true;
+  }
+
+  // Description signals
+  if (descLower) {
+    const descSignals = [
+      /sales\s+(?:and|&)\s+trading/, /equity\s+sales/, /fixed\s+income/,
+      /\btrading\s+desk\b/, /\bmarket\s+making\b/, /\bflow\s+trading\b/,
+      /\bderivatives?\b/, /\bstructured\s+products?\b/,
+      /\bfx\s+(?:sales|trading)\b/, /\brates\b.*\btrading\b/,
+    ];
+    const matchCount = descSignals.filter(p => p.test(descLower)).length;
+    if (matchCount >= 2) return true;
+  }
+
+  return false;
+}
+
+/** MC role filter: allows Management Consulting titles */
+function isLikelyMcRole(title: string, company: string, description: string | undefined): boolean {
+  const titleLower = title.toLowerCase();
+  const companyLower = company.toLowerCase();
+  const descLower = (description || '').toLowerCase();
+
+  // Hard exclusions
+  const hardExclude = [
+    /\bsoftware\s+engineer/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i,
+    /\bdata\s+scientist\b/i, /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i,
+    /\bdesigner\b/i, /\bcreative\s+director\b/i,
+    /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
+    /\blegal\s+counsel\b/i,
+    /\baccountant\b/i, /\bauditor\b/i,
+    /\bhr\s+(manager|director|business\s+partner)\b/i, /\bhuman\s+resources\b/i,
+    /\brecruitment\s+(consultant|manager)\b/i,
+    /\bcontent\s+(manager|writer)\b/i,
+    /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i,
+    /\bpeople\s+(partner|manager|director)\b/i,
+    /\bventure\s+capital\b/i, /\bprivate\s+equity\b/i,
+    /\binvestment\s+banking\b/i,
+    /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+    /\bhedge\s+fund\b/i, /\basset\s+management\b/i,
+    /\btrading\b/i, /\btrader\b/i,
+    /\bcommodities\b/i,
+    /\bsearch\s+fund\b/i,
+    /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
+    /\bcustomer\s+success/i,
+    /\bbusiness\s+development\b/i, /\bbdm\b/i,
+  ];
+  if (hardExclude.some(p => p.test(titleLower))) return false;
+
+  // Ultra-strong MC signals
+  const strongPatterns = [
+    /\bmanagement\s+consult/,
+    /\bstrategy\s+consult/,
+    /\bconsulting\s+(analyst|associate|manager|director|partner|intern|graduate)\b/,
+    /\b(analyst|associate|manager|director|partner|principal)\b.*\bconsulting\b/,
+    /\bstrategy\s+(analyst|associate|manager|director)\b/,
+    /\bbusiness\s+analyst\b/,
+  ];
+  if (strongPatterns.some(p => p.test(titleLower))) return true;
+
+  // Known consulting firms
+  const mcFirms = [
+    /\bmckinsey\b/i, /\bbain\s+(?:&|and)\s+company\b/i, /\bbcg\b/i, /\bboston\s+consulting\b/i,
+    /\bdeloitte\b/i, /\bkpmg\b/i, /\bpwc\b/i, /\bey\b/i, /\bernst\s+(?:&|and)\s+young\b/i,
+    /\baccenture\b/i, /\bolivier\s+wyman\b/i, /\broland\s+berger\b/i,
+    /\bstrategy&\b/i, /\bat\s+kearney\b/i, /\bkearney\b/i,
+    /\bl\.e\.k\b/i, /\blek\s+consulting\b/i, /\bparthenon\b/i,
+    /\bmonitor\s+deloitte\b/i, /\balvarez\s+(?:&|and)\s+marsal\b/i,
+    /\bfti\s+consulting\b/i, /\bpa\s+consulting\b/i,
+  ];
+  if (mcFirms.some(p => p.test(companyLower))) {
+    if (/\b(analyst|associate|consultant|manager|director|partner|principal|intern|graduate|trainee)\b/i.test(titleLower)) return true;
+  }
+
+  // Title has "consultant" in a consulting context
+  if (/\bconsultant\b/i.test(titleLower) && !(/\bit\s+consultant\b/i.test(titleLower) || /\brecruitment\s+consultant\b/i.test(titleLower))) {
+    return true;
+  }
+
+  // Description signals
+  if (descLower) {
+    const descSignals = [
+      /management\s+consult/, /strategy\s+consult/, /\bconsulting\s+firm\b/,
+      /case\s+(?:study|interview)/, /client\s+engagement/, /due\s+diligence/,
+      /\bmbb\b/, /\bbig\s+(?:3|three|4|four)\b/,
+    ];
+    const matchCount = descSignals.filter(p => p.test(descLower)).length;
+    if (matchCount >= 2) return true;
+  }
+
+  return false;
+}
 
 // ---- eFinancialCareers Scraper ----
 
