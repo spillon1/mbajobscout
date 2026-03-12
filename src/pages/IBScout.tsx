@@ -372,7 +372,7 @@ const IBScout = () => {
               <div className="border border-border rounded-md bg-card p-12 text-center">
                 <Zap className="h-8 w-8 text-primary mx-auto mb-3" />
                 <p className="font-display text-sm text-foreground mb-1">Ready to scrape IB jobs</p>
-                <p className="text-xs text-muted-foreground">Configure your sources, then click Find jobs</p>
+                <p className="text-xs text-muted-foreground">Configure your sources, then click Scrape jobs</p>
               </div>
             ) : filteredJobs.length === 0 ? (
               <div className="border border-border rounded-md bg-card p-12 text-center">
