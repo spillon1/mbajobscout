@@ -99,6 +99,7 @@ const STScout = () => {
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('st-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('st-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('st-subcats', []);
+  const [selectedAssetClasses, setSelectedAssetClasses] = usePersistedState<string[]>('st-assetclasses', []);
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
