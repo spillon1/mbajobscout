@@ -1659,7 +1659,7 @@ function isLikelyIbRole(title: string, company: string, description: string | un
     /\bhead\s+of\s+finance\b/i,
     /\btax\s+(manager|analyst|advisor|specialist|consultant|director)\b/i,
     /\bhr\s+(manager|director|business\s+partner|specialist)\b/i,
-    /\bhuman\s+resources\b/i, /\brecruitment\s+(consultant|manager|specialist)\b/i,
+    /\bhuman\s+resources\b/i, /\brecruitment\b/i,
     /\bcontent\s+(manager|writer|specialist)\b/i,
     /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i, /\bclinical\b/i,
     /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
