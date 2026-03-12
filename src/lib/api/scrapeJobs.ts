@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Job, JobSource, JobType, Seniority } from '@/types/jobs';
 import { getSafeJobUrl } from '@/lib/urlSafety';
+import { ScrapeMode } from '@/data/subCategories';
 
 function inferSeniority(title: string): Seniority {
   const t = title.toLowerCase();
@@ -25,7 +26,7 @@ export async function scrapeJobs(
   keywords: string[],
   location: string,
   signal?: AbortSignal,
-  options?: { mode?: 'vc' | 'pe' | 'ib' | 'st' | 'mc' }
+  options?: { mode?: ScrapeMode }
 ): Promise<ScrapeResult> {
   const enabledSources = sources
     .filter((s) => s.enabled)
@@ -156,7 +157,7 @@ export async function scrapeJobs(
   };
 }
 
-export async function loadSavedJobs(mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc' = 'vc'): Promise<Job[]> {
+export async function loadSavedJobs(mode: ScrapeMode = 'vc'): Promise<Job[]> {
   const { data, error } = await supabase
     .from('scraped_jobs')
     .select('*')
@@ -194,7 +195,7 @@ export async function loadSavedJobs(mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc' = 'vc
 }
 
 /** Returns false for non-job entries like category headers, newsletter prompts, etc. */
-function isValidJob(job: Job, mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc' = 'vc'): boolean {
+function isValidJob(job: Job, mode: ScrapeMode = 'vc'): boolean {
   const titleLower = job.title.toLowerCase();
   const descLower = (job.description || '').toLowerCase();
 
@@ -228,42 +229,60 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc' = 'vc'): bo
   const spamCount = spamSignals.filter(s => descLower.includes(s)).length;
   if (spamCount >= 2) return false;
 
-  // Hard-exclude non-relevant role patterns
-  const hardExcludeTitles: RegExp[] = [
-    // Legal
+  // Hard-exclude patterns vary by mode
+  const hardExcludeTitles: RegExp[] = [];
+
+  // Universal junk (applies to all modes)
+  const universalExcludes: RegExp[] = [
     /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
     /\blegal\s+counsel\b/i, /\blegal\s+associate\b/i,
     /\blegal\s+(officer|advisor|specialist|director|manager)\b/i,
     /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
-    // Chief of Staff / Compliance
-    /\bchief\s+of\s+staff\b/i,
-    // Finance ops
-    /\baccountant\b/i, /\bauditor\b/i, /\bfund\s+controller\b/i, /\bfinancial\s+controller\b/i,
-    /\bportfolio\s+(controller|monitor|manager)\b/i, /\bfund\s+administ/i,
+    /\baccountant\b/i, /\bauditor\b/i,
+    /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i, /\bclinical\b/i,
+    /\brecruitment\b/i,
+  ];
+
+  // Finance-specific modes share these excludes
+  const financeExcludes: RegExp[] = [
+    /\bfund\s+controller\b/i, /\bfinancial\s+controller\b/i,
+    /\bportfolio\s+(controller|monitor)\b/i, /\bfund\s+administ/i,
     /\bfinance\s+(analyst|director|manager|business\s+partner|and\s+portfolio)\b/i,
     /\bhead\s+of\s+finance\b/i,
-    // Tech / product
-    /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i, /\bdata\s+scientist\b/i,
-    /\bdesigner\b/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i, /\b(?:co-?)?founder\b/i,
-    // HR / admin / sales / marketing
-    /\brecruitment\s+(consultant|manager)\b/i, /\bcompliance\s+(administrator|officer|manager|analyst|specialist|director)\b/i,
-    /\bbusiness\s+development\b/i, /\bbdm\b/i, /\bprogram\s+director\b/i,
+    /\bcompliance\s+(administrator|officer|manager|analyst|specialist|director)\b/i,
     /\bir\s+analyst\b/i, /\binvestor\s+relation/i,
-    /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
-    /\bcontent\s+(manager|writer|specialist)\b/i,
-    /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
-    /\bsales\s+(dev|representative|exec|associate|manager|lead|director)/i,
     /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
     /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
-    // HR / People
     /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
     /\bhr\s+(partner|manager|director|business\s+partner|advisor)\b/i,
     /\bhuman\s+resources\b/i,
   ];
 
-  // Only add consulting exclusion for modes that aren't MC
-  if (mode !== 'mc') {
+  if (['vc', 'pe', 'ib', 'mc', 'st', 'im'].includes(mode)) {
+    hardExcludeTitles.push(...universalExcludes, ...financeExcludes);
+    // Also exclude tech/product/eng for finance modes
+    hardExcludeTitles.push(
+      /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i, /\bdata\s+scientist\b/i,
+      /\bdesigner\b/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i, /\b(?:co-?)?founder\b/i,
+      /\bbusiness\s+development\b/i, /\bbdm\b/i, /\bprogram\s+director\b/i,
+      /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
+      /\bcontent\s+(manager|writer|specialist)\b/i,
+      /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
+      /\bsales\s+(dev|representative|exec|associate|manager|lead|director)/i,
+    );
+  } else {
+    // Tech / Startups: minimal excludes
+    hardExcludeTitles.push(...universalExcludes);
+  }
+
+  // Only add consulting exclusion for finance modes that aren't MC
+  if (!['mc', 'tech', 'startups'].includes(mode)) {
     hardExcludeTitles.push(/\bconsulting\b/i, /\bconsultant\b/i);
+  }
+
+  // Chief of staff exclusion only for finance modes (it's relevant for tech/startups)
+  if (['vc', 'pe', 'ib', 'st', 'im'].includes(mode)) {
+    hardExcludeTitles.push(/\bchief\s+of\s+staff\b/i);
   }
 
   // Mode-specific exclusions
@@ -351,6 +370,15 @@ function isValidJob(job: Job, mode: 'vc' | 'pe' | 'ib' | 'st' | 'mc' = 'vc'): bo
       /\bsearch\s+fund\b/i,
       /\bfund\s+of\s+funds\b/i,
     );
+  } else if (mode === 'im') {
+    // IM: keep hedge fund, asset management, investment management
+    // Remove the generic hard excludes that block these
+  } else if (mode === 'tech') {
+    // Tech: keep product, strategy, corp dev, GTM, growth, bizops
+    // Remove many of the generic hard excludes
+  } else if (mode === 'startups') {
+    // Startups: keep chief of staff, founder associate, product, growth, ops
+    // Remove many of the generic hard excludes
   }
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
 

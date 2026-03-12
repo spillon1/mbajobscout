@@ -1,7 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
-import { Link } from 'react-router-dom';
-import { NavBar } from '@/components/NavBar';
 
 function parsePostedDate(dateStr?: string): Date {
   if (!dateStr || dateStr === 'Scraped just now' || dateStr === 'Mock data') return new Date();
@@ -23,7 +21,7 @@ function parsePostedDate(dateStr?: string): Date {
 }
 
 import { Job, JobType, JobSource, Seniority } from '@/types/jobs';
-import { getSTDefaultSources, ST_DEFAULT_KEYWORDS } from '@/data/stData';
+import { getStartupDefaultSources, STARTUP_DEFAULT_KEYWORDS } from '@/data/startupData';
 import { UK_CITIES, getLocationString, getSourceUrlForLocation } from '@/data/ukLocations';
 import { FilterRow, ListedPeriod, JobStatus, SortOption, DatePostedFilter } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
@@ -31,87 +29,67 @@ import { SourceManager } from '@/components/SourceManager';
 import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { useScrape } from '@/contexts/ScrapeContext';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
+import { NavBar } from '@/components/NavBar';
+import { jobMatchesSubCategories } from '@/data/subCategories';
 
-import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, MapPin, Loader2, Bookmark, User, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, Loader2, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useJobActions } from '@/hooks/useJobActions';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/AuthModal';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToastAction } from '@/components/ui/toast';
 
-/** Replace VC terms with S&T in source URLs */
-function toSTUrl(url: string): string {
+function toStartupUrl(url: string): string {
   return url
-    .replace(/venture\+capital/gi, 'sales+trading')
-    .replace(/venture%20capital/gi, 'sales%20trading')
-    .replace(/%22venture\+capital%22/gi, '%22sales+trading%22')
-    .replace(/%22venture%20capital%22/gi, '%22sales%20trading%22')
-    .replace(/venture-capital/gi, 'sales-trading');
+    .replace(/venture\+capital/gi, 'startup')
+    .replace(/venture%20capital/gi, 'startup')
+    .replace(/%22venture\+capital%22/gi, '%22startup%22')
+    .replace(/%22venture%20capital%22/gi, '%22startup%22')
+    .replace(/venture-capital/gi, 'startup');
 }
 
-const STScout = () => {
+const StartupScout = () => {
   const { toast } = useToast();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
-  const scrapeState = getState('st');
+  const scrapeState = getState('startups');
   const sourcesRef = useRef<HTMLDivElement>(null);
-  const [selectedCity, setSelectedCity] = usePersistedState<string>('st-city', 'London');
+  const [selectedCity, setSelectedCity] = usePersistedState<string>('startups-city', 'London');
   const location = getLocationString(selectedCity);
-  const [sources, setSources] = useState<JobSource[]>(() => getSTDefaultSources('London'));
-  const [keywords, setKeywords] = useState<string[]>(ST_DEFAULT_KEYWORDS);
+  const [sources, setSources] = useState<JobSource[]>(() => getStartupDefaultSources('London'));
+  const [keywords, setKeywords] = useState<string[]>(STARTUP_DEFAULT_KEYWORDS);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [hasScraped, setHasScraped] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadSavedJobs('st').then((saved) => {
-      if (saved.length > 0) { setJobs(saved); setHasScraped(true); }
-      setIsLoading(false);
-    });
-  }, []);
-
-  useEffect(() => {
-    const result = consumeResults('st');
-    if (result) {
-      setJobs(result.jobs); setDismissedIds(new Set()); setHasScraped(true);
-      setSources((prev) => prev.map((s) => {
-        const sourceStatus = result.sourceStatuses[s.name];
-        return { ...s, status: sourceStatus?.status as any || s.status, statusMessage: sourceStatus?.error || (sourceStatus?.status === 'connected' ? `Scraped successfully (${sourceStatus?.count ?? 0} jobs found)` : undefined), lastJobCount: sourceStatus?.count ?? undefined };
-      }));
-    }
-  }, [scrapeState.isSearching, consumeResults]);
+  useEffect(() => { loadSavedJobs('startups').then((saved) => { if (saved.length > 0) { setJobs(saved); setHasScraped(true); } setIsLoading(false); }); }, []);
+  useEffect(() => { const result = consumeResults('startups'); if (result) { setJobs(result.jobs); setDismissedIds(new Set()); setHasScraped(true); setSources((prev) => prev.map((s) => { const ss = result.sourceStatuses[s.name]; return { ...s, status: ss?.status as any || s.status, statusMessage: ss?.error || (ss?.status === 'connected' ? `Scraped successfully (${ss?.count ?? 0} jobs found)` : undefined), lastJobCount: ss?.count ?? undefined }; })); } }, [scrapeState.isSearching, consumeResults]);
 
   const [viewMode, setViewMode] = useState<'search' | 'applied' | 'not_interested' | 'saved'>('search');
-  const [selectedType, setSelectedType] = usePersistedState<JobType | 'any'>('st-type', 'any');
-  const [listedPeriod, setListedPeriod] = usePersistedState<ListedPeriod>('st-period', 'any');
-  const [jobStatus, setJobStatus] = usePersistedState<JobStatus>('st-status', 'any');
-  const [selectedCompanies, setSelectedCompanies] = usePersistedState<string[]>('st-companies', []);
-  const [selectedTitles, setSelectedTitles] = usePersistedState<string[]>('st-titles', []);
-  const [selectedSources, setSelectedSources] = usePersistedState<string[]>('st-sources', []);
-  const [filterKeywords, setFilterKeywords] = usePersistedState<string[]>('st-keywords', []);
-  const [sortBy, setSortBy] = usePersistedState<SortOption>('st-sort', 'date-desc');
-  const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('st-datePosted', 'all');
-  const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('st-seniorities', []);
+  const [selectedType, setSelectedType] = usePersistedState<JobType | 'any'>('startups-type', 'any');
+  const [listedPeriod, setListedPeriod] = usePersistedState<ListedPeriod>('startups-period', 'any');
+  const [jobStatus, setJobStatus] = usePersistedState<JobStatus>('startups-status', 'any');
+  const [selectedCompanies, setSelectedCompanies] = usePersistedState<string[]>('startups-companies', []);
+  const [selectedTitles, setSelectedTitles] = usePersistedState<string[]>('startups-titles', []);
+  const [selectedSources, setSelectedSources] = usePersistedState<string[]>('startups-sources', []);
+  const [filterKeywords, setFilterKeywords] = usePersistedState<string[]>('startups-keywords', []);
+  const [sortBy, setSortBy] = usePersistedState<SortOption>('startups-sort', 'date-desc');
+  const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('startups-datePosted', 'all');
+  const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('startups-seniorities', []);
+  const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('startups-subcats', []);
 
-  const handleCityChange = (city: string) => {
-    setSelectedCity(city);
-    setSources((prev) => prev.map((s) => ({ ...s, url: toSTUrl(getSourceUrlForLocation(s.name, city) || s.url), status: 'unknown' as const, statusMessage: undefined })));
-    setJobs([]); setHasScraped(false); setDismissedIds(new Set());
-  };
-
+  const handleCityChange = (city: string) => { setSelectedCity(city); setSources((prev) => prev.map((s) => ({ ...s, url: toStartupUrl(getSourceUrlForLocation(s.name, city) || s.url), status: 'unknown' as const, statusMessage: undefined }))); setJobs([]); setHasScraped(false); setDismissedIds(new Set()); };
   const handleToggleSource = (id: string) => { setSources((prev) => prev.map((s) => s.id === id ? { ...s, enabled: !s.enabled } : s)); };
   const handleToggleAll = (enabled: boolean) => { setSources((prev) => prev.map((s) => ({ ...s, enabled }))); };
   const handleAddSource = (name: string, url: string) => { setSources((prev) => [...prev, { id: crypto.randomUUID(), name, url, enabled: true }]); };
   const handleRemoveSource = (id: string) => { setSources((prev) => prev.filter((s) => s.id !== id)); };
 
   const isSearching = scrapeState.isSearching;
-  const handleScrape = () => { startScrape('st', sources, keywords, location); };
-  const handleStopScrape = () => { stopScrape('st'); };
+  const handleScrape = () => { startScrape('startups', sources, keywords, location); };
+  const handleStopScrape = () => { stopScrape('startups'); };
 
   const allCompanies = useMemo(() => [...new Set(jobs.map((j) => j.company))].sort(), [jobs]);
   const allTitles = useMemo(() => [...new Set(jobs.map((j) => j.title))].sort(), [jobs]);
@@ -139,8 +117,9 @@ const STScout = () => {
     else if (datePostedFilter === 'without-date') filtered = filtered.filter((j) => !j.postedDate || j.postedDate === 'Scraped just now');
     if (listedPeriod !== 'any') { const now = new Date(); const cutoff = new Date(); if (listedPeriod === '1d') cutoff.setDate(now.getDate() - 1); else if (listedPeriod === '1w') cutoff.setDate(now.getDate() - 7); else if (listedPeriod === '1m') cutoff.setMonth(now.getMonth() - 1); else if (listedPeriod === '3m') cutoff.setMonth(now.getMonth() - 3); else if (listedPeriod === '6m') cutoff.setMonth(now.getMonth() - 6); filtered = filtered.filter((j) => parsePostedDate(j.postedDate) >= cutoff); }
     if (selectedSeniorities.length > 0) filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
+    filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'startups', selectedSubCategories));
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity]);
+  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -151,7 +130,7 @@ const STScout = () => {
 
   return (<>
     <div className="min-h-screen bg-background bg-grid">
-      <NavBar activeTab="/st" selectedCity={selectedCity} onCityChange={handleCityChange} isSearching={isSearching} onSearch={handleScrape} onStop={handleStopScrape} onSignInClick={() => setShowAuthModal(true)} />
+      <NavBar activeTab="/startups" selectedCity={selectedCity} onCityChange={handleCityChange} isSearching={isSearching} onSearch={handleScrape} onStop={handleStopScrape} onSignInClick={() => setShowAuthModal(true)} />
 
       <div className="border-b border-border bg-muted/40 sticky top-[53px] z-40">
         <div className="container max-w-6xl mx-auto px-4 py-1.5 flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -162,7 +141,7 @@ const STScout = () => {
       </div>
 
       <main className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
-        <FilterRow listedPeriod={listedPeriod} onListedPeriodChange={setListedPeriod} sortBy={sortBy} onSortByChange={setSortBy} datePostedFilter={datePostedFilter} onDatePostedFilterChange={setDatePostedFilter} selectedSeniorities={selectedSeniorities} onSenioritiesChange={setSelectedSeniorities} selectedCompanies={selectedCompanies} onCompaniesChange={setSelectedCompanies} selectedTitles={selectedTitles} onTitlesChange={setSelectedTitles} selectedSources={selectedSources} onSourcesChange={setSelectedSources} filterKeywords={filterKeywords} onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])} onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))} allCompanies={allCompanies} allTitles={allTitles} allSources={allSources} onClearFilters={() => { setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]); setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]); setFilterKeywords([]); setSelectedType('any'); }} />
+        <FilterRow listedPeriod={listedPeriod} onListedPeriodChange={setListedPeriod} sortBy={sortBy} onSortByChange={setSortBy} datePostedFilter={datePostedFilter} onDatePostedFilterChange={setDatePostedFilter} selectedSeniorities={selectedSeniorities} onSenioritiesChange={setSelectedSeniorities} selectedCompanies={selectedCompanies} onCompaniesChange={setSelectedCompanies} selectedTitles={selectedTitles} onTitlesChange={setSelectedTitles} selectedSources={selectedSources} onSourcesChange={setSelectedSources} filterKeywords={filterKeywords} onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])} onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))} allCompanies={allCompanies} allTitles={allTitles} allSources={allSources} mode="startups" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories} onClearFilters={() => { setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]); setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]); setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); }} />
 
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-3">
           <button onClick={() => isAuthenticated ? setViewMode(viewMode === 'saved' ? 'search' : 'saved') : setShowAuthModal(true)} className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${viewMode === 'saved' ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'}`}><div className="font-display text-lg sm:text-2xl font-bold text-primary">{isAuthenticated ? savedJobs.length : '–'}</div><div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Saved</div></button>
@@ -173,7 +152,7 @@ const STScout = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <div className="lg:col-span-3 space-y-2">
             {viewMode === 'saved' ? (
-              savedJobs.length === 0 ? (<div className="border border-border rounded-md bg-card p-12 text-center"><Bookmark className="h-8 w-8 text-primary mx-auto mb-3" /><p className="font-display text-sm text-muted-foreground">No saved jobs yet</p></div>) : savedJobs.map((action) => (<div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all"><div className="min-w-0"><div className="flex items-center gap-2 mb-1"><Bookmark className="h-3.5 w-3.5 text-primary" /><span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">{action.job_source}</span></div><h3 className="font-body font-semibold text-foreground">{action.job_title}</h3><p className="text-sm text-muted-foreground">{action.job_company}</p></div><button onClick={() => { removeAction(action.id); toast({ title: 'Removed from Saved', description: action.job_title }); }} className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors sm:opacity-0 sm:group-hover:opacity-100" title="Remove from saved"><Undo2 className="h-3.5 w-3.5" /></button></div>))
+              savedJobs.length === 0 ? (<div className="border border-border rounded-md bg-card p-12 text-center"><Bookmark className="h-8 w-8 text-primary mx-auto mb-3" /><p className="font-display text-sm text-muted-foreground">No saved jobs yet</p></div>) : savedJobs.map((action) => (<div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all"><div className="min-w-0"><div className="flex items-center gap-2 mb-1"><Bookmark className="h-3.5 w-3.5 text-primary" /><span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">{action.job_source}</span></div><h3 className="font-body font-semibold text-foreground">{action.job_title}</h3><p className="text-sm text-muted-foreground">{action.job_company}</p></div><button onClick={() => { removeAction(action.id); toast({ title: 'Removed from Saved', description: action.job_title }); }} className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors sm:opacity-0 sm:group-hover:opacity-100" title="Remove"><Undo2 className="h-3.5 w-3.5" /></button></div>))
             ) : viewMode === 'applied' ? (
               appliedJobs.length === 0 ? (<div className="border border-border rounded-md bg-card p-12 text-center"><CheckCircle2 className="h-8 w-8 text-success mx-auto mb-3" /><p className="font-display text-sm text-muted-foreground">No applications yet</p></div>) : appliedJobs.map((action) => (<div key={action.id} className="group flex items-center justify-between border border-border rounded-md p-4 bg-card transition-all"><div className="min-w-0"><div className="flex items-center gap-2 mb-1"><CheckCircle2 className="h-3.5 w-3.5 text-success" /><span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">{action.job_source}</span></div><h3 className="font-body font-semibold text-foreground">{action.job_title}</h3><p className="text-sm text-muted-foreground">{action.job_company}</p></div><button onClick={() => { removeAction(action.id); toast({ title: 'Removed from Applied', description: action.job_title }); }} className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors sm:opacity-0 sm:group-hover:opacity-100" title="Remove"><Undo2 className="h-3.5 w-3.5" /></button></div>))
             ) : viewMode === 'not_interested' ? (
@@ -181,7 +160,7 @@ const STScout = () => {
             ) : isSearching ? (
               <ScrapeProgress isSearching={isSearching} sourceCount={sources.filter((s) => s.enabled).length} startedAt={scrapeState.startedAt} />
             ) : !hasScraped ? (
-              <div className="border border-border rounded-md bg-card p-12 text-center"><Zap className="h-8 w-8 text-primary mx-auto mb-3" /><p className="font-display text-sm text-foreground mb-1">Ready to scrape S&T jobs</p><p className="text-xs text-muted-foreground">Configure your sources, then click Find jobs</p></div>
+              <div className="border border-border rounded-md bg-card p-12 text-center"><Zap className="h-8 w-8 text-primary mx-auto mb-3" /><p className="font-display text-sm text-foreground mb-1">Ready to scrape Startup jobs</p><p className="text-xs text-muted-foreground">Configure your sources, then click Find jobs</p></div>
             ) : filteredJobs.length === 0 ? (
               <div className="border border-border rounded-md bg-card p-12 text-center"><Briefcase className="h-8 w-8 text-muted-foreground mx-auto mb-3" /><p className="font-display text-sm text-muted-foreground">No jobs match your filters</p></div>
             ) : filteredJobs.map((job) => (
@@ -202,4 +181,4 @@ const STScout = () => {
   </>);
 };
 
-export default STScout;
+export default StartupScout;
