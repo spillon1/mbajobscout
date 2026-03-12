@@ -63,13 +63,26 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
   ],
 };
 
-export const ST_ASSET_CLASSES: SubCategory[] = [
-  { value: 'equities', label: 'Equities', patterns: [/\bequit(y|ies)\b/i] },
-  { value: 'fx', label: 'FX', patterns: [/\bfx\b/i, /\bforeign\s+exchange\b/i, /\bcurrenc/i] },
-  { value: 'rates', label: 'Rates', patterns: [/\brates\b/i, /\bfixed\s+income\b/i, /\bficc\b/i, /\bgovt?\s+bond/i] },
-  { value: 'credit', label: 'Credit', patterns: [/\bcredit\b/i, /\bhigh\s+yield\b/i, /\binvestment\s+grade\b/i] },
-  { value: 'commodities', label: 'Commodities', patterns: [/\bcommodit/i, /\benergy\b/i, /\bmetals\b/i, /\boil\b/i, /\bgas\b/i] },
-];
+export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; options: SubCategory[] }>> = {
+  st: {
+    label: 'Asset Class',
+    options: [
+      { value: 'equities', label: 'Equities', patterns: [/\bequit(y|ies)\b/i] },
+      { value: 'fx', label: 'FX', patterns: [/\bfx\b/i, /\bforeign\s+exchange\b/i, /\bcurrenc/i] },
+      { value: 'rates', label: 'Rates', patterns: [/\brates\b/i, /\bfixed\s+income\b/i, /\bficc\b/i, /\bgovt?\s+bond/i] },
+      { value: 'credit', label: 'Credit', patterns: [/\bcredit\b/i, /\bhigh\s+yield\b/i, /\binvestment\s+grade\b/i] },
+      { value: 'commodities', label: 'Commodities', patterns: [/\bcommodit/i, /\benergy\b/i, /\bmetals\b/i, /\boil\b/i, /\bgas\b/i] },
+    ],
+  },
+  ib: {
+    label: 'Firm Type',
+    options: [
+      { value: 'bulge-bracket', label: 'Bulge Bracket', patterns: [/\b(goldman\s+sachs|morgan\s+stanley|j\.?p\.?\s*morgan|bank\s+of\s+america|citigroup|citi\b|barclays|deutsche\s+bank|ubs|credit\s+suisse|hsbc)\b/i] },
+      { value: 'elite-boutique', label: 'Elite Boutique', patterns: [/\b(lazard|evercore|centerview|pjt\s+partners|moelis|guggenheim|perella\s+weinberg|pwp|greenhill|rothschild|qatalyst)\b/i] },
+      { value: 'middle-market', label: 'Middle Market', patterns: [/\b(houlihan\s+lokey|william\s+blair|raymond\s+james|jefferies|piper\s+sandler|baird|lincoln\s+international|harris\s+williams|dc\s+advisory|numis|liberum|stifel|canaccord)\b/i] },
+    ],
+  },
+};
 
 export function jobMatchesSubCategories(
   job: { title: string; description?: string },
