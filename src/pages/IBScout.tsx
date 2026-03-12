@@ -113,6 +113,7 @@ const IBScout = () => {
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('ib-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('ib-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('ib-subcats', []);
+  const [selectedFirmType, setSelectedFirmType] = usePersistedState<string[]>('ib-firmtype', []);
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
