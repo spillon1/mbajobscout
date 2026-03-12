@@ -36,9 +36,12 @@ interface FilterRowProps {
   mode?: ScrapeMode;
   selectedSubCategories?: string[];
   onSubCategoriesChange?: (cats: string[]) => void;
-  // Secondary filter (asset class for S&T, firm type for IB, etc.)
+  // Secondary filter (asset class for S&T, strategy for PE, etc.)
   selectedSecondaryFilter?: string[];
   onSecondaryFilterChange?: (values: string[]) => void;
+  // Tertiary filter (firm type for PE)
+  selectedTertiaryFilter?: string[];
+  onTertiaryFilterChange?: (values: string[]) => void;
 }
 
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [

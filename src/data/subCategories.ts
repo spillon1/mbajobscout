@@ -102,6 +102,19 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
   },
 };
 
+export const TERTIARY_FILTERS: Partial<Record<ScrapeMode, { label: string; options: SubCategory[] }>> = {
+  pe: {
+    label: 'Firm Type',
+    options: [
+      { value: 'mega-fund', label: 'Mega Fund', patterns: [/\b(kkr|blackstone|carlyle|apollo|tpg|warburg\s+pincus|advent|bain\s+capital|cvc|eqt|permira|cinven|bc\s+partners|bridgepoint|pai\s+partners|silver\s+lake|thoma\s+bravo|vista\s+equity|hellman\s+&?\s*friedman)\b/i] },
+      { value: 'upper-mid', label: 'Upper Mid-Market', patterns: [/\b(hg\s+capital|montagu|charterhouse|ici|apax|graphite|intermediate\s+capital|3i|livingbridge|inflexion|palatine|lyceum|oakley|sovereign|exponent|bowmark)\b/i] },
+      { value: 'mid-market', label: 'Mid-Market', patterns: [/\bmid[\s\-]?market\b/i, /\b(ldc|nvp|endless|kester|dunedin|august\s+equity|key\s+capital|mercia|foresight|mobeus|ypf|primary|pricoa|beechbrook|phoenix\s+equity)\b/i] },
+      { value: 'growth-equity-fund', label: 'Growth Equity Fund', patterns: [/\bgrowth\s+equity\b/i, /\bgrowth\s+fund\b/i, /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|jmi\s+equity)\b/i] },
+      { value: 'private-credit-fund', label: 'Private Credit Fund', patterns: [/\bprivate\s+credit\b/i, /\bdirect\s+lending\b/i, /\bcredit\s+fund\b/i, /\b(ares|golub|owl\s+rock|blue\s+owl|hayfin|arcmont|pemberton|tikehau|muzinich)\b/i] },
+    ],
+  },
+};
+
 export function jobMatchesSubCategories(
   job: { title: string; description?: string },
   mode: ScrapeMode,
@@ -124,6 +137,22 @@ export function jobMatchesSecondaryFilter(
 ): boolean {
   if (selectedValues.length === 0) return true;
   const filter = SECONDARY_FILTERS[mode];
+  if (!filter) return true;
+  const text = `${job.title} ${job.description || ''} ${(job as any).company || ''}`;
+  return selectedValues.some((val) => {
+    const opt = filter.options.find((c) => c.value === val);
+    if (!opt) return false;
+    return opt.patterns.some((p) => p.test(text));
+  });
+}
+
+export function jobMatchesTertiaryFilter(
+  job: { title: string; description?: string; company?: string },
+  mode: ScrapeMode,
+  selectedValues: string[],
+): boolean {
+  if (selectedValues.length === 0) return true;
+  const filter = TERTIARY_FILTERS[mode];
   if (!filter) return true;
   const text = `${job.title} ${job.description || ''} ${(job as any).company || ''}`;
   return selectedValues.some((val) => {
