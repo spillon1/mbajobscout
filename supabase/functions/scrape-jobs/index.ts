@@ -1529,7 +1529,7 @@ function isLikelyPeRole(title: string, company: string, description: string | un
     /\btax\s+(manager|analyst|advisor|specialist|consultant|director)\b/i,
     /\bhr\s+(manager|director|business\s+partner|specialist)\b/i,
     /\bhuman\s+resources\b/i,
-    /\brecruitment\s+(consultant|manager|specialist)\b/i,
+    /\brecruitment\b/i,
     /\bprocurement\b/i, /\bsupply\s+chain\b/i,
     /\bdata\s+scientist\b/i,
     /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i,
