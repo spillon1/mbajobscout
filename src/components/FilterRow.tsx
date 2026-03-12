@@ -3,6 +3,7 @@ import { CheckboxFilter } from '@/components/CheckboxFilter';
 import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { Seniority } from '@/types/jobs';
+import { SUB_CATEGORIES, ScrapeMode } from '@/data/subCategories';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
 export type JobStatus = 'any' | 'open' | 'closed';
@@ -31,6 +32,10 @@ interface FilterRowProps {
   allTitles: string[];
   allSources: string[];
   onClearFilters?: () => void;
+  // Sub-category filter
+  mode?: ScrapeMode;
+  selectedSubCategories?: string[];
+  onSubCategoriesChange?: (cats: string[]) => void;
 }
 
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
@@ -87,7 +92,12 @@ export function FilterRow({
   allTitles,
   allSources,
   onClearFilters,
+  mode,
+  selectedSubCategories,
+  onSubCategoriesChange,
 }: FilterRowProps) {
+  const subCats = mode ? SUB_CATEGORIES[mode] || [] : [];
+
   const hasActiveFilters =
     listedPeriod !== 'any' ||
     datePostedFilter !== 'all' ||
@@ -95,13 +105,26 @@ export function FilterRow({
     selectedCompanies.length > 0 ||
     selectedTitles.length > 0 ||
     selectedSources.length > 0 ||
-    filterKeywords.length > 0;
+    filterKeywords.length > 0 ||
+    (selectedSubCategories && selectedSubCategories.length > 0);
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 flex-wrap">
         <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider mr-1">Filters:</span>
+
+        {subCats.length > 0 && onSubCategoriesChange && (
+          <CheckboxFilter
+            label="Role Type"
+            options={subCats.map((c) => c.label)}
+            selected={(selectedSubCategories || []).map((val) => subCats.find((c) => c.value === val)?.label || val)}
+            onChange={(labels) => {
+              const values = labels.map((l) => subCats.find((c) => c.label === l)?.value || l);
+              onSubCategoriesChange(values);
+            }}
+          />
+        )}
 
         <CheckboxFilter
           label="Sources"
