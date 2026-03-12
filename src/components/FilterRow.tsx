@@ -131,6 +131,18 @@ export function FilterRow({
         />
       )}
 
+      {mode === 'st' && onAssetClassesChange && (
+        <CheckboxFilter
+          label="Asset Class"
+          options={ST_ASSET_CLASSES.map((c) => c.label)}
+          selected={(selectedAssetClasses || []).map((val) => ST_ASSET_CLASSES.find((c) => c.value === val)?.label || val)}
+          onChange={(labels) => {
+            const values = labels.map((l) => ST_ASSET_CLASSES.find((c) => c.label === l)?.value || l);
+            onAssetClassesChange(values);
+          }}
+        />
+      )}
+
       <CheckboxFilter
         label="Sources"
         options={allSources}
