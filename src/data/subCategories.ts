@@ -8,10 +8,10 @@ export type ScrapeMode = 'vc' | 'pe' | 'ib' | 'mc' | 'st' | 'im' | 'tech' | 'sta
 
 export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
   vc: [
-    { value: 'analyst-associate', label: 'Analyst / Associate', patterns: [/\b(analyst|associate)\b/i] },
-    { value: 'principal-partner', label: 'Principal / Partner', patterns: [/\b(principal|partner|director|managing director|vp|vice president)\b/i] },
-    { value: 'portfolio', label: 'Portfolio Support', patterns: [/\bportfolio\b/i, /\bvalue\s+creation\b/i, /\boperating\s+partner\b/i] },
-    { value: 'investment', label: 'Investment Team', patterns: [/\binvestment\b/i, /\bdeal\b/i, /\borigination\b/i] },
+    { value: 'investment', label: 'Investment', patterns: [/\binvestment\b/i, /\bdeal\b/i, /\borigination\b/i, /\banalyst\b/i, /\bassociate\b/i, /\bprincipal\b/i, /\bpartner\b/i] },
+    { value: 'platform', label: 'Platform', patterns: [/\bplatform\b/i, /\bportfolio\s+(support|operations|success)\b/i, /\bvalue\s+creation\b/i, /\boperating\s+partner\b/i, /\bportfolio\b/i] },
+    { value: 'investor-relations', label: 'Investor Relations', patterns: [/\binvestor\s+relations\b/i, /\bir\b/i, /\bfundraising\b/i, /\blp\s+relations\b/i, /\bcapital\s+raising\b/i] },
+    { value: 'fund-ops', label: 'Fund Operations', patterns: [/\bfund\s+operations\b/i, /\bfund\s+admin/i, /\bfund\s+accounting\b/i, /\bfund\s+manag/i, /\bcompliance\b/i, /\boperations\b/i, /\bfinance\b/i] },
   ],
   pe: [
     { value: 'buyout', label: 'Buyout', patterns: [/\bbuyout\b/i, /\blbo\b/i, /\bleveraged\b/i] },

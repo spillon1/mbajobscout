@@ -37,6 +37,11 @@ export const DEFAULT_KEYWORDS = [
   'Venture capital internship',
   'Venture capital intern',
   'Venture capital graduate',
+  'Venture capital investor relations',
+  'Venture capital platform',
+  'Venture capital fund operations',
+  'VC fund operations',
+  'VC investor relations',
 ];
 
 // These are MOCK jobs for UI demonstration only — not real listings.
