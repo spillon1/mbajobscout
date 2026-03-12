@@ -53,105 +53,84 @@ Deno.serve(async (req) => {
     const results: any[] = [];
     const sourceStatuses: Record<string, { status: string; error?: string; count?: number }> = {};
 
-    for (const source of sources) {
+    // Scrape all sources in parallel for speed
+    const scrapeSource = async (source: { name: string; url: string }) => {
       try {
         console.log(`Scraping: ${source.name} (${source.url})`);
 
         // Check if this is an RSS/XML feed
         if (isRssFeedUrl(source.url)) {
           const rssJobs = await scrapeRssFeed(source, expandedKeywords, location);
-          results.push(...rssJobs);
-          sourceStatuses[source.name] = { status: 'connected', count: rssJobs.length };
           console.log(`Found ${rssJobs.length} jobs from RSS feed: ${source.name}`);
-          continue;
+          return { source: source.name, jobs: rssJobs, status: 'connected' as const };
         }
 
         // Google Jobs: paginate multiple pages
         if (isGoogleJobsUrl(source.url)) {
           const googleJobs = await scrapeGoogleJobsPages(apiKey, keywords, location, source);
-          const vcGoogleJobs = googleJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
-          results.push(...vcGoogleJobs);
-          sourceStatuses[source.name] = { status: 'connected', count: vcGoogleJobs.length };
-          console.log(`Found ${vcGoogleJobs.length} VC-relevant jobs from Google Jobs (filtered from ${googleJobs.length})`);
-          continue;
+          const filtered = googleJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
+          console.log(`Found ${filtered.length} relevant jobs from Google Jobs (filtered from ${googleJobs.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
 
-        // Venture5: use actions to click "Load more listings" and parse table rows
+        // Venture5
         if (source.url.includes('venture5.com')) {
           const venture5Jobs = await scrapeVenture5(apiKey, source, location);
-          results.push(...venture5Jobs);
-          // If we got very few jobs, the scrape was likely degraded — mark as error
-          // so the client won't wipe existing good data
           if (venture5Jobs.length < 5) {
-            sourceStatuses[source.name] = { status: 'error', error: `Degraded scrape: only ${venture5Jobs.length} jobs (expected 50+)`, count: venture5Jobs.length };
             console.log(`Venture5: degraded scrape — only ${venture5Jobs.length} jobs, marking as error`);
-          } else {
-            sourceStatuses[source.name] = { status: 'connected', count: venture5Jobs.length };
-            console.log(`Found ${venture5Jobs.length} jobs from Venture5 (with Load More)`);
+            return { source: source.name, jobs: venture5Jobs, status: 'error' as const, error: `Degraded scrape: only ${venture5Jobs.length} jobs (expected 50+)` };
           }
-          continue;
+          console.log(`Found ${venture5Jobs.length} jobs from Venture5 (with Load More)`);
+          return { source: source.name, jobs: venture5Jobs, status: 'connected' as const };
         }
 
-        // eFinancialCareers: dedicated scraper with structured markdown parsing
+        // eFinancialCareers
         if (source.url.includes('efinancialcareers')) {
           const efcJobsRaw = await scrapeEFinancialCareers(apiKey, source, location, keywords);
-          const efcJobs = efcJobsRaw.filter((j: any) => roleFilter(j.title, j.company, j.description));
-          results.push(...efcJobs);
-          sourceStatuses[source.name] = { status: 'connected', count: efcJobs.length };
-          console.log(`Found ${efcJobs.length} relevant jobs from eFinancialCareers (filtered from ${efcJobsRaw.length})`);
-          continue;
+          const filtered = efcJobsRaw.filter((j: any) => roleFilter(j.title, j.company, j.description));
+          console.log(`Found ${filtered.length} relevant jobs from eFinancialCareers (filtered from ${efcJobsRaw.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
 
-        // OCC / 12twenty: authenticated scraper
+        // OCC / 12twenty
         if (source.url.includes('12twenty.com')) {
           const occJobs = await scrapeOcc12Twenty(source, keywords, location);
-          results.push(...occJobs);
-          sourceStatuses[source.name] = { status: 'connected', count: occJobs.length };
           console.log(`Found ${occJobs.length} jobs from OCC (12twenty)`);
-          continue;
+          return { source: source.name, jobs: occJobs, status: 'connected' as const };
         }
 
-        // Indeed UK: dedicated scraper with Firecrawl
+        // Indeed UK
         if (source.url.includes('indeed.com')) {
           const indeedJobs = await scrapeIndeed(apiKey, source, keywords, location);
-        const vcIndeedJobs = indeedJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
-          results.push(...vcIndeedJobs);
-          sourceStatuses[source.name] = { status: 'connected', count: vcIndeedJobs.length };
-          console.log(`Found ${vcIndeedJobs.length} VC-relevant jobs from Indeed UK (light filter from ${indeedJobs.length})`);
-          continue;
+          const filtered = indeedJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
+          console.log(`Found ${filtered.length} relevant jobs from Indeed UK (filtered from ${indeedJobs.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
 
-        // Glassdoor UK: dedicated scraper with Firecrawl extract
+        // Glassdoor UK
         if (source.url.includes('glassdoor.co.uk')) {
           const glassdoorJobs = await scrapeGlassdoor(apiKey, source, keywords, location);
-        const vcGlassdoorJobs = glassdoorJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
-          results.push(...vcGlassdoorJobs);
-          sourceStatuses[source.name] = { status: 'connected', count: vcGlassdoorJobs.length };
-          console.log(`Found ${vcGlassdoorJobs.length} VC-relevant jobs from Glassdoor UK (light filter from ${glassdoorJobs.length})`);
-          continue;
+          const filtered = glassdoorJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
+          console.log(`Found ${filtered.length} relevant jobs from Glassdoor UK (filtered from ${glassdoorJobs.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
 
-        // LinkedIn Jobs: use guest API
+        // LinkedIn Jobs
         if (source.url.includes('linkedin.com')) {
           const linkedinJobs = await scrapeLinkedIn(apiKey, source, keywords, location);
-        const vcLinkedinJobs = linkedinJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
-          results.push(...vcLinkedinJobs);
-          sourceStatuses[source.name] = { status: 'connected', count: vcLinkedinJobs.length };
-          console.log(`Found ${vcLinkedinJobs.length} VC-relevant jobs from LinkedIn (light filter from ${linkedinJobs.length})`);
-          continue;
+          const filtered = linkedinJobs.filter((j: any) => roleFilter(j.title, j.company, j.description));
+          console.log(`Found ${filtered.length} relevant jobs from LinkedIn (filtered from ${linkedinJobs.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
 
-        // InnovatorsRoom: scrape beehiiv JobDrop newsletters
+        // InnovatorsRoom
         if (source.url.includes('innovatorsroom.beehiiv.com') || source.url.includes('innovatorsroom.com/jobs')) {
           const irJobs = await scrapeInnovatorsRoom(apiKey, source, location);
-          results.push(...irJobs);
-          sourceStatuses[source.name] = { status: 'connected', count: irJobs.length };
           console.log(`Found ${irJobs.length} jobs from InnovatorsRoom`);
-          continue;
+          return { source: source.name, jobs: irJobs, status: 'connected' as const };
         }
 
         // Otherwise use Firecrawl
-        const scrapeUrl = source.url;
         const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
           method: 'POST',
           headers: {
@@ -159,7 +138,7 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            url: scrapeUrl,
+            url: source.url,
             formats: ['markdown', 'links'],
             onlyMainContent: true,
             waitFor: 5000,
@@ -167,26 +146,31 @@ Deno.serve(async (req) => {
         });
 
         const data = await response.json();
-
         if (!response.ok) {
           console.error(`Failed to scrape ${source.name}:`, data);
-          sourceStatuses[source.name] = { status: 'error', error: data.error || `HTTP ${response.status}`, count: 0 };
-          continue;
+          return { source: source.name, jobs: [], status: 'error' as const, error: data.error || `HTTP ${response.status}` };
         }
-
-        sourceStatuses[source.name] = { status: 'connected', count: 0 };
 
         const markdown = data.data?.markdown || data.markdown || '';
         const links = data.data?.links || data.links || [];
-
         const jobs = parseJobsFromMarkdown(markdown, links, source, expandedKeywords, location);
-        results.push(...jobs);
-        sourceStatuses[source.name].count = jobs.length;
-
         console.log(`Found ${jobs.length} potential jobs from ${source.name}`);
+        return { source: source.name, jobs, status: 'connected' as const };
       } catch (err) {
         console.error(`Error scraping ${source.name}:`, err);
-        sourceStatuses[source.name] = { status: 'error', error: err instanceof Error ? err.message : 'Unknown error', count: 0 };
+        return { source: source.name, jobs: [], status: 'error' as const, error: err instanceof Error ? err.message : 'Unknown error' };
+      }
+    };
+
+    const sourceResults = await Promise.allSettled(sources.map(scrapeSource));
+
+    for (const result of sourceResults) {
+      if (result.status === 'fulfilled') {
+        const { source: sourceName, jobs, status, error } = result.value;
+        results.push(...jobs);
+        sourceStatuses[sourceName] = { status, error, count: jobs.length };
+      } else {
+        console.error('Source scrape rejected:', result.reason);
       }
     }
 
@@ -3100,6 +3084,38 @@ function parseInnovatorsRoomJobs(
 const LINKEDIN_PAGES_CITY = 40; // 25 jobs per page — for city-specific searches
 const LINKEDIN_PAGES_COUNTRY = 15; // Cap for broad country-wide searches to avoid timeout
 
+async function fetchLinkedInPage(
+  guestUrl: string,
+  pageNum: number,
+  source: { name: string; url: string },
+  searchCity: string
+): Promise<{ pageNum: number; jobs: any[]; ok: boolean }> {
+  try {
+    const response = await fetch(guestUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`LinkedIn page ${pageNum} failed: HTTP ${response.status}`);
+      await response.text();
+      return { pageNum, jobs: [], ok: false };
+    }
+
+    const html = await response.text();
+    console.log(`LinkedIn page ${pageNum}: ${html.length} chars HTML`);
+    const jobs = parseLinkedInGuestJobs(html, '', source, searchCity);
+    console.log(`LinkedIn page ${pageNum}: ${jobs.length} jobs`);
+    return { pageNum, jobs, ok: jobs.length >= 5 };
+  } catch (err) {
+    console.error(`LinkedIn page ${pageNum} error:`, err);
+    return { pageNum, jobs: [], ok: false };
+  }
+}
+
 async function scrapeLinkedIn(
   apiKey: string,
   source: { name: string; url: string },
@@ -3111,43 +3127,33 @@ async function scrapeLinkedIn(
   const maxPages = isCountryWide ? LINKEDIN_PAGES_COUNTRY : LINKEDIN_PAGES_CITY;
   const searchQuery = keywords[0] || 'venture capital';
   const allJobs: any[] = [];
+  const BATCH_SIZE = 5;
 
-  for (let page = 0; page < maxPages; page++) {
-    const start = page * 25;
-    const guestUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(searchCity)}&start=${start}`;
-    console.log(`LinkedIn page ${page + 1}: ${guestUrl}`);
+  for (let batchStart = 0; batchStart < maxPages; batchStart += BATCH_SIZE) {
+    const batchEnd = Math.min(batchStart + BATCH_SIZE, maxPages);
+    const batch: Promise<{ pageNum: number; jobs: any[]; ok: boolean }>[] = [];
 
-    try {
-      // Direct fetch — LinkedIn guest API returns static HTML, no JS rendering needed
-      const response = await fetch(guestUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-        },
-      });
-
-      if (!response.ok) {
-        console.error(`LinkedIn page ${page + 1} failed: HTTP ${response.status}`);
-        await response.text(); // consume body
-        break;
-      }
-
-      const html = await response.text();
-      console.log(`LinkedIn page ${page + 1}: ${html.length} chars HTML`);
-
-      const pageJobs = parseLinkedInGuestJobs(html, '', source, searchCity);
-      const newJobs = pageJobs.filter(j => !allJobs.some(e => e.title === j.title && e.company === j.company));
-      allJobs.push(...newJobs);
-      console.log(`LinkedIn page ${page + 1}: ${newJobs.length} new jobs`);
-
-      if (pageJobs.length < 5) break;
-      // Delay between pages to avoid rate limiting
-      if (page < maxPages - 1) await new Promise(r => setTimeout(r, 1000));
-    } catch (err) {
-      console.error(`LinkedIn page ${page + 1} error:`, err);
-      break;
+    for (let page = batchStart; page < batchEnd; page++) {
+      const start = page * 25;
+      const guestUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(searchCity)}&start=${start}`;
+      console.log(`LinkedIn page ${page + 1}: ${guestUrl}`);
+      batch.push(fetchLinkedInPage(guestUrl, page + 1, source, searchCity));
     }
+
+    const results = await Promise.all(batch);
+
+    // Process in order to maintain dedup logic
+    let shouldStop = false;
+    for (const result of results.sort((a, b) => a.pageNum - b.pageNum)) {
+      const newJobs = result.jobs.filter(j => !allJobs.some(e => e.title === j.title && e.company === j.company));
+      allJobs.push(...newJobs);
+      if (!result.ok) { shouldStop = true; break; }
+    }
+
+    if (shouldStop) break;
+
+    // Small delay between batches to avoid rate limiting
+    if (batchStart + BATCH_SIZE < maxPages) await new Promise(r => setTimeout(r, 500));
   }
 
   console.log(`LinkedIn total: ${allJobs.length} jobs`);
