@@ -61,7 +61,7 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 ];
 
 const DATE_POSTED_OPTIONS: { value: DatePostedFilter; label: string }[] = [
-  { value: 'all', label: 'All Roles' },
+  { value: 'all', label: 'All Dates' },
   { value: 'with-date', label: 'With Date' },
   { value: 'without-date', label: 'Without Date' },
 ];
