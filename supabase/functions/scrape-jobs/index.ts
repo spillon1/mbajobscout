@@ -3084,6 +3084,38 @@ function parseInnovatorsRoomJobs(
 const LINKEDIN_PAGES_CITY = 40; // 25 jobs per page — for city-specific searches
 const LINKEDIN_PAGES_COUNTRY = 15; // Cap for broad country-wide searches to avoid timeout
 
+async function fetchLinkedInPage(
+  guestUrl: string,
+  pageNum: number,
+  source: { name: string; url: string },
+  searchCity: string
+): Promise<{ pageNum: number; jobs: any[]; ok: boolean }> {
+  try {
+    const response = await fetch(guestUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`LinkedIn page ${pageNum} failed: HTTP ${response.status}`);
+      await response.text();
+      return { pageNum, jobs: [], ok: false };
+    }
+
+    const html = await response.text();
+    console.log(`LinkedIn page ${pageNum}: ${html.length} chars HTML`);
+    const jobs = parseLinkedInGuestJobs(html, '', source, searchCity);
+    console.log(`LinkedIn page ${pageNum}: ${jobs.length} jobs`);
+    return { pageNum, jobs, ok: jobs.length >= 5 };
+  } catch (err) {
+    console.error(`LinkedIn page ${pageNum} error:`, err);
+    return { pageNum, jobs: [], ok: false };
+  }
+}
+
 async function scrapeLinkedIn(
   apiKey: string,
   source: { name: string; url: string },
@@ -3095,43 +3127,33 @@ async function scrapeLinkedIn(
   const maxPages = isCountryWide ? LINKEDIN_PAGES_COUNTRY : LINKEDIN_PAGES_CITY;
   const searchQuery = keywords[0] || 'venture capital';
   const allJobs: any[] = [];
+  const BATCH_SIZE = 5;
 
-  for (let page = 0; page < maxPages; page++) {
-    const start = page * 25;
-    const guestUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(searchCity)}&start=${start}`;
-    console.log(`LinkedIn page ${page + 1}: ${guestUrl}`);
+  for (let batchStart = 0; batchStart < maxPages; batchStart += BATCH_SIZE) {
+    const batchEnd = Math.min(batchStart + BATCH_SIZE, maxPages);
+    const batch: Promise<{ pageNum: number; jobs: any[]; ok: boolean }>[] = [];
 
-    try {
-      // Direct fetch — LinkedIn guest API returns static HTML, no JS rendering needed
-      const response = await fetch(guestUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-        },
-      });
-
-      if (!response.ok) {
-        console.error(`LinkedIn page ${page + 1} failed: HTTP ${response.status}`);
-        await response.text(); // consume body
-        break;
-      }
-
-      const html = await response.text();
-      console.log(`LinkedIn page ${page + 1}: ${html.length} chars HTML`);
-
-      const pageJobs = parseLinkedInGuestJobs(html, '', source, searchCity);
-      const newJobs = pageJobs.filter(j => !allJobs.some(e => e.title === j.title && e.company === j.company));
-      allJobs.push(...newJobs);
-      console.log(`LinkedIn page ${page + 1}: ${newJobs.length} new jobs`);
-
-      if (pageJobs.length < 5) break;
-      // Delay between pages to avoid rate limiting
-      if (page < maxPages - 1) await new Promise(r => setTimeout(r, 1000));
-    } catch (err) {
-      console.error(`LinkedIn page ${page + 1} error:`, err);
-      break;
+    for (let page = batchStart; page < batchEnd; page++) {
+      const start = page * 25;
+      const guestUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(searchCity)}&start=${start}`;
+      console.log(`LinkedIn page ${page + 1}: ${guestUrl}`);
+      batch.push(fetchLinkedInPage(guestUrl, page + 1, source, searchCity));
     }
+
+    const results = await Promise.all(batch);
+
+    // Process in order to maintain dedup logic
+    let shouldStop = false;
+    for (const result of results.sort((a, b) => a.pageNum - b.pageNum)) {
+      const newJobs = result.jobs.filter(j => !allJobs.some(e => e.title === j.title && e.company === j.company));
+      allJobs.push(...newJobs);
+      if (!result.ok) { shouldStop = true; break; }
+    }
+
+    if (shouldStop) break;
+
+    // Small delay between batches to avoid rate limiting
+    if (batchStart + BATCH_SIZE < maxPages) await new Promise(r => setTimeout(r, 500));
   }
 
   console.log(`LinkedIn total: ${allJobs.length} jobs`);
