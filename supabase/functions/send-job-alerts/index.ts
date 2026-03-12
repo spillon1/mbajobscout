@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch un-alerted VC-mode jobs only
-    const { data: newJobs, error: jobsError } = await supabase
+    const { data: rawJobs, error: jobsError } = await supabase
       .from('scraped_jobs')
       .select('*')
       .eq('alerted', false)
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!newJobs || newJobs.length === 0) {
+    if (!rawJobs || rawJobs.length === 0) {
       console.log('No new (un-alerted) VC jobs to send');
       return new Response(
         JSON.stringify({ success: true, message: 'No new jobs', count: 0 }),
@@ -51,7 +51,53 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Found ${newJobs.length} un-alerted VC jobs to send to ${ALERT_EMAIL}`);
+    // Filter: London-based only
+    const londonPattern = /\blondon\b/i;
+    const remoteUkPattern = /\b(remote|united\s+kingdom|uk)\b/i;
+    const nonUkPattern = /\b(usa|canada|us\b|u\.s\.|india|germany|france|spain|italy|australia|singapore|hong\s+kong|dubai|netherlands|ireland|new\s+york|san\s+francisco|toronto|chicago|boston|seattle|los\s+angeles|berlin|paris|amsterdam|mumbai|bangalore|sydney|melbourne)\b/i;
+
+    // Filter: Investment roles only (mirrors client-side subCategories patterns)
+    const investmentPatterns = [
+      /\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office))/i,
+      /\bdeal\b/i,
+      /\borigination\b/i,
+      /\binvestment\s+analyst\b/i,
+      /\binvestment\s+associate\b/i,
+      /\bvc\s+analyst\b/i,
+      /\bvc\s+associate\b/i,
+      /\bventure\s+(capital\s+)?(analyst|associate|principal|partner)\b/i,
+    ];
+
+    const newJobs = rawJobs.filter(job => {
+      const loc = (job.location || '').toLowerCase();
+      // Must be London or generic UK/Remote (not another non-UK city)
+      const isLondon = londonPattern.test(loc) || (remoteUkPattern.test(loc) && !nonUkPattern.test(loc));
+      if (!isLondon) return false;
+
+      // Must match investment role patterns
+      const text = `${job.title} ${job.description || ''}`;
+      return investmentPatterns.some(p => p.test(text));
+    });
+
+    // Mark ALL raw jobs as alerted (so non-matching ones don't pile up)
+    const allIds = rawJobs.map(j => j.id);
+    const { error: markAllError } = await supabase
+      .from('scraped_jobs')
+      .update({ alerted: true })
+      .in('id', allIds);
+    if (markAllError) {
+      console.error('Failed to mark all jobs as alerted:', markAllError.message);
+    }
+
+    if (newJobs.length === 0) {
+      console.log(`No London Investment jobs out of ${rawJobs.length} total un-alerted VC jobs`);
+      return new Response(
+        JSON.stringify({ success: true, message: 'No matching jobs after filtering', total: rawJobs.length, matched: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Found ${newJobs.length} London Investment jobs (from ${rawJobs.length} total) to send to ${ALERT_EMAIL}`);
 
     // Build HTML email
     const jobRows = newJobs.map(job => `
@@ -85,7 +131,7 @@ Deno.serve(async (req) => {
               ⚡ VC<span style="color: #3b82f6;">SCOUT</span> Daily Alert
             </h1>
             <p style="color: #6b7280; font-size: 14px; margin: 4px 0 0;">
-              ${newJobs.length} new VC job${newJobs.length === 1 ? '' : 's'} since your last alert
+              ${newJobs.length} new VC Investment job${newJobs.length === 1 ? '' : 's'} in London since your last alert
             </p>
           </div>
           <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
@@ -108,7 +154,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: 'VCScout <onboarding@resend.dev>',
         to: [ALERT_EMAIL],
-        subject: `⚡ ${newJobs.length} new VC job${newJobs.length === 1 ? '' : 's'} found`,
+        subject: `⚡ ${newJobs.length} new VC Investment job${newJobs.length === 1 ? '' : 's'} in London`,
         html,
       }),
     });
@@ -125,18 +171,7 @@ Deno.serve(async (req) => {
 
     console.log(`Email sent to ${ALERT_EMAIL}:`, emailData.id);
 
-    // Mark all sent jobs as alerted
-    const jobIds = newJobs.map(j => j.id);
-    const { error: markError } = await supabase
-      .from('scraped_jobs')
-      .update({ alerted: true })
-      .in('id', jobIds);
-
-    if (markError) {
-      console.error('Failed to mark jobs as alerted:', markError.message);
-    } else {
-      console.log(`Marked ${jobIds.length} jobs as alerted`);
-    }
+    // Jobs already marked as alerted above (all raw jobs, not just matched ones)
 
     return new Response(
       JSON.stringify({ success: true, sent: 1, jobCount: newJobs.length }),
