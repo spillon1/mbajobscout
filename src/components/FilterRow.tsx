@@ -98,6 +98,8 @@ export function FilterRow({
   mode,
   selectedSubCategories,
   onSubCategoriesChange,
+  selectedAssetClasses,
+  onAssetClassesChange,
 }: FilterRowProps) {
   const subCats = mode ? SUB_CATEGORIES[mode] || [] : [];
 
