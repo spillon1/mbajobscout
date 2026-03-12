@@ -52,11 +52,10 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
   ],
   tech: [
     { value: 'product', label: 'Product Management', patterns: [/\bproduct\s+(manager|management|lead|director|owner|head)\b/i, /\bpm\b/i] },
-    { value: 'strategy-ops', label: 'Strategy & Operations', patterns: [/\bstrategy\s*((&|and)\s*)?operations\b/i, /\bstratops\b/i, /\bstrategy\b/i] },
-    { value: 'corp-dev', label: 'Corporate Development', patterns: [/\bcorporate\s+development\b/i, /\bcorp\s*dev\b/i, /\bm&a\b/i] },
-    { value: 'gtm-sales', label: 'GTM / Sales', patterns: [/\bgtm\b/i, /\bgo.to.market\b/i, /\bsales\b/i, /\baccount\s+executive\b/i] },
+    { value: 'strategy-ops', label: 'Strategy & Operations', patterns: [/\bstrategy\s*((&|and)\s*)?operations\b/i, /\bstratops\b/i, /\bbiz\s*ops\b/i, /\bbusiness\s+operations\b/i] },
+    { value: 'corp-dev-strategy', label: 'Corporate Development / Strategy', patterns: [/\bcorporate\s+development\b/i, /\bcorp\s*dev\b/i, /\bm&a\b/i, /\bstrategy\b/i] },
     { value: 'growth', label: 'Growth', patterns: [/\bgrowth\b/i, /\bgrowth\s+(manager|lead|marketing)\b/i] },
-    { value: 'bizops', label: 'BizOps', patterns: [/\bbiz\s*ops\b/i, /\bbusiness\s+operations\b/i] },
+    { value: 'gtm-sales', label: 'GTM / Sales', patterns: [/\bgtm\b/i, /\bgo.to.market\b/i, /\bsales\b/i, /\baccount\s+executive\b/i] },
   ],
   startups: [
     { value: 'founder-cos', label: 'Founder Associate / Chief of Staff', patterns: [/\bfounder\s+associate\b/i, /\bfounder'?s?\s+associate\b/i, /\bceo\s+office\b/i, /\bchief\s+of\s+staff\b/i, /\bcos\b/i] },
