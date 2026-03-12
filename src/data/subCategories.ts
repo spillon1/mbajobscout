@@ -62,6 +62,7 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
   ],
 };
 
+export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; options: SubCategory[] }>> = {
   vc: {
     label: 'Stage',
     options: [
@@ -71,7 +72,6 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
       { value: 'multi-stage', label: 'Multi-Stage', patterns: [/\bmulti[\s\-]?stage\b/i, /\bfull[\s\-]?lifecycle\b/i, /\ball[\s\-]?stage/i, /\bcross[\s\-]?stage\b/i] },
     ],
   },
-export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; options: SubCategory[] }>> = {
   st: {
     label: 'Asset Class',
     options: [
