@@ -151,43 +151,7 @@ const MCScout = () => {
 
   return (<>
     <div className="min-h-screen bg-background bg-grid">
-      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="h-8 w-8 rounded-sm bg-primary/15 border border-primary/30 flex items-center justify-center"><Zap className="h-4 w-4 text-primary" /></div>
-              <div className="hidden sm:block">
-                <h1 className="font-display text-sm font-bold tracking-tight text-foreground">VCPE<span className="text-primary">SCOUT</span></h1>
-                <p className="text-[10px] font-display text-muted-foreground uppercase tracking-widest">UK JOB AGGREGATOR</p>
-              </div>
-              <nav className="flex items-center gap-1 ml-2 sm:ml-4">
-                <Link to="/" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">VC</Link>
-                <Link to="/pe" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">PE</Link>
-                <Link to="/ib" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">IB</Link>
-                <Link to="/st" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">S&T</Link>
-                <Link to="/mc" className="px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">MC</Link>
-              </nav>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <div className="flex items-center gap-1.5 shrink-0">
-                <MapPin className="h-3.5 w-3.5 text-primary" />
-                <Select value={selectedCity} onValueChange={handleCityChange}>
-                  <SelectTrigger className="h-7 w-[110px] sm:w-[140px] text-xs font-display bg-card border-border"><SelectValue placeholder="Location" /></SelectTrigger>
-                  <SelectContent>{UK_CITIES.map((loc) => (<SelectItem key={loc.value} value={loc.value} className="text-xs">{loc.label}</SelectItem>))}</SelectContent>
-                </Select>
-              </div>
-              <Button onClick={isSearching ? handleStopScrape : handleScrape} size="sm" variant="default" className="font-display text-[10px] uppercase tracking-wider h-7 px-4 sm:px-6 shrink-0">
-                {isSearching ? (<span className="flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" />Searching</span>) : 'Find jobs'}
-              </Button>
-              {user ? (
-                <button onClick={signOut} className="shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-display text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Sign out"><LogOut className="h-3.5 w-3.5" /><span className="hidden sm:inline">{user.email?.split('@')[0]}</span></button>
-              ) : (
-                <button onClick={() => setShowAuthModal(true)} className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border border-border"><User className="h-3.5 w-3.5" /><span className="hidden sm:inline">Sign in</span></button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <NavBar activeTab="/mc" selectedCity={selectedCity} onCityChange={handleCityChange} isSearching={isSearching} onSearch={handleScrape} onStop={handleStopScrape} onSignInClick={() => setShowAuthModal(true)} />
 
       <div className="border-b border-border bg-muted/40 sticky top-[53px] z-40">
         <div className="container max-w-6xl mx-auto px-4 py-1.5 flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
