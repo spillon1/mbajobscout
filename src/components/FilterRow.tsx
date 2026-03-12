@@ -111,7 +111,8 @@ export function FilterRow({
     selectedTitles.length > 0 ||
     selectedSources.length > 0 ||
     filterKeywords.length > 0 ||
-    (selectedSubCategories && selectedSubCategories.length > 0);
+    (selectedSubCategories && selectedSubCategories.length > 0) ||
+    (selectedAssetClasses && selectedAssetClasses.length > 0);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
