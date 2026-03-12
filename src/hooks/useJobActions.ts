@@ -14,38 +14,66 @@ export interface JobActionRecord {
   created_at: string;
 }
 
+/** Normalize text for stable dedupe keys */
+function normalizeText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /** Strip tracking params so the same job matches across scrapes */
 export function normalizeJobUrl(url: string): string {
   try {
     const u = new URL(url);
-    // Indeed: keep only the job key (jk param) or path
+    u.hash = '';
+
+    // Indeed: keep only the stable job key (jk) when present
     if (/indeed\.com/i.test(u.hostname)) {
       const jk = u.searchParams.get('jk');
-      if (jk) return `${u.origin}${u.pathname}?jk=${jk}`;
-      // /viewjob?jk= or /rc/clk paths – strip everything else
-      return `${u.origin}${u.pathname}`;
+      const path = u.pathname.replace(/\/+$/, '') || '/';
+      return jk ? `${u.origin}${path}?jk=${jk}` : `${u.origin}${path}`;
     }
-    // LinkedIn: strip refId, trackingId, trk params
+
+    // LinkedIn: drop volatile tracking params
     if (/linkedin\.com/i.test(u.hostname)) {
-      ['refId', 'trackingId', 'trk', 'midToken', 'midSig'].forEach(p => u.searchParams.delete(p));
-      return u.toString();
+      ['refId', 'trackingId', 'trk', 'midToken', 'midSig'].forEach((p) => u.searchParams.delete(p));
     }
-    // Glassdoor: strip tracking params
+
+    // Glassdoor: drop volatile tracking params
     if (/glassdoor/i.test(u.hostname)) {
-      ['src', 'srs', 't', 'pos'].forEach(p => u.searchParams.delete(p));
-      return u.toString();
+      ['src', 'srs', 't', 'pos'].forEach((p) => u.searchParams.delete(p));
     }
+
     // Default: strip common tracking params
-    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ref', 'fbclid', 'gclid'].forEach(p => u.searchParams.delete(p));
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ref', 'fbclid', 'gclid'].forEach((p) => u.searchParams.delete(p));
+
+    u.pathname = u.pathname.replace(/\/+$/, '') || '/';
     return u.toString();
   } catch {
     return url;
   }
 }
 
-/** Create a title+company key for fallback matching */
+/** Create a stable title+company key for fallback matching */
 function titleCompanyKey(title: string, company: string): string {
-  return `${title.toLowerCase().trim()}|||${company.toLowerCase().trim()}`;
+  return `${normalizeText(title)}|||${normalizeText(company)}`;
+}
+
+function dedupeActionRecords(records: JobActionRecord[]): JobActionRecord[] {
+  const seen = new Set<string>();
+  const unique: JobActionRecord[] = [];
+
+  // Keep newest row for each (action + title+company) tuple
+  for (const record of records) {
+    const key = `${record.action}|||${titleCompanyKey(record.job_title, record.job_company)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push({ ...record, job_url: normalizeJobUrl(record.job_url) });
+  }
+
+  return unique;
 }
 
 export function useJobActions() {
@@ -75,7 +103,7 @@ export function useJobActions() {
     if (id !== fetchIdRef.current) return;
 
     if (!error && data) {
-      setActions(data as unknown as JobActionRecord[]);
+      setActions(dedupeActionRecords(data as unknown as JobActionRecord[]));
     }
     setLoading(false);
   }, [userId]);
@@ -92,11 +120,23 @@ export function useJobActions() {
     action: JobAction
   ): Promise<string | null> => {
     if (!userId) return null;
+
+    const normalizedUrl = normalizeJobUrl(jobUrl);
+    const incomingKey = `${action}|||${titleCompanyKey(jobTitle, jobCompany)}`;
+    const existing = actions.find(
+      (a) => `${a.action}|||${titleCompanyKey(a.job_title, a.job_company)}` === incomingKey
+    );
+
+    // Already actioned for this role/company/action — avoid creating duplicates
+    if (existing) {
+      return existing.id;
+    }
+
     const { data, error } = await supabase
       .from('job_actions')
       .upsert({
         user_id: userId,
-        job_url: normalizeJobUrl(jobUrl),
+        job_url: normalizedUrl,
         job_title: jobTitle,
         job_company: jobCompany,
         job_source: jobSource,
@@ -110,7 +150,7 @@ export function useJobActions() {
       return data?.id ?? null;
     }
     return null;
-  }, [fetchActions, userId]);
+  }, [actions, fetchActions, userId]);
 
   const removeAction = useCallback(async (id: string) => {
     const { error } = await supabase
@@ -119,18 +159,18 @@ export function useJobActions() {
       .eq('id', id);
 
     if (!error) {
-      setActions(prev => prev.filter(a => a.id !== id));
+      setActions((prev) => prev.filter((a) => a.id !== id));
     }
     return !error;
   }, []);
 
   // Build normalized URL set + title+company fallback set
-  const actionedUrls = useMemo(() => new Set(actions.map(a => normalizeJobUrl(a.job_url))), [actions]);
-  const actionedTitleCompany = useMemo(() => new Set(actions.map(a => titleCompanyKey(a.job_title, a.job_company))), [actions]);
+  const actionedUrls = useMemo(() => new Set(actions.map((a) => normalizeJobUrl(a.job_url))), [actions]);
+  const actionedTitleCompany = useMemo(() => new Set(actions.map((a) => titleCompanyKey(a.job_title, a.job_company))), [actions]);
 
-  const appliedJobs = actions.filter(a => a.action === 'applied');
-  const notInterestedJobs = actions.filter(a => a.action === 'not_interested');
-  const savedJobs = actions.filter(a => a.action === 'saved');
+  const appliedJobs = actions.filter((a) => a.action === 'applied');
+  const notInterestedJobs = actions.filter((a) => a.action === 'not_interested');
+  const savedJobs = actions.filter((a) => a.action === 'saved');
 
   /** Check if a job has been actioned (by normalized URL or title+company) */
   const isActioned = useCallback((jobUrl: string, title: string, company: string): boolean => {
