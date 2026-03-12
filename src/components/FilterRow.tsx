@@ -151,6 +151,18 @@ export function FilterRow({
         />
       )}
 
+      {tertiaryFilter && onTertiaryFilterChange && (
+        <CheckboxFilter
+          label={tertiaryFilter.label}
+          options={tertiaryFilter.options.map((c) => c.label)}
+          selected={(selectedTertiaryFilter || []).map((val) => tertiaryFilter.options.find((c) => c.value === val)?.label || val)}
+          onChange={(labels) => {
+            const values = labels.map((l) => tertiaryFilter.options.find((c) => c.label === l)?.value || l);
+            onTertiaryFilterChange(values);
+          }}
+        />
+      )
+
       <CheckboxFilter
         label="Sources"
         options={allSources}
