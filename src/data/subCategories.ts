@@ -14,11 +14,10 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     { value: 'fund-ops', label: 'Fund Operations', patterns: [/\bfund\s+operations\b/i, /\bfund\s+admin/i, /\bfund\s+accounting\b/i, /\bfund\s+manag/i, /\bcompliance\b/i, /\boperations\b/i, /\bfinance\b/i] },
   ],
   pe: [
-    { value: 'buyout', label: 'Buyout', patterns: [/\bbuyout\b/i, /\blbo\b/i, /\bleveraged\b/i] },
-    { value: 'growth', label: 'Growth Equity', patterns: [/\bgrowth\b/i, /\bgrowth\s+equity\b/i] },
-    { value: 'credit', label: 'Credit / Debt', patterns: [/\bcredit\b/i, /\bdebt\b/i, /\bprivate\s+credit\b/i, /\bmezzanine\b/i] },
-    { value: 'infrastructure', label: 'Infrastructure', patterns: [/\binfrastructure\b/i, /\binfra\b/i] },
-    { value: 'secondaries', label: 'Secondaries', patterns: [/\bsecondari/i, /\bsecondary\b/i] },
+    { value: 'investment', label: 'Investment', patterns: [/\binvestment\b/i, /\bdeal\b/i, /\borigination\b/i, /\banalyst\b/i, /\bassociate\b/i, /\bprincipal\b/i] },
+    { value: 'portfolio-ops', label: 'Portfolio Operations', patterns: [/\bportfolio\b/i, /\bvalue\s+creation\b/i, /\boperating\s+partner\b/i] },
+    { value: 'investor-relations', label: 'Investor Relations', patterns: [/\binvestor\s+relations\b/i, /\bir\b/i, /\bfundraising\b/i, /\blp\s+relations\b/i, /\bcapital\s+raising\b/i] },
+    { value: 'fund-ops', label: 'Fund Operations', patterns: [/\bfund\s+operations\b/i, /\bfund\s+admin/i, /\bfund\s+accounting\b/i, /\bcompliance\b/i, /\boperations\b/i, /\bfinance\b/i] },
   ],
   ib: [
     { value: 'ma', label: 'M&A', patterns: [/\bm&a\b/i, /\bmergers?\s*(and|&)\s*acquisitions?\b/i] },
@@ -74,13 +73,13 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
     ],
   },
   pe: {
-    label: 'Firm Type',
+    label: 'Strategy',
     options: [
-      { value: 'mega-fund', label: 'Mega Fund', patterns: [/\b(kkr|blackstone|carlyle|apollo|tpg|warburg\s+pincus|advent|bain\s+capital|cvc|eqt|permira|cinven|bc\s+partners|bridgepoint|pai\s+partners|silver\s+lake|thoma\s+bravo|vista\s+equity|hellman\s+&?\s*friedman)\b/i] },
-      { value: 'upper-mid', label: 'Upper Mid-Market', patterns: [/\b(hg\s+capital|montagu|charterhouse|ici|apax|graphite|intermediate\s+capital|3i|livingbridge|inflexion|palatine|lyceum|oakley|sovereign|exponent|bowmark)\b/i] },
-      { value: 'mid-market', label: 'Mid-Market', patterns: [/\bmid[\s\-]?market\b/i, /\b(ldc|nvp|endless|kester|dunedin|august\s+equity|key\s+capital|mercia|foresight|mobeus|ypf|primary|pricoa|beechbrook|phoenix\s+equity)\b/i] },
-      { value: 'growth-equity-fund', label: 'Growth Equity Fund', patterns: [/\bgrowth\s+equity\b/i, /\bgrowth\s+fund\b/i, /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|jmi\s+equity)\b/i] },
-      { value: 'private-credit-fund', label: 'Private Credit Fund', patterns: [/\bprivate\s+credit\b/i, /\bdirect\s+lending\b/i, /\bcredit\s+fund\b/i, /\b(ares|golub|owl\s+rock|blue\s+owl|hayfin|arcmont|pemberton|tikehau|muzinich)\b/i] },
+      { value: 'buyout', label: 'Buyout', patterns: [/\bbuyout\b/i, /\blbo\b/i, /\bleveraged\b/i] },
+      { value: 'growth-equity', label: 'Growth Equity', patterns: [/\bgrowth\b/i, /\bgrowth\s+equity\b/i] },
+      { value: 'credit', label: 'Credit / Debt', patterns: [/\bcredit\b/i, /\bdebt\b/i, /\bprivate\s+credit\b/i, /\bmezzanine\b/i] },
+      { value: 'infrastructure', label: 'Infrastructure', patterns: [/\binfrastructure\b/i, /\binfra\b/i] },
+      { value: 'secondaries', label: 'Secondaries', patterns: [/\bsecondari/i, /\bsecondary\b/i] },
     ],
   },
   ib: {
@@ -99,6 +98,19 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
       { value: 'wealth-manager', label: 'Wealth Manager', patterns: [/\bwealth\s+manag/i, /\bprivate\s+bank/i, /\bprivate\s+wealth/i] },
       { value: 'family-office', label: 'Family Office', patterns: [/\bfamily\s+office\b/i, /\bsfo\b/i, /\bmfo\b/i] },
       { value: 'institutional', label: 'Institutional Investor', patterns: [/\binstitutional\b/i, /\bpension\b/i, /\bendowment\b/i, /\bsovereign\s+wealth\b/i, /\binsurance\b/i] },
+    ],
+  },
+};
+
+export const TERTIARY_FILTERS: Partial<Record<ScrapeMode, { label: string; options: SubCategory[] }>> = {
+  pe: {
+    label: 'Firm Type',
+    options: [
+      { value: 'mega-fund', label: 'Mega Fund', patterns: [/\b(kkr|blackstone|carlyle|apollo|tpg|warburg\s+pincus|advent|bain\s+capital|cvc|eqt|permira|cinven|bc\s+partners|bridgepoint|pai\s+partners|silver\s+lake|thoma\s+bravo|vista\s+equity|hellman\s+&?\s*friedman)\b/i] },
+      { value: 'upper-mid', label: 'Upper Mid-Market', patterns: [/\b(hg\s+capital|montagu|charterhouse|ici|apax|graphite|intermediate\s+capital|3i|livingbridge|inflexion|palatine|lyceum|oakley|sovereign|exponent|bowmark)\b/i] },
+      { value: 'mid-market', label: 'Mid-Market', patterns: [/\bmid[\s\-]?market\b/i, /\b(ldc|nvp|endless|kester|dunedin|august\s+equity|key\s+capital|mercia|foresight|mobeus|ypf|primary|pricoa|beechbrook|phoenix\s+equity)\b/i] },
+      { value: 'growth-equity-fund', label: 'Growth Equity Fund', patterns: [/\bgrowth\s+equity\b/i, /\bgrowth\s+fund\b/i, /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|jmi\s+equity)\b/i] },
+      { value: 'private-credit-fund', label: 'Private Credit Fund', patterns: [/\bprivate\s+credit\b/i, /\bdirect\s+lending\b/i, /\bcredit\s+fund\b/i, /\b(ares|golub|owl\s+rock|blue\s+owl|hayfin|arcmont|pemberton|tikehau|muzinich)\b/i] },
     ],
   },
 };
@@ -125,6 +137,22 @@ export function jobMatchesSecondaryFilter(
 ): boolean {
   if (selectedValues.length === 0) return true;
   const filter = SECONDARY_FILTERS[mode];
+  if (!filter) return true;
+  const text = `${job.title} ${job.description || ''} ${(job as any).company || ''}`;
+  return selectedValues.some((val) => {
+    const opt = filter.options.find((c) => c.value === val);
+    if (!opt) return false;
+    return opt.patterns.some((p) => p.test(text));
+  });
+}
+
+export function jobMatchesTertiaryFilter(
+  job: { title: string; description?: string; company?: string },
+  mode: ScrapeMode,
+  selectedValues: string[],
+): boolean {
+  if (selectedValues.length === 0) return true;
+  const filter = TERTIARY_FILTERS[mode];
   if (!filter) return true;
   const text = `${job.title} ${job.description || ''} ${(job as any).company || ''}`;
   return selectedValues.some((val) => {

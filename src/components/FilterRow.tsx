@@ -3,7 +3,7 @@ import { CheckboxFilter } from '@/components/CheckboxFilter';
 import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { Seniority } from '@/types/jobs';
-import { SUB_CATEGORIES, ScrapeMode, SECONDARY_FILTERS } from '@/data/subCategories';
+import { SUB_CATEGORIES, ScrapeMode, SECONDARY_FILTERS, TERTIARY_FILTERS } from '@/data/subCategories';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
 export type JobStatus = 'any' | 'open' | 'closed';
@@ -36,9 +36,12 @@ interface FilterRowProps {
   mode?: ScrapeMode;
   selectedSubCategories?: string[];
   onSubCategoriesChange?: (cats: string[]) => void;
-  // Secondary filter (asset class for S&T, firm type for IB, etc.)
+  // Secondary filter (asset class for S&T, strategy for PE, etc.)
   selectedSecondaryFilter?: string[];
   onSecondaryFilterChange?: (values: string[]) => void;
+  // Tertiary filter (firm type for PE)
+  selectedTertiaryFilter?: string[];
+  onTertiaryFilterChange?: (values: string[]) => void;
 }
 
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
@@ -100,9 +103,12 @@ export function FilterRow({
   onSubCategoriesChange,
   selectedSecondaryFilter,
   onSecondaryFilterChange,
+  selectedTertiaryFilter,
+  onTertiaryFilterChange,
 }: FilterRowProps) {
   const subCats = mode ? SUB_CATEGORIES[mode] || [] : [];
   const secondaryFilter = mode ? SECONDARY_FILTERS[mode] : undefined;
+  const tertiaryFilter = mode ? TERTIARY_FILTERS[mode] : undefined;
 
   const hasActiveFilters =
     listedPeriod !== 'any' ||
@@ -113,7 +119,8 @@ export function FilterRow({
     selectedSources.length > 0 ||
     filterKeywords.length > 0 ||
     (selectedSubCategories && selectedSubCategories.length > 0) ||
-    (selectedSecondaryFilter && selectedSecondaryFilter.length > 0);
+    (selectedSecondaryFilter && selectedSecondaryFilter.length > 0) ||
+    (selectedTertiaryFilter && selectedTertiaryFilter.length > 0);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -140,6 +147,18 @@ export function FilterRow({
           onChange={(labels) => {
             const values = labels.map((l) => secondaryFilter.options.find((c) => c.label === l)?.value || l);
             onSecondaryFilterChange(values);
+          }}
+        />
+      )}
+
+      {tertiaryFilter && onTertiaryFilterChange && (
+        <CheckboxFilter
+          label={tertiaryFilter.label}
+          options={tertiaryFilter.options.map((c) => c.label)}
+          selected={(selectedTertiaryFilter || []).map((val) => tertiaryFilter.options.find((c) => c.value === val)?.label || val)}
+          onChange={(labels) => {
+            const values = labels.map((l) => tertiaryFilter.options.find((c) => c.label === l)?.value || l);
+            onTertiaryFilterChange(values);
           }}
         />
       )}

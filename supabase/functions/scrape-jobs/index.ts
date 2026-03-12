@@ -1500,7 +1500,7 @@ function isLikelyPeRole(title: string, company: string, description: string | un
   const companyLower = company.toLowerCase();
   const descLower = (description || '').toLowerCase();
 
-  // ── Hard exclusions (same non-investment roles as VC) ──
+  // ── Hard exclusions: clearly non-PE roles ──
   const hardExclude = [
     /\bsoftware\s+engineer/i,
     /\bengineer(?:ing)?\b/i,
@@ -1511,21 +1511,7 @@ function isLikelyPeRole(title: string, company: string, description: string | un
     /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
     /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
     /\bsearch\s+fund\b/i,
-    /\bfund\s+administ/i,
-    /\bcredit\s+invest/i,
-    /\bportfolio\s+monitor/i,
-    /\bportfolio\s+manager\b/i,
-    /\bbook\s+portfolio/i,
-    /\bir\s+analyst\b/i,
-    /\bfund\s+controller\b/i,
-    /\bportfolio\s+controller\b/i,
     /\blegal\s+counsel\b/i,
-    /\bfinance\s+and\s+portfolio\b/i,
-    /\bfinance\s+analyst\b/i,
-    /\bfinance\s+director\b/i,
-    /\bfinance\s+manager\b/i,
-    /\bhead\s+of\s+finance\b/i,
-    /\binvestment\s+consultant\b/i,
     /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
     /\bconveyancing\b/i,
     /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
@@ -1553,14 +1539,11 @@ function isLikelyPeRole(title: string, company: string, description: string | un
     /\bhedge\s+fund\b/i,
     /\basset\s+management\b/i,
     /\bwealth\s+management\b/i,
-    /\bfund\s+accounting\b/i,
-    /\bfund\s+operations\b/i,
     /\bcommodities\b/i,
     /\bstructurer\b/i,
     /\bquantitative\s+(researcher|trader|analyst)\b/i,
     /\btrading\b/i,
     /\btrader\b/i,
-    /\binvestor\s+relation/i,
     /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
     /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
     /\bsales\s+(dev|representative|exec)/i,

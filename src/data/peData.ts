@@ -38,4 +38,9 @@ export const PE_DEFAULT_KEYWORDS = [
   'Private equity intern',
   'Private equity graduate',
   'Private equity analyst',
+  'Private equity investor relations',
+  'Private equity fund operations',
+  'Private equity portfolio operations',
+  'PE fund operations',
+  'PE investor relations',
 ];
