@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Job, JobSource, JobType, Seniority } from '@/types/jobs';
 import { getSafeJobUrl } from '@/lib/urlSafety';
+import { ScrapeMode } from '@/data/subCategories';
 
 function inferSeniority(title: string): Seniority {
   const t = title.toLowerCase();
