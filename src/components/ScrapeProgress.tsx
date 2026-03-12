@@ -63,7 +63,7 @@ export function ScrapeProgress({ isSearching, sourceCount, startedAt }: ScrapePr
       </div>
       <Progress value={progress} className="h-1.5" />
       <p className="text-[11px] text-muted-foreground mt-2">
-        Scraping {sourceCount} source{sourceCount !== 1 ? 's' : ''} with your configured keywords. This may take 30-60 seconds.
+        Scraping {sourceCount} source{sourceCount !== 1 ? 's' : ''} with your configured keywords. This may take 30–60 seconds.
       </p>
     </div>
   );
