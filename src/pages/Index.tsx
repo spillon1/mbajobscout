@@ -283,9 +283,10 @@ const Index = () => {
       filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
     }
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'vc', selectedSubCategories));
+    filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'vc', selectedSecondaryFilter));
 
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedSubCategories]);
+  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedSubCategories, selectedSecondaryFilter]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
