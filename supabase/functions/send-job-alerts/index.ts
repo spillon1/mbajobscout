@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: 'VCScout <onboarding@resend.dev>',
         to: [ALERT_EMAIL],
-        subject: `⚡ ${newJobs.length} new VC job${newJobs.length === 1 ? '' : 's'} found`,
+        subject: `⚡ ${newJobs.length} new VC Investment job${newJobs.length === 1 ? '' : 's'} in London`,
         html,
       }),
     });
