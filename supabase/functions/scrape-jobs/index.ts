@@ -2045,24 +2045,17 @@ function isLikelyVcRole(title: string, company: string, description: string | un
   const companyLower = company.toLowerCase();
   const descLower = (description || '').toLowerCase();
 
-  // ── Hard exclusions: non-investment roles even at VC firms ──
-  const nonInvestmentRoles = [
+  // ── Hard exclusions: clearly non-VC roles ──
+  const nonVcRoles = [
     /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director|officer)\b/i,
     /\bcontent\s+(manager|writer|specialist|strategist)\b/i,
     /\bsocial\s+media\b/i,
     /\bcommunications?\s+(manager|director|officer|lead)\b/i,
     /\bpr\s+(manager|director|officer)\b/i,
-    /\boperations\s+(associate|executive|manager|director|analyst|officer|lead|specialist|coordinator)\b/i,
     /\boffice\s+manager\b/i, /\badmin\s+(assistant|coordinator|manager)\b/i,
     /\bexecutive\s+assistant\b/i, /\bpersonal\s+assistant\b/i,
-    /\bfinance\s+(analyst|director|manager|controller|officer)\b/i,
-    /\bhead\s+of\s+finance\b/i, /\bcfo\b/i,
-    /\baccountant\b/i, /\bauditor\b/i, /\bbookkeeper\b/i,
-    /\bfund\s+controller\b/i, /\bfund\s+administ/i,
-    /\bfinancial\s+controller\b/i,
     /\blegal\s+counsel\b/i, /\bsolicitor\b/i, /\blawyer\b/i, /\bparalegal\b/i,
     /\bgeneral\s+counsel\b/i,
-    /\bcompliance\s+(officer|manager|analyst|director)\b/i,
     /\bhr\s+(manager|director|business\s+partner|specialist|officer)\b/i,
     /\bhuman\s+resources\b/i, /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
     /\btalent\s+(acquisition|partner|manager)\b/i, /\brecruitment\b/i,
@@ -2077,13 +2070,11 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\btax\s+(manager|analyst|advisor|specialist|director)\b/i,
     /\bprocurement\b/i, /\bsupply\s+chain\b/i,
     /\bevent\s+(manager|coordinator|director|operations)\b/i,
-    /\binvestor\s+relation/i, /\bir\s+(manager|director|analyst)\b/i,
-    /\bchief\s+of\s+staff\b/i,
     /\b(?:co-?)?founder\b/i,
   ];
-  if (nonInvestmentRoles.some(p => p.test(titleLower))) return false;
+  if (nonVcRoles.some(p => p.test(titleLower))) return false;
 
-  // Simple rule: "venture capital" must appear in title, company, or description
+  // ── VC signals: "venture capital" or VC-specific context ──
   const vcSignals = [
     /venture\s+capital/,
     /\bvc\s+(fund|firm|portfolio|backed|investment|analyst|associate|partner|principal|director)/,
