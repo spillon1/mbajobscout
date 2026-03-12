@@ -55,7 +55,7 @@ function toSTUrl(url: string): string {
 const STScout = () => {
   const { toast } = useToast();
   const { user, signOut } = useAuth();
-  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
+  const { addAction, removeAction, isActioned, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
   const scrapeState = getState('st');
