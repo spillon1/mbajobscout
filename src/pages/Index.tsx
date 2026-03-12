@@ -567,7 +567,7 @@ const Index = () => {
           </div>
 
           {/* Sidebar */}
-          <div ref={sourcesRef} className="space-y-4">
+          <div ref={sourcesRef} className="space-y-4 lg:sticky lg:top-20">
             
             <SourceManager
               sources={sources}
