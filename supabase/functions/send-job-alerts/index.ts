@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch un-alerted VC-mode jobs only
-    const { data: newJobs, error: jobsError } = await supabase
+    const { data: rawJobs, error: jobsError } = await supabase
       .from('scraped_jobs')
       .select('*')
       .eq('alerted', false)
@@ -43,10 +43,56 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!newJobs || newJobs.length === 0) {
+    if (!rawJobs || rawJobs.length === 0) {
       console.log('No new (un-alerted) VC jobs to send');
       return new Response(
         JSON.stringify({ success: true, message: 'No new jobs', count: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Filter: London-based only
+    const londonPattern = /\blondon\b/i;
+    const remoteUkPattern = /\b(remote|united\s+kingdom|uk)\b/i;
+    const nonUkPattern = /\b(usa|canada|us\b|u\.s\.|india|germany|france|spain|italy|australia|singapore|hong\s+kong|dubai|netherlands|ireland|new\s+york|san\s+francisco|toronto|chicago|boston|seattle|los\s+angeles|berlin|paris|amsterdam|mumbai|bangalore|sydney|melbourne)\b/i;
+
+    // Filter: Investment roles only (mirrors client-side subCategories patterns)
+    const investmentPatterns = [
+      /\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office))/i,
+      /\bdeal\b/i,
+      /\borigination\b/i,
+      /\binvestment\s+analyst\b/i,
+      /\binvestment\s+associate\b/i,
+      /\bvc\s+analyst\b/i,
+      /\bvc\s+associate\b/i,
+      /\bventure\s+(capital\s+)?(analyst|associate|principal|partner)\b/i,
+    ];
+
+    const newJobs = rawJobs.filter(job => {
+      const loc = (job.location || '').toLowerCase();
+      // Must be London or generic UK/Remote (not another non-UK city)
+      const isLondon = londonPattern.test(loc) || (remoteUkPattern.test(loc) && !nonUkPattern.test(loc));
+      if (!isLondon) return false;
+
+      // Must match investment role patterns
+      const text = `${job.title} ${job.description || ''}`;
+      return investmentPatterns.some(p => p.test(text));
+    });
+
+    // Mark ALL raw jobs as alerted (so non-matching ones don't pile up)
+    const allIds = rawJobs.map(j => j.id);
+    const { error: markAllError } = await supabase
+      .from('scraped_jobs')
+      .update({ alerted: true })
+      .in('id', allIds);
+    if (markAllError) {
+      console.error('Failed to mark all jobs as alerted:', markAllError.message);
+    }
+
+    if (newJobs.length === 0) {
+      console.log(`No London Investment jobs out of ${rawJobs.length} total un-alerted VC jobs`);
+      return new Response(
+        JSON.stringify({ success: true, message: 'No matching jobs after filtering', total: rawJobs.length, matched: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
