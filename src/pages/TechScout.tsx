@@ -174,7 +174,7 @@ const TechScout = () => {
             ))}
           </div>
           <div ref={sourcesRef} className="space-y-4">
-            <SourceManager sources={sources} onToggleSource={handleToggleSource} onToggleAll={handleToggleAll} onAddSource={handleAddSource} onRemoveSource={handleRemoveSource} hideManualSources />
+            <SourceManager sources={sources} onToggleSource={handleToggleSource} onToggleAll={handleToggleAll} onRemoveSource={handleRemoveSource} hideManualSources />
           </div>
         </div>
       </main>

@@ -573,7 +573,6 @@ const Index = () => {
               sources={sources}
               onToggleSource={handleToggleSource}
               onToggleAll={handleToggleAll}
-              onAddSource={handleAddSource}
               onRemoveSource={handleRemoveSource} />
             
           </div>
