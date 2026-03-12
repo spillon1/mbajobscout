@@ -229,38 +229,51 @@ function isValidJob(job: Job, mode: ScrapeMode = 'vc'): boolean {
   const spamCount = spamSignals.filter(s => descLower.includes(s)).length;
   if (spamCount >= 2) return false;
 
-  // Hard-exclude non-relevant role patterns
-  const hardExcludeTitles: RegExp[] = [
-    // Legal
+  // Hard-exclude patterns vary by mode
+  const hardExcludeTitles: RegExp[] = [];
+
+  // Universal junk (applies to all modes)
+  const universalExcludes: RegExp[] = [
     /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
     /\blegal\s+counsel\b/i, /\blegal\s+associate\b/i,
     /\blegal\s+(officer|advisor|specialist|director|manager)\b/i,
     /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
-    // Chief of Staff / Compliance
-    /\bchief\s+of\s+staff\b/i,
-    // Finance ops
-    /\baccountant\b/i, /\bauditor\b/i, /\bfund\s+controller\b/i, /\bfinancial\s+controller\b/i,
-    /\bportfolio\s+(controller|monitor|manager)\b/i, /\bfund\s+administ/i,
+    /\baccountant\b/i, /\bauditor\b/i,
+    /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i, /\bclinical\b/i,
+    /\brecruitment\b/i,
+  ];
+
+  // Finance-specific modes share these excludes
+  const financeExcludes: RegExp[] = [
+    /\bfund\s+controller\b/i, /\bfinancial\s+controller\b/i,
+    /\bportfolio\s+(controller|monitor)\b/i, /\bfund\s+administ/i,
     /\bfinance\s+(analyst|director|manager|business\s+partner|and\s+portfolio)\b/i,
     /\bhead\s+of\s+finance\b/i,
-    // Tech / product
-    /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i, /\bdata\s+scientist\b/i,
-    /\bdesigner\b/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i, /\b(?:co-?)?founder\b/i,
-    // HR / admin / sales / marketing
-    /\brecruitment\s+(consultant|manager)\b/i, /\bcompliance\s+(administrator|officer|manager|analyst|specialist|director)\b/i,
-    /\bbusiness\s+development\b/i, /\bbdm\b/i, /\bprogram\s+director\b/i,
+    /\bcompliance\s+(administrator|officer|manager|analyst|specialist|director)\b/i,
     /\bir\s+analyst\b/i, /\binvestor\s+relation/i,
-    /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
-    /\bcontent\s+(manager|writer|specialist)\b/i,
-    /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
-    /\bsales\s+(dev|representative|exec|associate|manager|lead|director)/i,
     /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
     /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
-    // HR / People
     /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
     /\bhr\s+(partner|manager|director|business\s+partner|advisor)\b/i,
     /\bhuman\s+resources\b/i,
   ];
+
+  if (['vc', 'pe', 'ib', 'mc', 'st', 'im'].includes(mode)) {
+    hardExcludeTitles.push(...universalExcludes, ...financeExcludes);
+    // Also exclude tech/product/eng for finance modes
+    hardExcludeTitles.push(
+      /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i, /\bdata\s+scientist\b/i,
+      /\bdesigner\b/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i, /\b(?:co-?)?founder\b/i,
+      /\bbusiness\s+development\b/i, /\bbdm\b/i, /\bprogram\s+director\b/i,
+      /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
+      /\bcontent\s+(manager|writer|specialist)\b/i,
+      /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
+      /\bsales\s+(dev|representative|exec|associate|manager|lead|director)/i,
+    );
+  } else {
+    // Tech / Startups: minimal excludes
+    hardExcludeTitles.push(...universalExcludes);
+  }
 
   // Only add consulting exclusion for modes that aren't MC
   if (mode !== 'mc') {
