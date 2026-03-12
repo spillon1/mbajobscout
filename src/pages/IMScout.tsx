@@ -80,6 +80,7 @@ const IMScout = () => {
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('im-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('im-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('im-subcats', []);
+  const [selectedSecondaryFilter, setSelectedSecondaryFilter] = usePersistedState<string[]>('im-secondary', []);
 
   const handleCityChange = (city: string) => { setSelectedCity(city); setSources((prev) => prev.map((s) => ({ ...s, url: toIMUrl(getSourceUrlForLocation(s.name, city) || s.url), status: 'unknown' as const, statusMessage: undefined }))); setJobs([]); setHasScraped(false); setDismissedIds(new Set()); };
   const handleToggleSource = (id: string) => { setSources((prev) => prev.map((s) => s.id === id ? { ...s, enabled: !s.enabled } : s)); };
