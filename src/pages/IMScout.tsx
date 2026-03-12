@@ -51,7 +51,7 @@ function toIMUrl(url: string): string {
 const IMScout = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
+  const { addAction, removeAction, isActioned, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
   const scrapeState = getState('im');
