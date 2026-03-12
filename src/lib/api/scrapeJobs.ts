@@ -250,7 +250,7 @@ function isValidJob(job: Job, mode: ScrapeMode = 'vc'): boolean {
     /\bfinance\s+(analyst|director|manager|business\s+partner|and\s+portfolio)\b/i,
     /\bhead\s+of\s+finance\b/i,
     /\bcompliance\s+(administrator|officer|manager|analyst|specialist|director)\b/i,
-    /\bir\s+analyst\b/i, /\binvestor\s+relation/i,
+    // IR roles removed from finance excludes — they're valid in VC/PE modes
     /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
     /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
     /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
