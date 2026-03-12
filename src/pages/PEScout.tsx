@@ -55,7 +55,7 @@ function toPEUrl(url: string): string {
 const PEScout = () => {
   const { toast } = useToast();
   const { user, signOut } = useAuth();
-  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
+  const { addAction, removeAction, isActioned, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
   const scrapeState = getState('pe');
@@ -165,7 +165,7 @@ const PEScout = () => {
   const baseFilteredJobs = useMemo(() => {
     let filtered = jobs.filter((j) => !dismissedIds.has(j.id));
     const jobUrl = (j: Job) => j.jobUrl || j.sourceUrl;
-    filtered = filtered.filter((j) => !actionedUrls.has(jobUrl(j)));
+    filtered = filtered.filter((j) => !isActioned(jobUrl(j), j.title, j.company));
 
     if (selectedCompanies.length > 0) filtered = filtered.filter((j) => selectedCompanies.includes(j.company));
     if (selectedTitles.length > 0) filtered = filtered.filter((j) => selectedTitles.includes(j.title));
@@ -232,7 +232,7 @@ const PEScout = () => {
     filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'pe', selectedSecondaryFilter));
     filtered = filtered.filter((j) => jobMatchesTertiaryFilter(j, 'pe', selectedTertiaryFilter));
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedSecondaryFilter, selectedTertiaryFilter]);
+  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedSecondaryFilter, selectedTertiaryFilter]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);

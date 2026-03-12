@@ -50,7 +50,7 @@ import { ToastAction } from '@/components/ui/toast';
 const Index = () => {
   const { toast } = useToast();
   const { user, signOut } = useAuth();
-  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
+  const { addAction, removeAction, isActioned, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
   const scrapeState = getState('vc');
@@ -182,7 +182,7 @@ const Index = () => {
 
     // Exclude jobs that have been actioned (applied or not interested)
     const jobUrl = (j: Job) => j.jobUrl || j.sourceUrl;
-    filtered = filtered.filter((j) => !actionedUrls.has(jobUrl(j)));
+    filtered = filtered.filter((j) => !isActioned(jobUrl(j), j.title, j.company));
 
     if (selectedCompanies.length > 0) {
       filtered = filtered.filter((j) => selectedCompanies.includes(j.company));
@@ -286,7 +286,7 @@ const Index = () => {
     filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'vc', selectedSecondaryFilter));
 
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedSubCategories, selectedSecondaryFilter]);
+  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedSubCategories, selectedSecondaryFilter]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);

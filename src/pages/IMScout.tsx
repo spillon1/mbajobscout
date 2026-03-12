@@ -51,7 +51,7 @@ function toIMUrl(url: string): string {
 const IMScout = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
+  const { addAction, removeAction, isActioned, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
   const scrapeState = getState('im');
@@ -99,7 +99,7 @@ const IMScout = () => {
   const baseFilteredJobs = useMemo(() => {
     let filtered = jobs.filter((j) => !dismissedIds.has(j.id));
     const jobUrl = (j: Job) => j.jobUrl || j.sourceUrl;
-    filtered = filtered.filter((j) => !actionedUrls.has(jobUrl(j)));
+    filtered = filtered.filter((j) => !isActioned(jobUrl(j), j.title, j.company));
     if (selectedCompanies.length > 0) filtered = filtered.filter((j) => selectedCompanies.includes(j.company));
     if (selectedTitles.length > 0) filtered = filtered.filter((j) => selectedTitles.includes(j.title));
     if (filterKeywords.length > 0) filtered = filtered.filter((j) => { const text = `${j.title} ${j.description || ''} ${j.company}`.toLowerCase(); return filterKeywords.some((kw) => text.includes(kw.toLowerCase())); });
@@ -121,7 +121,7 @@ const IMScout = () => {
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'im', selectedSubCategories));
     filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'im', selectedSecondaryFilter));
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedSecondaryFilter]);
+  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedSecondaryFilter]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);

@@ -55,7 +55,7 @@ function toMCUrl(url: string): string {
 const MCScout = () => {
   const { toast } = useToast();
   const { user, signOut } = useAuth();
-  const { addAction, removeAction, actionedUrls, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
+  const { addAction, removeAction, isActioned, appliedJobs, notInterestedJobs, savedJobs, isAuthenticated } = useJobActions();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { getState, startScrape, stopScrape, consumeResults } = useScrape();
   const scrapeState = getState('mc');
@@ -122,7 +122,7 @@ const MCScout = () => {
   const baseFilteredJobs = useMemo(() => {
     let filtered = jobs.filter((j) => !dismissedIds.has(j.id));
     const jobUrl = (j: Job) => j.jobUrl || j.sourceUrl;
-    filtered = filtered.filter((j) => !actionedUrls.has(jobUrl(j)));
+    filtered = filtered.filter((j) => !isActioned(jobUrl(j), j.title, j.company));
     if (selectedCompanies.length > 0) filtered = filtered.filter((j) => selectedCompanies.includes(j.company));
     if (selectedTitles.length > 0) filtered = filtered.filter((j) => selectedTitles.includes(j.title));
     if (filterKeywords.length > 0) filtered = filtered.filter((j) => { const text = `${j.title} ${j.description || ''} ${j.company}`.toLowerCase(); return filterKeywords.some((kw) => text.includes(kw.toLowerCase())); });
@@ -143,7 +143,7 @@ const MCScout = () => {
     if (selectedSeniorities.length > 0) filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'mc', selectedSubCategories));
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories]);
+  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
