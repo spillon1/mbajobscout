@@ -22,10 +22,9 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
   ],
   ib: [
     { value: 'ma', label: 'M&A', patterns: [/\bm&a\b/i, /\bmergers?\s*(and|&)\s*acquisitions?\b/i] },
-    { value: 'ecm-dcm', label: 'ECM / DCM', patterns: [/\becm\b/i, /\bdcm\b/i, /\bcapital\s+markets\b/i, /\bequity\s+capital\b/i, /\bdebt\s+capital\b/i] },
     { value: 'levfin', label: 'Leveraged Finance', patterns: [/\blevfin\b/i, /\bleveraged\s+finance\b/i, /\bhigh\s+yield\b/i] },
-    { value: 'corp-fin', label: 'Corporate Finance', patterns: [/\bcorporate\s+finance\b/i, /\badvisory\b/i] },
-    { value: 'analyst-associate', label: 'Analyst / Associate', patterns: [/\b(analyst|associate)\b/i] },
+    { value: 'ecm-dcm', label: 'ECM / DCM', patterns: [/\becm\b/i, /\bdcm\b/i, /\bcapital\s+markets\b/i, /\bequity\s+capital\b/i, /\bdebt\s+capital\b/i] },
+    { value: 'industry-coverage', label: 'Industry Coverage', patterns: [/\bcoverage\b/i, /\bindustry\b/i, /\bsector\b/i, /\btmt\b/i, /\bhealthcare\b/i, /\benergy\b/i, /\bfig\b/i, /\breal\s+estate\b/i, /\bconsumer\b/i, /\bindustrials\b/i] },
   ],
   mc: [
     { value: 'strategy', label: 'Strategy', patterns: [/\bstrategy\b/i, /\bstrategic\b/i] },
@@ -64,13 +63,26 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
   ],
 };
 
-export const ST_ASSET_CLASSES: SubCategory[] = [
-  { value: 'equities', label: 'Equities', patterns: [/\bequit(y|ies)\b/i] },
-  { value: 'fx', label: 'FX', patterns: [/\bfx\b/i, /\bforeign\s+exchange\b/i, /\bcurrenc/i] },
-  { value: 'rates', label: 'Rates', patterns: [/\brates\b/i, /\bfixed\s+income\b/i, /\bficc\b/i, /\bgovt?\s+bond/i] },
-  { value: 'credit', label: 'Credit', patterns: [/\bcredit\b/i, /\bhigh\s+yield\b/i, /\binvestment\s+grade\b/i] },
-  { value: 'commodities', label: 'Commodities', patterns: [/\bcommodit/i, /\benergy\b/i, /\bmetals\b/i, /\boil\b/i, /\bgas\b/i] },
-];
+export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; options: SubCategory[] }>> = {
+  st: {
+    label: 'Asset Class',
+    options: [
+      { value: 'equities', label: 'Equities', patterns: [/\bequit(y|ies)\b/i] },
+      { value: 'fx', label: 'FX', patterns: [/\bfx\b/i, /\bforeign\s+exchange\b/i, /\bcurrenc/i] },
+      { value: 'rates', label: 'Rates', patterns: [/\brates\b/i, /\bfixed\s+income\b/i, /\bficc\b/i, /\bgovt?\s+bond/i] },
+      { value: 'credit', label: 'Credit', patterns: [/\bcredit\b/i, /\bhigh\s+yield\b/i, /\binvestment\s+grade\b/i] },
+      { value: 'commodities', label: 'Commodities', patterns: [/\bcommodit/i, /\benergy\b/i, /\bmetals\b/i, /\boil\b/i, /\bgas\b/i] },
+    ],
+  },
+  ib: {
+    label: 'Firm Type',
+    options: [
+      { value: 'bulge-bracket', label: 'Bulge Bracket', patterns: [/\b(goldman\s+sachs|morgan\s+stanley|j\.?p\.?\s*morgan|bank\s+of\s+america|citigroup|citi\b|barclays|deutsche\s+bank|ubs|credit\s+suisse|hsbc)\b/i] },
+      { value: 'elite-boutique', label: 'Elite Boutique', patterns: [/\b(lazard|evercore|centerview|pjt\s+partners|moelis|guggenheim|perella\s+weinberg|pwp|greenhill|rothschild|qatalyst)\b/i] },
+      { value: 'middle-market', label: 'Middle Market', patterns: [/\b(houlihan\s+lokey|william\s+blair|raymond\s+james|jefferies|piper\s+sandler|baird|lincoln\s+international|harris\s+williams|dc\s+advisory|numis|liberum|stifel|canaccord)\b/i] },
+    ],
+  },
+};
 
 export function jobMatchesSubCategories(
   job: { title: string; description?: string },
@@ -87,15 +99,18 @@ export function jobMatchesSubCategories(
   });
 }
 
-export function jobMatchesAssetClasses(
-  job: { title: string; description?: string },
-  selectedAssetClasses: string[],
+export function jobMatchesSecondaryFilter(
+  job: { title: string; description?: string; company?: string },
+  mode: ScrapeMode,
+  selectedValues: string[],
 ): boolean {
-  if (selectedAssetClasses.length === 0) return true;
-  const text = `${job.title} ${job.description || ''}`;
-  return selectedAssetClasses.some((val) => {
-    const ac = ST_ASSET_CLASSES.find((c) => c.value === val);
-    if (!ac) return false;
-    return ac.patterns.some((p) => p.test(text));
+  if (selectedValues.length === 0) return true;
+  const filter = SECONDARY_FILTERS[mode];
+  if (!filter) return true;
+  const text = `${job.title} ${job.description || ''} ${(job as any).company || ''}`;
+  return selectedValues.some((val) => {
+    const opt = filter.options.find((c) => c.value === val);
+    if (!opt) return false;
+    return opt.patterns.some((p) => p.test(text));
   });
 }

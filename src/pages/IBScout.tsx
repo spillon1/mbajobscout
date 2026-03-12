@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { Link } from 'react-router-dom';
 import { NavBar } from '@/components/NavBar';
-import { jobMatchesSubCategories } from '@/data/subCategories';
+import { jobMatchesSubCategories, jobMatchesSecondaryFilter } from '@/data/subCategories';
 
 function parsePostedDate(dateStr?: string): Date {
   if (!dateStr || dateStr === 'Scraped just now' || dateStr === 'Mock data') return new Date();
@@ -113,6 +113,7 @@ const IBScout = () => {
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('ib-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('ib-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('ib-subcats', []);
+  const [selectedFirmType, setSelectedFirmType] = usePersistedState<string[]>('ib-firmtype', []);
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
@@ -225,8 +226,9 @@ const IBScout = () => {
 
     if (selectedSeniorities.length > 0) filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'ib', selectedSubCategories));
+    filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'ib', selectedFirmType));
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories]);
+  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedFirmType]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -277,10 +279,11 @@ const IBScout = () => {
           onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))}
           allCompanies={allCompanies} allTitles={allTitles} allSources={allSources}
           mode="ib" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories}
+          selectedSecondaryFilter={selectedFirmType} onSecondaryFilterChange={setSelectedFirmType}
           onClearFilters={() => {
             setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]);
             setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]);
-            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]);
+            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedFirmType([]);
           }}
         />
 
