@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { Link } from 'react-router-dom';
 import { NavBar } from '@/components/NavBar';
+import { jobMatchesSubCategories } from '@/data/subCategories';
 
 function parsePostedDate(dateStr?: string): Date {
   if (!dateStr || dateStr === 'Scraped just now' || dateStr === 'Mock data') return new Date();
@@ -111,6 +112,7 @@ const IBScout = () => {
   const [sortBy, setSortBy] = usePersistedState<SortOption>('ib-sort', 'date-desc');
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('ib-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('ib-seniorities', []);
+  const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('ib-subcats', []);
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
@@ -222,8 +224,9 @@ const IBScout = () => {
     }
 
     if (selectedSeniorities.length > 0) filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
+    filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'ib', selectedSubCategories));
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity]);
+  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -273,10 +276,11 @@ const IBScout = () => {
           onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])}
           onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))}
           allCompanies={allCompanies} allTitles={allTitles} allSources={allSources}
+          mode="ib" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories}
           onClearFilters={() => {
             setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]);
             setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]);
-            setFilterKeywords([]); setSelectedType('any');
+            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]);
           }}
         />
 
