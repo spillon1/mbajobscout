@@ -30,7 +30,7 @@ import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { useScrape } from '@/contexts/ScrapeContext';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { NavBar } from '@/components/NavBar';
-import { jobMatchesSubCategories } from '@/data/subCategories';
+import { jobMatchesSubCategories, jobMatchesSecondaryFilter } from '@/data/subCategories';
 
 import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, Loader2, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
