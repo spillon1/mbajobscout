@@ -1565,6 +1565,10 @@ function isLikelyPeRole(title: string, company: string, description: string | un
   const titlePePatterns = [
     /\bprivate\s+equity\b/,
     /investment\s+(analyst|associate|manager|director|principal|partner)/,
+    /\binvestor\s+relations?\b/,
+    /\bfundraising\b/,
+    /\bcapital\s+raising\b/,
+    /\blp\s+relations?\b/,
   ];
   if (titlePePatterns.some(p => p.test(titleLower))) {
     if (isFundServices) return false;
