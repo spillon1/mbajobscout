@@ -3,7 +3,7 @@ import { CheckboxFilter } from '@/components/CheckboxFilter';
 import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { Seniority } from '@/types/jobs';
-import { SUB_CATEGORIES, ScrapeMode, SECONDARY_FILTERS } from '@/data/subCategories';
+import { SUB_CATEGORIES, ScrapeMode, SECONDARY_FILTERS, TERTIARY_FILTERS } from '@/data/subCategories';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
 export type JobStatus = 'any' | 'open' | 'closed';
