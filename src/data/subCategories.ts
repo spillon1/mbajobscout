@@ -81,6 +81,16 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
       { value: 'middle-market', label: 'Middle Market', patterns: [/\b(houlihan\s+lokey|william\s+blair|raymond\s+james|jefferies|piper\s+sandler|baird|lincoln\s+international|harris\s+williams|dc\s+advisory|numis|liberum|stifel|canaccord)\b/i] },
     ],
   },
+  im: {
+    label: 'Company Type',
+    options: [
+      { value: 'hedge-fund', label: 'Hedge Fund', patterns: [/\bhedge\s+fund\b/i, /\bhf\b/i] },
+      { value: 'asset-mgmt', label: 'Asset Management', patterns: [/\basset\s+management\b/i, /\bfund\s+management\b/i, /\basset\s+manager\b/i] },
+      { value: 'wealth-manager', label: 'Wealth Manager', patterns: [/\bwealth\s+manag/i, /\bprivate\s+bank/i, /\bprivate\s+wealth/i] },
+      { value: 'family-office', label: 'Family Office', patterns: [/\bfamily\s+office\b/i, /\bsfo\b/i, /\bmfo\b/i] },
+      { value: 'institutional', label: 'Institutional Investor', patterns: [/\binstitutional\b/i, /\bpension\b/i, /\bendowment\b/i, /\bsovereign\s+wealth\b/i, /\binsurance\b/i] },
+    ],
+  },
 };
 
 export function jobMatchesSubCategories(
