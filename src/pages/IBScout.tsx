@@ -276,10 +276,11 @@ const IBScout = () => {
           onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])}
           onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))}
           allCompanies={allCompanies} allTitles={allTitles} allSources={allSources}
+          mode="ib" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories}
           onClearFilters={() => {
             setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]);
             setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]);
-            setFilterKeywords([]); setSelectedType('any');
+            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]);
           }}
         />
 
