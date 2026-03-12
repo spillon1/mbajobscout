@@ -141,8 +141,9 @@ const STScout = () => {
     else if (datePostedFilter === 'without-date') filtered = filtered.filter((j) => !j.postedDate || j.postedDate === 'Scraped just now');
     if (listedPeriod !== 'any') { const now = new Date(); const cutoff = new Date(); if (listedPeriod === '1d') cutoff.setDate(now.getDate() - 1); else if (listedPeriod === '1w') cutoff.setDate(now.getDate() - 7); else if (listedPeriod === '1m') cutoff.setMonth(now.getMonth() - 1); else if (listedPeriod === '3m') cutoff.setMonth(now.getMonth() - 3); else if (listedPeriod === '6m') cutoff.setMonth(now.getMonth() - 6); filtered = filtered.filter((j) => parsePostedDate(j.postedDate) >= cutoff); }
     if (selectedSeniorities.length > 0) filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
+    filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'st', selectedSubCategories));
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity]);
+  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
