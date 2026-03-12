@@ -1994,8 +1994,7 @@ function isNotExcludedRole(title: string): boolean {
     /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
     /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
 
-    // IR
-    /\bir\s+analyst\b/i, /\binvestor\s+relation/i,
+    // IR — removed: investor relations is a valid role in VC/PE modes
   ];
   if (hardExclude.some(p => p.test(titleLower))) return false;
 
