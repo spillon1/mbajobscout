@@ -161,7 +161,7 @@ export function FilterRow({
             onTertiaryFilterChange(values);
           }}
         />
-      )
+      )}
 
       <CheckboxFilter
         label="Sources"
