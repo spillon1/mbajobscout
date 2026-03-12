@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { Link } from 'react-router-dom';
 import { NavBar } from '@/components/NavBar';
-import { jobMatchesSubCategories } from '@/data/subCategories';
+import { jobMatchesSubCategories, jobMatchesSecondaryFilter } from '@/data/subCategories';
 
 function parsePostedDate(dateStr?: string): Date {
   if (!dateStr || dateStr === 'Scraped just now' || dateStr === 'Mock data') return new Date();
@@ -114,6 +114,7 @@ const PEScout = () => {
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('pe-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('pe-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('pe-subcats', []);
+  const [selectedSecondaryFilter, setSelectedSecondaryFilter] = usePersistedState<string[]>('pe-secondary', []);
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
@@ -227,8 +228,9 @@ const PEScout = () => {
 
     if (selectedSeniorities.length > 0) filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'pe', selectedSubCategories));
+    filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'pe', selectedSecondaryFilter));
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories]);
+  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedSecondaryFilter]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -279,10 +281,11 @@ const PEScout = () => {
           onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))}
           allCompanies={allCompanies} allTitles={allTitles} allSources={allSources}
           mode="pe" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories}
+          selectedSecondaryFilter={selectedSecondaryFilter} onSecondaryFilterChange={setSelectedSecondaryFilter}
           onClearFilters={() => {
             setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]);
             setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]);
-            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]);
+            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedSecondaryFilter([]);
           }}
         />
 
