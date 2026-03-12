@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { Link } from 'react-router-dom';
-import { jobMatchesSubCategories } from '@/data/subCategories';
+import { jobMatchesSubCategories, jobMatchesSecondaryFilter } from '@/data/subCategories';
 import { NavBar } from '@/components/NavBar';
 
 /** Parse freetext posted date into a Date for sorting. Unknown dates → now (appear first). */
@@ -115,6 +115,7 @@ const Index = () => {
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('vc-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('vc-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('vc-subcats', []);
+  const [selectedSecondaryFilter, setSelectedSecondaryFilter] = usePersistedState<string[]>('vc-secondary', []);
 
   useEffect(() => {
     setSources((prev) => prev.filter((s) => !isOccSource(`${s.name} ${s.url}`)));
@@ -282,9 +283,10 @@ const Index = () => {
       filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
     }
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'vc', selectedSubCategories));
+    filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'vc', selectedSecondaryFilter));
 
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedSubCategories]);
+  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedSubCategories, selectedSecondaryFilter]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -360,6 +362,8 @@ const Index = () => {
           mode="vc"
           selectedSubCategories={selectedSubCategories}
           onSubCategoriesChange={setSelectedSubCategories}
+          selectedSecondaryFilter={selectedSecondaryFilter}
+          onSecondaryFilterChange={setSelectedSecondaryFilter}
           onClearFilters={() => {
             setListedPeriod('any');
             setDatePostedFilter('all');
@@ -370,6 +374,7 @@ const Index = () => {
             setFilterKeywords([]);
             setSelectedType('any');
             setSelectedSubCategories([]);
+            setSelectedSecondaryFilter([]);
           }} />
         
         

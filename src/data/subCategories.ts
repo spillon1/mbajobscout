@@ -63,6 +63,15 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
 };
 
 export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; options: SubCategory[] }>> = {
+  vc: {
+    label: 'Stage',
+    options: [
+      { value: 'pre-seed-seed', label: 'Pre-Seed / Seed', patterns: [/\bpre[\s\-]?seed\b/i, /\bseed\s+(stage|fund|round)\b/i, /\bseed\b/i, /\bearly[\s\-]?stage\b/i] },
+      { value: 'series-ab', label: 'Series A / B', patterns: [/\bseries\s+[ab]\b/i, /\bearly\s+growth\b/i] },
+      { value: 'growth-late', label: 'Growth / Late Stage', patterns: [/\bgrowth\s+(stage|equity|fund)\b/i, /\blate[\s\-]?stage\b/i, /\bseries\s+[c-z]\b/i, /\bgrowth\b/i] },
+      { value: 'multi-stage', label: 'Multi-Stage', patterns: [/\bmulti[\s\-]?stage\b/i, /\bfull[\s\-]?lifecycle\b/i, /\ball[\s\-]?stage/i, /\bcross[\s\-]?stage\b/i] },
+    ],
+  },
   st: {
     label: 'Asset Class',
     options: [
