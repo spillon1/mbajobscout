@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { JobSource } from '@/types/jobs';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, Globe, Trash2, CheckCircle2, AlertCircle, Loader2, HelpCircle, ExternalLink } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, HelpCircle, Trash2, ExternalLink } from 'lucide-react';
 import { MANUAL_SOURCES } from '@/data/jobData';
 import { getOutboundUrl } from '@/lib/urlSafety';
 
@@ -14,7 +12,6 @@ interface SourceManagerProps {
   sources: JobSource[];
   onToggleSource: (id: string) => void;
   onToggleAll: (enabled: boolean) => void;
-  onAddSource: (name: string, url: string) => void;
   onRemoveSource: (id: string) => void;
   hideManualSources?: boolean;
 }
@@ -26,20 +23,8 @@ const statusConfig: Record<ConnectionStatus, { icon: typeof CheckCircle2; classN
   unknown: { icon: HelpCircle, className: 'text-muted-foreground', label: 'Not yet scraped' },
 };
 
-export function SourceManager({ sources, onToggleSource, onToggleAll, onAddSource, onRemoveSource, hideManualSources }: SourceManagerProps) {
-  const [newName, setNewName] = useState('');
-  const [newUrl, setNewUrl] = useState('');
-  const [showAdd, setShowAdd] = useState(false);
+export function SourceManager({ sources, onToggleSource, onToggleAll, onRemoveSource, hideManualSources }: SourceManagerProps) {
   const [openTooltip, setOpenTooltip] = useState<string | null>(null);
-
-  const handleAdd = () => {
-    if (newName.trim() && newUrl.trim()) {
-      onAddSource(newName.trim(), newUrl.trim());
-      setNewName('');
-      setNewUrl('');
-      setShowAdd(false);
-    }
-  };
 
   return (
     <div className="border border-border rounded-md bg-card p-4">
@@ -47,49 +32,16 @@ export function SourceManager({ sources, onToggleSource, onToggleAll, onAddSourc
         <h3 className="font-display text-xs uppercase tracking-wider text-muted-foreground">
           Sources ({sources.filter(s => s.enabled).length}/{sources.length})
         </h3>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const allEnabled = sources.every(s => s.enabled);
-              onToggleAll(!allEnabled);
-            }}
-            className="h-7 px-2 text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-primary"
-          >
-            {sources.every(s => s.enabled) ? 'None' : 'All'}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowAdd(!showAdd)}
-            className="h-7 px-2 text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-primary"
-          >
-            <Plus className="h-3 w-3 mr-1" />
-            Add
-          </Button>
-        </div>
+        <button
+          onClick={() => {
+            const allEnabled = sources.every(s => s.enabled);
+            onToggleAll(!allEnabled);
+          }}
+          className="text-xs font-display uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"
+        >
+          {sources.every(s => s.enabled) ? 'None' : 'All'}
+        </button>
       </div>
-
-      {showAdd && (
-        <div className="flex gap-2 mb-3 p-3 rounded-sm bg-muted border border-border">
-          <Input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Source name"
-            className="text-sm bg-card"
-          />
-          <Input
-            value={newUrl}
-            onChange={(e) => setNewUrl(e.target.value)}
-            placeholder="https://..."
-            className="text-sm bg-card"
-          />
-          <Button size="sm" onClick={handleAdd} className="shrink-0 font-display text-xs">
-            Add
-          </Button>
-        </div>
-      )}
 
       <div className="space-y-1 max-h-64 overflow-y-auto">
         {sources.map((source) => {
