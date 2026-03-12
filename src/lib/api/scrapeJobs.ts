@@ -275,9 +275,14 @@ function isValidJob(job: Job, mode: ScrapeMode = 'vc'): boolean {
     hardExcludeTitles.push(...universalExcludes);
   }
 
-  // Only add consulting exclusion for modes that aren't MC
-  if (mode !== 'mc') {
+  // Only add consulting exclusion for finance modes that aren't MC
+  if (!['mc', 'tech', 'startups'].includes(mode)) {
     hardExcludeTitles.push(/\bconsulting\b/i, /\bconsultant\b/i);
+  }
+
+  // Chief of staff exclusion only for finance modes (it's relevant for tech/startups)
+  if (['vc', 'pe', 'ib', 'st', 'im'].includes(mode)) {
+    hardExcludeTitles.push(/\bchief\s+of\s+staff\b/i);
   }
 
   // Mode-specific exclusions
