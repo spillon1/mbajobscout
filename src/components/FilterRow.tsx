@@ -36,6 +36,9 @@ interface FilterRowProps {
   mode?: ScrapeMode;
   selectedSubCategories?: string[];
   onSubCategoriesChange?: (cats: string[]) => void;
+  // S&T asset class filter
+  selectedAssetClasses?: string[];
+  onAssetClassesChange?: (classes: string[]) => void;
 }
 
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
