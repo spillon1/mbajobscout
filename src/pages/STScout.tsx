@@ -98,6 +98,7 @@ const STScout = () => {
   const [sortBy, setSortBy] = usePersistedState<SortOption>('st-sort', 'date-desc');
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('st-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('st-seniorities', []);
+  const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('st-subcats', []);
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);

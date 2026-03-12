@@ -113,6 +113,7 @@ const PEScout = () => {
   const [sortBy, setSortBy] = usePersistedState<SortOption>('pe-sort', 'date-desc');
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('pe-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('pe-seniorities', []);
+  const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('pe-subcats', []);
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);

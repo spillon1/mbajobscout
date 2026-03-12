@@ -98,6 +98,7 @@ const MCScout = () => {
   const [sortBy, setSortBy] = usePersistedState<SortOption>('mc-sort', 'date-desc');
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('mc-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('mc-seniorities', []);
+  const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('mc-subcats', []);
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);

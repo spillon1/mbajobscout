@@ -112,6 +112,7 @@ const IBScout = () => {
   const [sortBy, setSortBy] = usePersistedState<SortOption>('ib-sort', 'date-desc');
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('ib-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('ib-seniorities', []);
+  const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('ib-subcats', []);
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
