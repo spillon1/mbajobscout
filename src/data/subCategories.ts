@@ -59,8 +59,8 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     { value: 'bizops', label: 'BizOps', patterns: [/\bbiz\s*ops\b/i, /\bbusiness\s+operations\b/i] },
   ],
   startups: [
-    { value: 'strategy-cos', label: 'Strategy / Chief of Staff', patterns: [/\bchief\s+of\s+staff\b/i, /\bcos\b/i, /\bstrategy\b/i] },
-    { value: 'founder-assoc', label: 'Founder Associate', patterns: [/\bfounder\s+associate\b/i, /\bfounder'?s?\s+associate\b/i, /\bceo\s+office\b/i] },
+    { value: 'founder-cos', label: 'Founder Associate / Chief of Staff', patterns: [/\bfounder\s+associate\b/i, /\bfounder'?s?\s+associate\b/i, /\bceo\s+office\b/i, /\bchief\s+of\s+staff\b/i, /\bcos\b/i] },
+    { value: 'strategy', label: 'Strategy', patterns: [/\bstrategy\b/i] },
     { value: 'product', label: 'Product', patterns: [/\bproduct\b/i] },
     { value: 'growth-gtm', label: 'Growth / GTM', patterns: [/\bgrowth\b/i, /\bgtm\b/i, /\bgo.to.market\b/i, /\bmarketing\b/i] },
     { value: 'operations', label: 'Operations', patterns: [/\boperations\b/i, /\bops\b/i] },
