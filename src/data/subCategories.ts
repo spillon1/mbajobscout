@@ -17,8 +17,8 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     { value: 'buyout', label: 'Buyout', patterns: [/\bbuyout\b/i, /\blbo\b/i, /\bleveraged\b/i] },
     { value: 'growth', label: 'Growth Equity', patterns: [/\bgrowth\b/i, /\bgrowth\s+equity\b/i] },
     { value: 'credit', label: 'Credit / Debt', patterns: [/\bcredit\b/i, /\bdebt\b/i, /\bprivate\s+credit\b/i, /\bmezzanine\b/i] },
-    { value: 'analyst-associate', label: 'Analyst / Associate', patterns: [/\b(analyst|associate)\b/i] },
-    { value: 'vp-director', label: 'VP / Director', patterns: [/\b(vp|vice\s+president|director|principal|partner)\b/i] },
+    { value: 'infrastructure', label: 'Infrastructure', patterns: [/\binfrastructure\b/i, /\binfra\b/i] },
+    { value: 'secondaries', label: 'Secondaries', patterns: [/\bsecondari/i, /\bsecondary\b/i] },
   ],
   ib: [
     { value: 'ma', label: 'M&A', patterns: [/\bm&a\b/i, /\bmergers?\s*(and|&)\s*acquisitions?\b/i] },
