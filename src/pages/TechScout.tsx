@@ -162,7 +162,7 @@ const TechScout = () => {
             ) : isSearching ? (
               <ScrapeProgress isSearching={isSearching} sourceCount={sources.filter((s) => s.enabled).length} startedAt={scrapeState.startedAt} />
             ) : !hasScraped ? (
-              <div className="border border-border rounded-md bg-card p-12 text-center"><Zap className="h-8 w-8 text-primary mx-auto mb-3" /><p className="font-display text-sm text-foreground mb-1">Ready to scrape Tech jobs</p><p className="text-xs text-muted-foreground">Configure your sources, then click Scrape jobs</p></div>
+              <div className="border border-border rounded-md bg-card p-12 text-center"><Zap className="h-8 w-8 text-primary mx-auto mb-3" /><p className="font-display text-sm text-foreground mb-1">Ready to find Tech jobs</p><p className="text-xs text-muted-foreground">Configure your sources, then click Find Jobs</p></div>
             ) : filteredJobs.length === 0 ? (
               <div className="border border-border rounded-md bg-card p-12 text-center"><Briefcase className="h-8 w-8 text-muted-foreground mx-auto mb-3" /><p className="font-display text-sm text-muted-foreground">No jobs match your filters</p></div>
             ) : filteredJobs.map((job) => (
