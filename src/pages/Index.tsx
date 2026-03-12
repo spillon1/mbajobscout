@@ -114,6 +114,7 @@ const Index = () => {
   const [sortBy, setSortBy] = usePersistedState<SortOption>('vc-sort', 'date-desc');
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('vc-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('vc-seniorities', []);
+  const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('vc-subcats', []);
 
   useEffect(() => {
     setSources((prev) => prev.filter((s) => !isOccSource(`${s.name} ${s.url}`)));
