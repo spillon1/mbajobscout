@@ -39,7 +39,7 @@ export function NavBar({ activeTab, selectedCity, onCityChange, isSearching, onS
             </div>
             <div className="hidden sm:block">
               <h1 className="font-display text-sm font-bold tracking-tight text-foreground">
-                MBA<span className="text-primary">SCOUT</span>
+                MBA<span className="text-primary">JOBSCOUT</span>
               </h1>
               <p className="text-[10px] font-display text-muted-foreground uppercase tracking-widest">
                 UK JOB AGGREGATOR
