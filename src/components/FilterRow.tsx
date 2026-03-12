@@ -132,14 +132,14 @@ export function FilterRow({
         />
       )}
 
-      {mode === 'st' && onAssetClassesChange && (
+      {secondaryFilter && onSecondaryFilterChange && (
         <CheckboxFilter
-          label="Asset Class"
-          options={ST_ASSET_CLASSES.map((c) => c.label)}
-          selected={(selectedAssetClasses || []).map((val) => ST_ASSET_CLASSES.find((c) => c.value === val)?.label || val)}
+          label={secondaryFilter.label}
+          options={secondaryFilter.options.map((c) => c.label)}
+          selected={(selectedSecondaryFilter || []).map((val) => secondaryFilter.options.find((c) => c.value === val)?.label || val)}
           onChange={(labels) => {
-            const values = labels.map((l) => ST_ASSET_CLASSES.find((c) => c.label === l)?.value || l);
-            onAssetClassesChange(values);
+            const values = labels.map((l) => secondaryFilter.options.find((c) => c.label === l)?.value || l);
+            onSecondaryFilterChange(values);
           }}
         />
       )}
