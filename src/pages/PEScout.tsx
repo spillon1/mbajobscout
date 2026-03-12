@@ -413,7 +413,6 @@ const PEScout = () => {
               sources={sources}
               onToggleSource={handleToggleSource}
               onToggleAll={handleToggleAll}
-              onAddSource={handleAddSource}
               onRemoveSource={handleRemoveSource}
               hideManualSources
             />
