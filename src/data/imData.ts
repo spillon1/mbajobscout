@@ -34,9 +34,11 @@ export const IM_DEFAULT_KEYWORDS = [
   'Investment management',
   'Asset management',
   'Hedge fund',
+  'Family office',
   'Portfolio manager',
   'Fund manager',
   'Equity research',
   'Investment analyst',
   'Wealth management',
+  'Private wealth',
 ];
