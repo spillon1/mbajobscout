@@ -35,11 +35,10 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     { value: 'analyst-consultant', label: 'Analyst / Consultant', patterns: [/\b(analyst|consultant|associate)\b/i] },
   ],
   st: [
-    { value: 'equity-sales', label: 'Equity Sales', patterns: [/\bequity\s+sales\b/i, /\bequities\b/i] },
-    { value: 'ficc', label: 'FICC', patterns: [/\bficc\b/i, /\bfixed\s+income\b/i, /\brates\b/i, /\bcredit\s+trading\b/i] },
-    { value: 'fx', label: 'FX', patterns: [/\bfx\b/i, /\bforeign\s+exchange\b/i, /\bcurrenc/i] },
-    { value: 'derivatives', label: 'Derivatives', patterns: [/\bderivativ/i, /\boptions\b/i, /\bstructured\s+products\b/i] },
+    { value: 'sales', label: 'Sales', patterns: [/\bsales\b/i, /\bequity\s+sales\b/i] },
+    { value: 'trading', label: 'Trading', patterns: [/\btrad(er|ing)\b/i] },
     { value: 'structuring', label: 'Structuring', patterns: [/\bstructur(er|ing)\b/i] },
+    { value: 'quant-electronic', label: 'Quant / Electronic', patterns: [/\bquant\b/i, /\belectronic\b/i, /\balgo\b/i, /\bsystematic\b/i, /\be[\-\s]?trading\b/i] },
   ],
   im: [
     { value: 'hedge-fund', label: 'Hedge Fund', patterns: [/\bhedge\s+fund\b/i, /\bhf\b/i] },
@@ -66,6 +65,14 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
   ],
 };
 
+export const ST_ASSET_CLASSES: SubCategory[] = [
+  { value: 'equities', label: 'Equities', patterns: [/\bequit(y|ies)\b/i] },
+  { value: 'fx', label: 'FX', patterns: [/\bfx\b/i, /\bforeign\s+exchange\b/i, /\bcurrenc/i] },
+  { value: 'rates', label: 'Rates', patterns: [/\brates\b/i, /\bfixed\s+income\b/i, /\bficc\b/i, /\bgovt?\s+bond/i] },
+  { value: 'credit', label: 'Credit', patterns: [/\bcredit\b/i, /\bhigh\s+yield\b/i, /\binvestment\s+grade\b/i] },
+  { value: 'commodities', label: 'Commodities', patterns: [/\bcommodit/i, /\benergy\b/i, /\bmetals\b/i, /\boil\b/i, /\bgas\b/i] },
+];
+
 export function jobMatchesSubCategories(
   job: { title: string; description?: string },
   mode: ScrapeMode,
@@ -78,5 +85,18 @@ export function jobMatchesSubCategories(
     const cat = cats.find((c) => c.value === val);
     if (!cat) return false;
     return cat.patterns.some((p) => p.test(text));
+  });
+}
+
+export function jobMatchesAssetClasses(
+  job: { title: string; description?: string },
+  selectedAssetClasses: string[],
+): boolean {
+  if (selectedAssetClasses.length === 0) return true;
+  const text = `${job.title} ${job.description || ''}`;
+  return selectedAssetClasses.some((val) => {
+    const ac = ST_ASSET_CLASSES.find((c) => c.value === val);
+    if (!ac) return false;
+    return ac.patterns.some((p) => p.test(text));
   });
 }

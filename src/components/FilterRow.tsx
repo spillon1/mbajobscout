@@ -3,7 +3,7 @@ import { CheckboxFilter } from '@/components/CheckboxFilter';
 import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { Seniority } from '@/types/jobs';
-import { SUB_CATEGORIES, ScrapeMode } from '@/data/subCategories';
+import { SUB_CATEGORIES, ScrapeMode, ST_ASSET_CLASSES } from '@/data/subCategories';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
 export type JobStatus = 'any' | 'open' | 'closed';
@@ -36,6 +36,9 @@ interface FilterRowProps {
   mode?: ScrapeMode;
   selectedSubCategories?: string[];
   onSubCategoriesChange?: (cats: string[]) => void;
+  // S&T asset class filter
+  selectedAssetClasses?: string[];
+  onAssetClassesChange?: (classes: string[]) => void;
 }
 
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
@@ -95,6 +98,8 @@ export function FilterRow({
   mode,
   selectedSubCategories,
   onSubCategoriesChange,
+  selectedAssetClasses,
+  onAssetClassesChange,
 }: FilterRowProps) {
   const subCats = mode ? SUB_CATEGORIES[mode] || [] : [];
 
@@ -106,7 +111,8 @@ export function FilterRow({
     selectedTitles.length > 0 ||
     selectedSources.length > 0 ||
     filterKeywords.length > 0 ||
-    (selectedSubCategories && selectedSubCategories.length > 0);
+    (selectedSubCategories && selectedSubCategories.length > 0) ||
+    (selectedAssetClasses && selectedAssetClasses.length > 0);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -121,6 +127,18 @@ export function FilterRow({
           onChange={(labels) => {
             const values = labels.map((l) => subCats.find((c) => c.label === l)?.value || l);
             onSubCategoriesChange(values);
+          }}
+        />
+      )}
+
+      {mode === 'st' && onAssetClassesChange && (
+        <CheckboxFilter
+          label="Asset Class"
+          options={ST_ASSET_CLASSES.map((c) => c.label)}
+          selected={(selectedAssetClasses || []).map((val) => ST_ASSET_CLASSES.find((c) => c.value === val)?.label || val)}
+          onChange={(labels) => {
+            const values = labels.map((l) => ST_ASSET_CLASSES.find((c) => c.label === l)?.value || l);
+            onAssetClassesChange(values);
           }}
         />
       )}

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { Link } from 'react-router-dom';
 import { NavBar } from '@/components/NavBar';
-import { jobMatchesSubCategories } from '@/data/subCategories';
+import { jobMatchesSubCategories, jobMatchesAssetClasses } from '@/data/subCategories';
 
 function parsePostedDate(dateStr?: string): Date {
   if (!dateStr || dateStr === 'Scraped just now' || dateStr === 'Mock data') return new Date();
@@ -99,6 +99,7 @@ const STScout = () => {
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('st-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('st-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('st-subcats', []);
+  const [selectedAssetClasses, setSelectedAssetClasses] = usePersistedState<string[]>('st-assetclasses', []);
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
@@ -142,8 +143,9 @@ const STScout = () => {
     if (listedPeriod !== 'any') { const now = new Date(); const cutoff = new Date(); if (listedPeriod === '1d') cutoff.setDate(now.getDate() - 1); else if (listedPeriod === '1w') cutoff.setDate(now.getDate() - 7); else if (listedPeriod === '1m') cutoff.setMonth(now.getMonth() - 1); else if (listedPeriod === '3m') cutoff.setMonth(now.getMonth() - 3); else if (listedPeriod === '6m') cutoff.setMonth(now.getMonth() - 6); filtered = filtered.filter((j) => parsePostedDate(j.postedDate) >= cutoff); }
     if (selectedSeniorities.length > 0) filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'st', selectedSubCategories));
+    filtered = filtered.filter((j) => jobMatchesAssetClasses(j, selectedAssetClasses));
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories]);
+  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedAssetClasses]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -165,7 +167,7 @@ const STScout = () => {
       </div>
 
       <main className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
-        <FilterRow listedPeriod={listedPeriod} onListedPeriodChange={setListedPeriod} sortBy={sortBy} onSortByChange={setSortBy} datePostedFilter={datePostedFilter} onDatePostedFilterChange={setDatePostedFilter} selectedSeniorities={selectedSeniorities} onSenioritiesChange={setSelectedSeniorities} selectedCompanies={selectedCompanies} onCompaniesChange={setSelectedCompanies} selectedTitles={selectedTitles} onTitlesChange={setSelectedTitles} selectedSources={selectedSources} onSourcesChange={setSelectedSources} filterKeywords={filterKeywords} onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])} onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))} allCompanies={allCompanies} allTitles={allTitles} allSources={allSources} mode="st" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories} onClearFilters={() => { setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]); setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]); setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); }} />
+        <FilterRow listedPeriod={listedPeriod} onListedPeriodChange={setListedPeriod} sortBy={sortBy} onSortByChange={setSortBy} datePostedFilter={datePostedFilter} onDatePostedFilterChange={setDatePostedFilter} selectedSeniorities={selectedSeniorities} onSenioritiesChange={setSelectedSeniorities} selectedCompanies={selectedCompanies} onCompaniesChange={setSelectedCompanies} selectedTitles={selectedTitles} onTitlesChange={setSelectedTitles} selectedSources={selectedSources} onSourcesChange={setSelectedSources} filterKeywords={filterKeywords} onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])} onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))} allCompanies={allCompanies} allTitles={allTitles} allSources={allSources} mode="st" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories} selectedAssetClasses={selectedAssetClasses} onAssetClassesChange={setSelectedAssetClasses} onClearFilters={() => { setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]); setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]); setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedAssetClasses([]); }} />
 
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-3">
           <button onClick={() => isAuthenticated ? setViewMode(viewMode === 'saved' ? 'search' : 'saved') : setShowAuthModal(true)} className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${viewMode === 'saved' ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'}`}><div className="font-display text-lg sm:text-2xl font-bold text-primary">{isAuthenticated ? savedJobs.length : '–'}</div><div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Saved</div></button>
