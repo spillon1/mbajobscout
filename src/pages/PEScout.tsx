@@ -115,6 +115,7 @@ const PEScout = () => {
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('pe-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('pe-subcats', []);
   const [selectedSecondaryFilter, setSelectedSecondaryFilter] = usePersistedState<string[]>('pe-secondary', []);
+  const [selectedTertiaryFilter, setSelectedTertiaryFilter] = usePersistedState<string[]>('pe-tertiary', []);
 
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
