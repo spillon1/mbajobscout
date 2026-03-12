@@ -132,7 +132,7 @@ const StartupScout = () => {
     <div className="min-h-screen bg-background bg-grid">
       <NavBar activeTab="/startups" selectedCity={selectedCity} onCityChange={handleCityChange} isSearching={isSearching} onSearch={handleScrape} onStop={handleStopScrape} onSignInClick={() => setShowAuthModal(true)} />
 
-      <div className="border-b border-border bg-muted/40 sticky top-[53px] z-40">
+      <div className="border-b border-border bg-muted sticky top-[53px] z-40">
         <div className="container max-w-6xl mx-auto px-4 py-1.5 flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
           <button className="hover:text-foreground transition-colors whitespace-nowrap" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>{stats.total} Jobs</button>
           <span className="h-3 w-px bg-border" />
