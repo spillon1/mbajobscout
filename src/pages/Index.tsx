@@ -255,7 +255,7 @@ const Index = () => {
         filter((c) => c.value !== 'United Kingdom' && c.value.toLowerCase() !== cityLower).
         map((c) => c.value.toLowerCase());
         if (otherCities.some((c) => loc.includes(c))) return false;
-        return true;
+        return false;
       });
     }
 
