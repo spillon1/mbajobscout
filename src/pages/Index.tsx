@@ -362,6 +362,8 @@ const Index = () => {
           mode="vc"
           selectedSubCategories={selectedSubCategories}
           onSubCategoriesChange={setSelectedSubCategories}
+          selectedSecondaryFilter={selectedSecondaryFilter}
+          onSecondaryFilterChange={setSelectedSecondaryFilter}
           onClearFilters={() => {
             setListedPeriod('any');
             setDatePostedFilter('all');
@@ -372,6 +374,7 @@ const Index = () => {
             setFilterKeywords([]);
             setSelectedType('any');
             setSelectedSubCategories([]);
+            setSelectedSecondaryFilter([]);
           }} />
         
         
