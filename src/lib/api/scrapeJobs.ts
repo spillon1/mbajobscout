@@ -352,6 +352,15 @@ function isValidJob(job: Job, mode: ScrapeMode = 'vc'): boolean {
       /\bsearch\s+fund\b/i,
       /\bfund\s+of\s+funds\b/i,
     );
+  } else if (mode === 'im') {
+    // IM: keep hedge fund, asset management, investment management
+    // Remove the generic hard excludes that block these
+  } else if (mode === 'tech') {
+    // Tech: keep product, strategy, corp dev, GTM, growth, bizops
+    // Remove many of the generic hard excludes
+  } else if (mode === 'startups') {
+    // Startups: keep chief of staff, founder associate, product, growth, ops
+    // Remove many of the generic hard excludes
   }
   if (hardExcludeTitles.some(p => p.test(titleLower))) return false;
 
