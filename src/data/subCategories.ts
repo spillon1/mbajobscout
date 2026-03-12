@@ -99,15 +99,18 @@ export function jobMatchesSubCategories(
   });
 }
 
-export function jobMatchesAssetClasses(
-  job: { title: string; description?: string },
-  selectedAssetClasses: string[],
+export function jobMatchesSecondaryFilter(
+  job: { title: string; description?: string; company?: string },
+  mode: ScrapeMode,
+  selectedValues: string[],
 ): boolean {
-  if (selectedAssetClasses.length === 0) return true;
-  const text = `${job.title} ${job.description || ''}`;
-  return selectedAssetClasses.some((val) => {
-    const ac = ST_ASSET_CLASSES.find((c) => c.value === val);
-    if (!ac) return false;
-    return ac.patterns.some((p) => p.test(text));
+  if (selectedValues.length === 0) return true;
+  const filter = SECONDARY_FILTERS[mode];
+  if (!filter) return true;
+  const text = `${job.title} ${job.description || ''} ${(job as any).company || ''}`;
+  return selectedValues.some((val) => {
+    const opt = filter.options.find((c) => c.value === val);
+    if (!opt) return false;
+    return opt.patterns.some((p) => p.test(text));
   });
 }
