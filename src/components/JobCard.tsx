@@ -160,17 +160,17 @@ export function JobCard({ job, onApplied, onNotInterested, onSaved }: JobCardPro
               <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider">{job.source}</span>
             </div>
             <h3 className="font-body font-semibold text-foreground transition-colors group-hover:text-primary">
-              {job.title}
+              {decodeHtmlEntities(job.title)}
               {hasDirectJobUrl && <ExternalLink className="inline h-3.5 w-3.5 ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </h3>
             <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-muted-foreground">
               <span className="flex items-center gap-1 font-semibold text-foreground/80">
                 <Building2 className="h-3.5 w-3.5" />
-                {job.company}
+                {decodeHtmlEntities(job.company)}
               </span>
               <span className="flex items-center gap-1">
                 <MapPin className="h-3.5 w-3.5" />
-                {job.location}
+                {decodeHtmlEntities(job.location)}
               </span>
               {formatPostedDate(job.postedDate) && (
                 <span className="flex items-center gap-1">
@@ -181,7 +181,7 @@ export function JobCard({ job, onApplied, onNotInterested, onSaved }: JobCardPro
               {job.salary && <span className="text-accent">{job.salary}</span>}
             </div>
             {job.description && (
-              <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{job.description}</p>
+              <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{decodeHtmlEntities(job.description)}</p>
             )}
 
             {!hasDirectJobUrl && (
