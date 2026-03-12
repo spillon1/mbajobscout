@@ -59,7 +59,7 @@ export function JobCard({ job, onApplied, onNotInterested, onSaved }: JobCardPro
   const handleCopySearchLink = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    const searchQuery = encodeURIComponent(`${job.title} ${job.company}`);
+    const searchQuery = encodeURIComponent(`${decodeHtmlEntities(job.title)} ${decodeHtmlEntities(job.company)}`);
     const searchLink = `https://www.google.com/search?udm=8&q=${searchQuery}`;
     await navigator.clipboard.writeText(searchLink);
     setCopied(true);
