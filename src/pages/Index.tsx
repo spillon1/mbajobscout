@@ -357,6 +357,9 @@ const Index = () => {
           allCompanies={allCompanies}
           allTitles={allTitles}
           allSources={allSources}
+          mode="vc"
+          selectedSubCategories={selectedSubCategories}
+          onSubCategoriesChange={setSelectedSubCategories}
           onClearFilters={() => {
             setListedPeriod('any');
             setDatePostedFilter('all');
@@ -366,6 +369,7 @@ const Index = () => {
             setSelectedSources([]);
             setFilterKeywords([]);
             setSelectedType('any');
+            setSelectedSubCategories([]);
           }} />
         
         
