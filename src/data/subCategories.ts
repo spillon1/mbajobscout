@@ -73,6 +73,16 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
       { value: 'commodities', label: 'Commodities', patterns: [/\bcommodit/i, /\benergy\b/i, /\bmetals\b/i, /\boil\b/i, /\bgas\b/i] },
     ],
   },
+  pe: {
+    label: 'Firm Type',
+    options: [
+      { value: 'mega-fund', label: 'Mega Fund', patterns: [/\b(kkr|blackstone|carlyle|apollo|tpg|warburg\s+pincus|advent|bain\s+capital|cvc|eqt|permira|cinven|bc\s+partners|bridgepoint|pai\s+partners|silver\s+lake|thoma\s+bravo|vista\s+equity|hellman\s+&?\s*friedman)\b/i] },
+      { value: 'upper-mid', label: 'Upper Mid-Market', patterns: [/\b(hg\s+capital|montagu|charterhouse|ici|apax|graphite|intermediate\s+capital|3i|livingbridge|inflexion|palatine|lyceum|oakley|sovereign|exponent|bowmark)\b/i] },
+      { value: 'mid-market', label: 'Mid-Market', patterns: [/\bmid[\s\-]?market\b/i, /\b(ldc|nvp|endless|kester|dunedin|august\s+equity|key\s+capital|mercia|foresight|mobeus|ypf|primary|pricoa|beechbrook|phoenix\s+equity)\b/i] },
+      { value: 'growth-equity-fund', label: 'Growth Equity Fund', patterns: [/\bgrowth\s+equity\b/i, /\bgrowth\s+fund\b/i, /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|jmi\s+equity)\b/i] },
+      { value: 'private-credit-fund', label: 'Private Credit Fund', patterns: [/\bprivate\s+credit\b/i, /\bdirect\s+lending\b/i, /\bcredit\s+fund\b/i, /\b(ares|golub|owl\s+rock|blue\s+owl|hayfin|arcmont|pemberton|tikehau|muzinich)\b/i] },
+    ],
+  },
   ib: {
     label: 'Firm Type',
     options: [
