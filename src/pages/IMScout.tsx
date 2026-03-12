@@ -30,7 +30,7 @@ import { scrapeJobs, loadSavedJobs } from '@/lib/api/scrapeJobs';
 import { useScrape } from '@/contexts/ScrapeContext';
 import { ScrapeProgress } from '@/components/ScrapeProgress';
 import { NavBar } from '@/components/NavBar';
-import { jobMatchesSubCategories } from '@/data/subCategories';
+import { jobMatchesSubCategories, jobMatchesSecondaryFilter } from '@/data/subCategories';
 
 import { Briefcase, Zap, CheckCircle2, XCircle, Undo2, Loader2, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -80,6 +80,7 @@ const IMScout = () => {
   const [datePostedFilter, setDatePostedFilter] = usePersistedState<DatePostedFilter>('im-datePosted', 'all');
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('im-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('im-subcats', []);
+  const [selectedSecondaryFilter, setSelectedSecondaryFilter] = usePersistedState<string[]>('im-secondary', []);
 
   const handleCityChange = (city: string) => { setSelectedCity(city); setSources((prev) => prev.map((s) => ({ ...s, url: toIMUrl(getSourceUrlForLocation(s.name, city) || s.url), status: 'unknown' as const, statusMessage: undefined }))); setJobs([]); setHasScraped(false); setDismissedIds(new Set()); };
   const handleToggleSource = (id: string) => { setSources((prev) => prev.map((s) => s.id === id ? { ...s, enabled: !s.enabled } : s)); };
@@ -118,8 +119,9 @@ const IMScout = () => {
     if (listedPeriod !== 'any') { const now = new Date(); const cutoff = new Date(); if (listedPeriod === '1d') cutoff.setDate(now.getDate() - 1); else if (listedPeriod === '1w') cutoff.setDate(now.getDate() - 7); else if (listedPeriod === '1m') cutoff.setMonth(now.getMonth() - 1); else if (listedPeriod === '3m') cutoff.setMonth(now.getMonth() - 3); else if (listedPeriod === '6m') cutoff.setMonth(now.getMonth() - 6); filtered = filtered.filter((j) => parsePostedDate(j.postedDate) >= cutoff); }
     if (selectedSeniorities.length > 0) filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'im', selectedSubCategories));
+    filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'im', selectedSecondaryFilter));
     return filtered;
-  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories]);
+  }, [jobs, dismissedIds, actionedUrls, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedSecondaryFilter]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -141,7 +143,7 @@ const IMScout = () => {
       </div>
 
       <main className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
-        <FilterRow listedPeriod={listedPeriod} onListedPeriodChange={setListedPeriod} sortBy={sortBy} onSortByChange={setSortBy} datePostedFilter={datePostedFilter} onDatePostedFilterChange={setDatePostedFilter} selectedSeniorities={selectedSeniorities} onSenioritiesChange={setSelectedSeniorities} selectedCompanies={selectedCompanies} onCompaniesChange={setSelectedCompanies} selectedTitles={selectedTitles} onTitlesChange={setSelectedTitles} selectedSources={selectedSources} onSourcesChange={setSelectedSources} filterKeywords={filterKeywords} onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])} onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))} allCompanies={allCompanies} allTitles={allTitles} allSources={allSources} mode="im" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories} onClearFilters={() => { setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]); setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]); setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); }} />
+        <FilterRow listedPeriod={listedPeriod} onListedPeriodChange={setListedPeriod} sortBy={sortBy} onSortByChange={setSortBy} datePostedFilter={datePostedFilter} onDatePostedFilterChange={setDatePostedFilter} selectedSeniorities={selectedSeniorities} onSenioritiesChange={setSelectedSeniorities} selectedCompanies={selectedCompanies} onCompaniesChange={setSelectedCompanies} selectedTitles={selectedTitles} onTitlesChange={setSelectedTitles} selectedSources={selectedSources} onSourcesChange={setSelectedSources} filterKeywords={filterKeywords} onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])} onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))} allCompanies={allCompanies} allTitles={allTitles} allSources={allSources} mode="im" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories} selectedSecondaryFilter={selectedSecondaryFilter} onSecondaryFilterChange={setSelectedSecondaryFilter} onClearFilters={() => { setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]); setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]); setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedSecondaryFilter([]); }} />
 
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-3">
           <button onClick={() => isAuthenticated ? setViewMode(viewMode === 'saved' ? 'search' : 'saved') : setShowAuthModal(true)} className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${viewMode === 'saved' ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'}`}><div className="font-display text-lg sm:text-2xl font-bold text-primary">{isAuthenticated ? savedJobs.length : '–'}</div><div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Saved</div></button>
