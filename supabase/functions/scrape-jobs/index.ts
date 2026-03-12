@@ -1980,7 +1980,7 @@ function isNotExcludedRole(title: string): boolean {
 
     // HR / admin / content
     /\bhr\s+(manager|director|business\s+partner|specialist)\b/i,
-    /\bhuman\s+resources\b/i, /\brecruitment\s+(consultant|manager|specialist)\b/i,
+    /\bhuman\s+resources\b/i, /\brecruitment\b/i,
     /\bprocurement\b/i, /\bsupply\s+chain\b/i,
     /\bcontent\s+(manager|writer|specialist)\b/i,
     /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i, /\bclinical\b/i,
