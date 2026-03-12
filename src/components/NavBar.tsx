@@ -88,10 +88,10 @@ export function NavBar({ activeTab, selectedCity, onCityChange, isSearching, onS
               {isSearching ? (
                 <span className="flex items-center gap-1.5">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Searching
+                  Scraping
                 </span>
               ) : (
-                'Find jobs'
+                'Scrape jobs'
               )}
             </Button>
 
