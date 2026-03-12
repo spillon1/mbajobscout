@@ -103,9 +103,12 @@ export function FilterRow({
   onSubCategoriesChange,
   selectedSecondaryFilter,
   onSecondaryFilterChange,
+  selectedTertiaryFilter,
+  onTertiaryFilterChange,
 }: FilterRowProps) {
   const subCats = mode ? SUB_CATEGORIES[mode] || [] : [];
   const secondaryFilter = mode ? SECONDARY_FILTERS[mode] : undefined;
+  const tertiaryFilter = mode ? TERTIARY_FILTERS[mode] : undefined;
 
   const hasActiveFilters =
     listedPeriod !== 'any' ||
@@ -116,7 +119,8 @@ export function FilterRow({
     selectedSources.length > 0 ||
     filterKeywords.length > 0 ||
     (selectedSubCategories && selectedSubCategories.length > 0) ||
-    (selectedSecondaryFilter && selectedSecondaryFilter.length > 0);
+    (selectedSecondaryFilter && selectedSecondaryFilter.length > 0) ||
+    (selectedTertiaryFilter && selectedTertiaryFilter.length > 0);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
