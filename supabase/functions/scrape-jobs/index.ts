@@ -33,7 +33,11 @@ Deno.serve(async (req) => {
       jobMode === 'st' ? isLikelyStRole(title, company, description) :
       jobMode === 'mc' ? isLikelyMcRole(title, company, description) :
       jobMode === 'ib' ? isLikelyIbRole(title, company, description) :
-      jobMode === 'pe' ? isLikelyPeRole(title, company, description) : isLikelyVcRole(title, company, description);
+      jobMode === 'pe' ? isLikelyPeRole(title, company, description) :
+      jobMode === 'im' ? true :
+      jobMode === 'tech' ? true :
+      jobMode === 'startups' ? true :
+      isLikelyVcRole(title, company, description);
 
     if (!sources || sources.length === 0) {
       return new Response(
