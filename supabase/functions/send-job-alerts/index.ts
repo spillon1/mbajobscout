@@ -171,18 +171,7 @@ Deno.serve(async (req) => {
 
     console.log(`Email sent to ${ALERT_EMAIL}:`, emailData.id);
 
-    // Mark all sent jobs as alerted
-    const jobIds = newJobs.map(j => j.id);
-    const { error: markError } = await supabase
-      .from('scraped_jobs')
-      .update({ alerted: true })
-      .in('id', jobIds);
-
-    if (markError) {
-      console.error('Failed to mark jobs as alerted:', markError.message);
-    } else {
-      console.log(`Marked ${jobIds.length} jobs as alerted`);
-    }
+    // Jobs already marked as alerted above (all raw jobs, not just matched ones)
 
     return new Response(
       JSON.stringify({ success: true, sent: 1, jobCount: newJobs.length }),
