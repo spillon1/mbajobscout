@@ -1565,6 +1565,10 @@ function isLikelyPeRole(title: string, company: string, description: string | un
   const titlePePatterns = [
     /\bprivate\s+equity\b/,
     /investment\s+(analyst|associate|manager|director|principal|partner)/,
+    /\binvestor\s+relations?\b/,
+    /\bfundraising\b/,
+    /\bcapital\s+raising\b/,
+    /\blp\s+relations?\b/,
   ];
   if (titlePePatterns.some(p => p.test(titleLower))) {
     if (isFundServices) return false;
@@ -1994,8 +1998,7 @@ function isNotExcludedRole(title: string): boolean {
     /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
     /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
 
-    // IR
-    /\bir\s+analyst\b/i, /\binvestor\s+relation/i,
+    // IR — removed: investor relations is a valid role in VC/PE modes
   ];
   if (hardExclude.some(p => p.test(titleLower))) return false;
 
@@ -2052,6 +2055,18 @@ function isLikelyVcRole(title: string, company: string, description: string | un
   if (vcSignals.some(p => p.test(companyLower))) return true;
   if (/venture\s+capital/.test(descLower)) return true;
   if (/\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower)) return true;
+
+  // ── IR / Fundraising roles are core VC fund roles ──
+  // These come from VC-keyword searches so context is already VC-specific
+  const irTitlePatterns = [
+    /\binvestor\s+relations?\b/,
+    /\bir\s+(analyst|associate|manager|director|officer|lead|head|vp|vice\s+president)\b/,
+    /\bfundraising\b/,
+    /\bcapital\s+raising\b/,
+    /\blp\s+relations?\b/,
+    /\blimited\s+partner\b/,
+  ];
+  if (irTitlePatterns.some(p => p.test(titleLower))) return true;
 
   return false;
 }
