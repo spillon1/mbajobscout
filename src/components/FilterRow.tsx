@@ -127,6 +127,39 @@ export function FilterRow({
       <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
       <span className="text-[11px] font-display text-muted-foreground uppercase tracking-wider mr-1">Filters:</span>
 
+      <CheckboxFilter
+        label="Sources"
+        options={allSources}
+        selected={selectedSources}
+        onChange={onSourcesChange}
+      />
+
+      <Select value={listedPeriod} onValueChange={(v) => onListedPeriodChange(v as ListedPeriod)}>
+        <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
+          <SelectValue placeholder="Listed" />
+        </SelectTrigger>
+        <SelectContent>
+          {LISTED_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value} className="text-xs">
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={datePostedFilter} onValueChange={(v) => onDatePostedFilterChange(v as DatePostedFilter)}>
+        <SelectTrigger className="h-7 w-[130px] text-xs font-display bg-card border-border">
+          <SelectValue placeholder="Date Posted" />
+        </SelectTrigger>
+        <SelectContent>
+          {DATE_POSTED_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value} className="text-xs">
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       {subCats.length > 0 && onSubCategoriesChange && (
         <CheckboxFilter
           label="Role Type"
@@ -162,39 +195,6 @@ export function FilterRow({
           }}
         />
       )}
-
-      <CheckboxFilter
-        label="Sources"
-        options={allSources}
-        selected={selectedSources}
-        onChange={onSourcesChange}
-      />
-
-      <Select value={listedPeriod} onValueChange={(v) => onListedPeriodChange(v as ListedPeriod)}>
-        <SelectTrigger className="h-7 w-[140px] text-xs font-display bg-card border-border">
-          <SelectValue placeholder="Listed" />
-        </SelectTrigger>
-        <SelectContent>
-          {LISTED_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value} className="text-xs">
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={datePostedFilter} onValueChange={(v) => onDatePostedFilterChange(v as DatePostedFilter)}>
-        <SelectTrigger className="h-7 w-[130px] text-xs font-display bg-card border-border">
-          <SelectValue placeholder="Date Posted" />
-        </SelectTrigger>
-        <SelectContent>
-          {DATE_POSTED_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value} className="text-xs">
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
 
       <CheckboxFilter
         label="Seniority"
