@@ -1846,7 +1846,7 @@ function isLikelyMcRole(title: string, company: string, description: string | un
     /\blegal\s+counsel\b/i,
     /\baccountant\b/i, /\bauditor\b/i,
     /\bhr\s+(manager|director|business\s+partner)\b/i, /\bhuman\s+resources\b/i,
-    /\brecruitment\s+(consultant|manager)\b/i,
+    /\brecruitment\b/i,
     /\bcontent\s+(manager|writer)\b/i,
     /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i,
     /\bpeople\s+(partner|manager|director)\b/i,
