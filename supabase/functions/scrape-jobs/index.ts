@@ -2052,6 +2052,18 @@ function isLikelyVcRole(title: string, company: string, description: string | un
   if (/venture\s+capital/.test(descLower)) return true;
   if (/\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower)) return true;
 
+  // ── IR / Fundraising roles are core VC fund roles ──
+  // These come from VC-keyword searches so context is already VC-specific
+  const irTitlePatterns = [
+    /\binvestor\s+relations?\b/,
+    /\bir\s+(analyst|associate|manager|director|officer|lead|head|vp|vice\s+president)\b/,
+    /\bfundraising\b/,
+    /\bcapital\s+raising\b/,
+    /\blp\s+relations?\b/,
+    /\blimited\s+partner\b/,
+  ];
+  if (irTitlePatterns.some(p => p.test(titleLower))) return true;
+
   return false;
 }
 
