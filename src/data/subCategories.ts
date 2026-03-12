@@ -35,11 +35,10 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     { value: 'analyst-consultant', label: 'Analyst / Consultant', patterns: [/\b(analyst|consultant|associate)\b/i] },
   ],
   st: [
-    { value: 'equity-sales', label: 'Equity Sales', patterns: [/\bequity\s+sales\b/i, /\bequities\b/i] },
-    { value: 'ficc', label: 'FICC', patterns: [/\bficc\b/i, /\bfixed\s+income\b/i, /\brates\b/i, /\bcredit\s+trading\b/i] },
-    { value: 'fx', label: 'FX', patterns: [/\bfx\b/i, /\bforeign\s+exchange\b/i, /\bcurrenc/i] },
-    { value: 'derivatives', label: 'Derivatives', patterns: [/\bderivativ/i, /\boptions\b/i, /\bstructured\s+products\b/i] },
+    { value: 'sales', label: 'Sales', patterns: [/\bsales\b/i, /\bequity\s+sales\b/i] },
+    { value: 'trading', label: 'Trading', patterns: [/\btrad(er|ing)\b/i] },
     { value: 'structuring', label: 'Structuring', patterns: [/\bstructur(er|ing)\b/i] },
+    { value: 'quant-electronic', label: 'Quant / Electronic', patterns: [/\bquant\b/i, /\belectronic\b/i, /\balgo\b/i, /\bsystematic\b/i, /\be[\-\s]?trading\b/i] },
   ],
   im: [
     { value: 'hedge-fund', label: 'Hedge Fund', patterns: [/\bhedge\s+fund\b/i, /\bhf\b/i] },
