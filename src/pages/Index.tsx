@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { Link } from 'react-router-dom';
+import { jobMatchesSubCategories } from '@/data/subCategories';
+import { NavBar } from '@/components/NavBar';
 
 /** Parse freetext posted date into a Date for sorting. Unknown dates → now (appear first). */
 function parsePostedDate(dateStr?: string): Date {
