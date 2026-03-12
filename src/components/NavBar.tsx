@@ -91,7 +91,7 @@ export function NavBar({ activeTab, selectedCity, onCityChange, isSearching, onS
                   Scraping
                 </span>
               ) : (
-                'Scrape jobs'
+                'Find Jobs'
               )}
             </Button>
 
