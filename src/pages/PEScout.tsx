@@ -284,10 +284,11 @@ const PEScout = () => {
           allCompanies={allCompanies} allTitles={allTitles} allSources={allSources}
           mode="pe" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories}
           selectedSecondaryFilter={selectedSecondaryFilter} onSecondaryFilterChange={setSelectedSecondaryFilter}
+          selectedTertiaryFilter={selectedTertiaryFilter} onTertiaryFilterChange={setSelectedTertiaryFilter}
           onClearFilters={() => {
             setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]);
             setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]);
-            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedSecondaryFilter([]);
+            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedSecondaryFilter([]); setSelectedTertiaryFilter([]);
           }}
         />
 
