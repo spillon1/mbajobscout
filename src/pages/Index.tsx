@@ -182,7 +182,7 @@ const Index = () => {
 
     // Exclude jobs that have been actioned (applied or not interested)
     const jobUrl = (j: Job) => j.jobUrl || j.sourceUrl;
-    filtered = filtered.filter((j) => !actionedUrls.has(jobUrl(j)));
+    filtered = filtered.filter((j) => !isActioned(jobUrl(j), j.title, j.company));
 
     if (selectedCompanies.length > 0) {
       filtered = filtered.filter((j) => selectedCompanies.includes(j.company));

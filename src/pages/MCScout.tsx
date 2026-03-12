@@ -122,7 +122,7 @@ const MCScout = () => {
   const baseFilteredJobs = useMemo(() => {
     let filtered = jobs.filter((j) => !dismissedIds.has(j.id));
     const jobUrl = (j: Job) => j.jobUrl || j.sourceUrl;
-    filtered = filtered.filter((j) => !actionedUrls.has(jobUrl(j)));
+    filtered = filtered.filter((j) => !isActioned(jobUrl(j), j.title, j.company));
     if (selectedCompanies.length > 0) filtered = filtered.filter((j) => selectedCompanies.includes(j.company));
     if (selectedTitles.length > 0) filtered = filtered.filter((j) => selectedTitles.includes(j.title));
     if (filterKeywords.length > 0) filtered = filtered.filter((j) => { const text = `${j.title} ${j.description || ''} ${j.company}`.toLowerCase(); return filterKeywords.some((kw) => text.includes(kw.toLowerCase())); });
