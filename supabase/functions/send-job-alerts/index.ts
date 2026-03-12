@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
               ⚡ VC<span style="color: #3b82f6;">SCOUT</span> Daily Alert
             </h1>
             <p style="color: #6b7280; font-size: 14px; margin: 4px 0 0;">
-              ${newJobs.length} new VC job${newJobs.length === 1 ? '' : 's'} since your last alert
+              ${newJobs.length} new VC Investment job${newJobs.length === 1 ? '' : 's'} in London since your last alert
             </p>
           </div>
           <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
