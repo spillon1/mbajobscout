@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Found ${newJobs.length} un-alerted VC jobs to send to ${ALERT_EMAIL}`);
+    console.log(`Found ${newJobs.length} London Investment jobs (from ${rawJobs.length} total) to send to ${ALERT_EMAIL}`);
 
     // Build HTML email
     const jobRows = newJobs.map(job => `
