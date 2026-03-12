@@ -158,7 +158,7 @@ const MCScout = () => {
 
       <div className="border-b border-border bg-muted sticky top-[53px] z-40">
         <div className="container max-w-6xl mx-auto px-4 py-1.5 flex items-center gap-4 font-display text-[11px] uppercase tracking-wider text-muted-foreground">
-          <span className="text-foreground whitespace-nowrap">Management Consulting</span>
+          <span className="whitespace-nowrap">Management Consulting</span>
           <span className="h-3 w-px bg-border" />
           <button className="hover:text-foreground transition-colors whitespace-nowrap" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>{stats.total} Jobs</button>
           <span className="h-3 w-px bg-border" />
