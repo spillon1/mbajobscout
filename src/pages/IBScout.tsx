@@ -229,9 +229,9 @@ const IBScout = () => {
     if (selectedSeniorities.length > 0) filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'ib', selectedSubCategories));
     filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'ib', selectedFirmType));
-    filtered = filtered.filter((j) => jobMatchesPayRange(j.salary, selectedPayRanges));
+    filtered = filtered.filter((j) => jobMatchesPayRange(j.salary, selectedPayRanges, customPayRange));
     return filtered;
-  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedFirmType, selectedPayRanges]);
+  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedFirmType, selectedPayRanges, customPayRange]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
