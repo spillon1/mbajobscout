@@ -225,7 +225,8 @@ export function FilterRow({
         />
       )}
 
-
+      <CheckboxFilter
+        label="Companies"
         options={allCompanies}
         selected={selectedCompanies}
         onChange={onCompaniesChange}
