@@ -115,7 +115,7 @@ const IBScout = () => {
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('ib-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('ib-subcats', []);
   const [selectedFirmType, setSelectedFirmType] = usePersistedState<string[]>('ib-firmtype', []);
-
+  const [selectedPayRanges, setSelectedPayRanges] = usePersistedState<PayRange[]>('ib-payranges', []);
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
     setSources((prev) =>
