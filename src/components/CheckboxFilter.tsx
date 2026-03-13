@@ -11,7 +11,7 @@ interface CheckboxFilterProps {
   preserveOrder?: boolean;
 }
 
-export function CheckboxFilter({ label, options, selected, onChange }: CheckboxFilterProps) {
+export function CheckboxFilter({ label, options, selected, onChange, preserveOrder }: CheckboxFilterProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -24,9 +24,8 @@ export function CheckboxFilter({ label, options, selected, onChange }: CheckboxF
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const filtered = options
-    .filter((o) => o.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => a.localeCompare(b));
+  const searched = options.filter((o) => o.toLowerCase().includes(search.toLowerCase()));
+  const filtered = preserveOrder ? searched : searched.sort((a, b) => a.localeCompare(b));
 
   const allSelected = selected.length === 0;
   const displayLabel = allSelected
