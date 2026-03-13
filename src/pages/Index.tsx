@@ -289,7 +289,7 @@ const Index = () => {
     filtered = filtered.filter((j) => jobMatchesPayRange(j.salary, selectedPayRanges, customPayRange));
 
     return filtered;
-  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedSubCategories, selectedSecondaryFilter, selectedPayRanges]);
+  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedSubCategories, selectedSecondaryFilter, selectedPayRanges, customPayRange]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
