@@ -213,8 +213,19 @@ export function FilterRow({
         }}
       />
 
-      <CheckboxFilter
-        label="Companies"
+      {onPayRangesChange && (
+        <CheckboxFilter
+          label="Pay Range"
+          options={PAY_RANGE_OPTIONS.map(o => o.label)}
+          selected={(selectedPayRanges || []).map(val => PAY_RANGE_OPTIONS.find(o => o.value === val)?.label || val)}
+          onChange={(labels) => {
+            const values = labels.map(l => PAY_RANGE_OPTIONS.find(o => o.label === l)?.value || l) as PayRange[];
+            onPayRangesChange(values);
+          }}
+        />
+      )}
+
+
         options={allCompanies}
         selected={selectedCompanies}
         onChange={onCompaniesChange}
