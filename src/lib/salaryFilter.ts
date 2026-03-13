@@ -1,12 +1,12 @@
 export type PayRange = 'not-stated' | '0-30k' | '30-50k' | '50-75k' | '75-100k' | '100k+';
 
 export const PAY_RANGE_OPTIONS: { value: PayRange; label: string }[] = [
-  { value: 'not-stated', label: 'Not Stated' },
   { value: '0-30k', label: '£0–30k' },
   { value: '30-50k', label: '£30–50k' },
   { value: '50-75k', label: '£50–75k' },
   { value: '75-100k', label: '£75–100k' },
   { value: '100k+', label: '£100k+' },
+  { value: 'not-stated', label: 'Not Stated' },
 ];
 
 /**
