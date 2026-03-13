@@ -286,10 +286,11 @@ const IBScout = () => {
           mode="ib" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories}
           selectedSecondaryFilter={selectedFirmType} onSecondaryFilterChange={setSelectedFirmType}
           selectedPayRanges={selectedPayRanges} onPayRangesChange={setSelectedPayRanges}
+          customPayRange={customPayRange} onCustomPayRangeChange={setCustomPayRange}
           onClearFilters={() => {
             setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]);
             setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]);
-            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedFirmType([]); setSelectedPayRanges([]);
+            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedFirmType([]); setSelectedPayRanges([]); setCustomPayRange({ min: null, max: null });
           }}
         />
 

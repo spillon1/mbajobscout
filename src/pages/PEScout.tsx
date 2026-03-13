@@ -291,10 +291,11 @@ const PEScout = () => {
           selectedSecondaryFilter={selectedSecondaryFilter} onSecondaryFilterChange={setSelectedSecondaryFilter}
           selectedTertiaryFilter={selectedTertiaryFilter} onTertiaryFilterChange={setSelectedTertiaryFilter}
           selectedPayRanges={selectedPayRanges} onPayRangesChange={setSelectedPayRanges}
+          customPayRange={customPayRange} onCustomPayRangeChange={setCustomPayRange}
           onClearFilters={() => {
             setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]);
             setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]);
-            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedSecondaryFilter([]); setSelectedTertiaryFilter([]); setSelectedPayRanges([]);
+            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedSecondaryFilter([]); setSelectedTertiaryFilter([]); setSelectedPayRanges([]); setCustomPayRange({ min: null, max: null });
           }}
         />
 
