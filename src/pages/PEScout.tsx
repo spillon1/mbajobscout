@@ -3,7 +3,7 @@ import { usePersistedState } from '@/hooks/usePersistedState';
 import { Link } from 'react-router-dom';
 import { NavBar } from '@/components/NavBar';
 import { jobMatchesSubCategories, jobMatchesSecondaryFilter, jobMatchesTertiaryFilter } from '@/data/subCategories';
-import { PayRange, jobMatchesPayRange } from '@/lib/salaryFilter';
+import { PayRange, CustomPayRange, jobMatchesPayRange } from '@/lib/salaryFilter';
 
 function parsePostedDate(dateStr?: string): Date {
   if (!dateStr || dateStr === 'Scraped just now' || dateStr === 'Mock data') return new Date();
