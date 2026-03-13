@@ -5,7 +5,7 @@ const corsHeaders = {
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// Hardcoded alert config — independent of site activity and job_alerts table
+// Hardcoded alert config
 const ALERT_EMAIL = 'spillon@gmail.com';
 const ALERT_MODE = 'vc';
 
@@ -51,12 +51,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Filter: London-only + VC Investment role-only
+    // ── Location filter: London only ──
     const londonPattern = /\blondon\b/i;
     const remoteUkPattern = /\b(remote|united\s+kingdom|uk)\b/i;
     const nonUkPattern = /\b(usa|canada|us\b|u\.s\.|india|germany|france|spain|italy|australia|singapore|hong\s+kong|dubai|netherlands|ireland|new\s+york|san\s+francisco|toronto|chicago|boston|seattle|los\s+angeles|berlin|paris|amsterdam|mumbai|bangalore|sydney|melbourne)\b/i;
 
-    // Role type = Investment (mirrors VC role filter intent)
+    // ── Investment sub-category patterns (from subCategories.ts) ──
     const investmentPatterns = [
       /\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office))/i,
       /\bdeal\b/i,
@@ -68,55 +68,22 @@ Deno.serve(async (req) => {
       /\bventure\s+(capital\s+)?(analyst|associate|principal|partner)\b/i,
     ];
 
-    // Must look like a VC context, not generic finance roles
-    const vcContextPatterns = [
-      /\bventure\s+capital\b/i,
-      /\bvc\b/i,
-      /\bpre[\s\-]?seed\b/i,
-      /\bseed\b/i,
-      /\bseries\s+[a-z]\b/i,
-      /\bearly[\s\-]?stage\b/i,
-      /\bgrowth\s+equity\b/i,
-      /\bportfolio\b/i,
-      /\bstartup(s)?\b/i,
-      /\bstart[\-\s]?up(s)?\b/i,
-      /\bfounder\b/i,
-      /\bventure(s)?\b/i,
-      /\bfund\b/i,
-    ];
-
-    // Explicitly exclude common non-VC roles that were leaking into alerts
-    const nonVcRolePatterns = [
-      /\binvestment\s+bank(ing)?\b/i,
-      /\bcorporate\s+bank(ing)?\b/i,
-      /\basset\s+management\b/i,
-      /\bwealth\s+management\b/i,
-      /\bprivate\s+bank(ing)?\b/i,
-      /\bequity\s+research\b/i,
-      /\btrading\b/i,
-      /\bfixed\s+income\b/i,
-      /\bquant(itative)?\b/i,
-      /\bproduct\s+manager\b/i,
-      /\bsoftware\s+engineer\b/i,
-      /\bdeveloper\b/i,
-    ];
-
     const newJobs = rawJobs.filter(job => {
+      // 1. London filter
       const loc = (job.location || '').toLowerCase();
       const isLondon = londonPattern.test(loc) || (remoteUkPattern.test(loc) && !nonUkPattern.test(loc));
       if (!isLondon) return false;
 
-      const text = `${job.title} ${job.description || ''} ${job.company || ''}`;
-      const isInvestmentRole = investmentPatterns.some((p) => p.test(text));
-      if (!isInvestmentRole) return false;
+      // 2. Same VC relevance filter used by the scraper
+      if (!isLikelyVcRole(job.title, job.company, job.description)) return false;
 
-      const hasVcContext = vcContextPatterns.some((p) => p.test(text));
-      if (!hasVcContext) return false;
-
-      const isNonVcRole = nonVcRolePatterns.some((p) => p.test(text));
-      return !isNonVcRole;
+      // 3. Investment role type filter (sub-category)
+      const text = `${job.title} ${job.description || ''}`;
+      const isInvestmentRole = investmentPatterns.some(p => p.test(text));
+      return isInvestmentRole;
     });
 
+    // Mark ALL fetched VC jobs as alerted (not just matched ones)
     const allIds = rawJobs.map(j => j.id);
     const markAllAsAlerted = async () => {
       if (allIds.length === 0) return;
@@ -124,7 +91,6 @@ Deno.serve(async (req) => {
         .from('scraped_jobs')
         .update({ alerted: true })
         .in('id', allIds);
-
       if (markAllError) {
         console.error('Failed to mark jobs as alerted:', markAllError.message);
       }
@@ -212,8 +178,6 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Email sent to ${ALERT_EMAIL}:`, emailData.id);
-
-    // Mark processed jobs as alerted only after successful send
     await markAllAsAlerted();
 
     return new Response(
@@ -229,6 +193,67 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// ── Same VC relevance filter used by scrape-jobs ──
+function isLikelyVcRole(title: string, company: string, description: string | undefined): boolean {
+  const titleLower = title.toLowerCase();
+  const companyLower = company.toLowerCase();
+  const descLower = (description || '').toLowerCase();
+
+  // Hard exclusions: clearly non-VC roles (identical to scrape-jobs)
+  const nonVcRoles = [
+    /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director|officer)\b/i,
+    /\bcontent\s+(manager|writer|specialist|strategist)\b/i,
+    /\bsocial\s+media\b/i,
+    /\bcommunications?\s+(manager|director|officer|lead)\b/i,
+    /\bpr\s+(manager|director|officer)\b/i,
+    /\boffice\s+manager\b/i, /\badmin\s+(assistant|coordinator|manager)\b/i,
+    /\bexecutive\s+assistant\b/i, /\bpersonal\s+assistant\b/i,
+    /\blegal\s+counsel\b/i, /\bsolicitor\b/i, /\blawyer\b/i, /\bparalegal\b/i,
+    /\bgeneral\s+counsel\b/i,
+    /\bhr\s+(manager|director|business\s+partner|specialist|officer)\b/i,
+    /\bhuman\s+resources\b/i, /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
+    /\btalent\s+(acquisition|partner|manager)\b/i, /\brecruitment\b/i,
+    /\bheadhunt/i, /\bexecutive\s+search\b/i,
+    /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i, /\bsoftware\b/i,
+    /\bdata\s+scientist\b/i, /\bdata\s+engineer\b/i,
+    /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i,
+    /\bdesigner\b/i, /\bux\b/i, /\bcreative\s+director\b/i,
+    /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
+    /\bsales\s+(dev|representative|exec|manager|director)/i,
+    /\bbusiness\s+development\b/i, /\bbdm\b/i,
+    /\btax\s+(manager|analyst|advisor|specialist|director)\b/i,
+    /\bprocurement\b/i, /\bsupply\s+chain\b/i,
+    /\bevent\s+(manager|coordinator|director|operations)\b/i,
+    /\b(?:co-?)?founder\b/i,
+  ];
+  if (nonVcRoles.some(p => p.test(titleLower))) return false;
+
+  // VC signals
+  const vcSignals = [
+    /venture\s+capital/,
+    /\bvc\s+(fund|firm|portfolio|backed|investment|analyst|associate|partner|principal|director)/,
+    /\bventure(s|\s+partners?)\b/,
+  ];
+
+  if (vcSignals.some(p => p.test(titleLower))) return true;
+  if (vcSignals.some(p => p.test(companyLower))) return true;
+  if (/venture\s+capital/.test(descLower)) return true;
+  if (/\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower)) return true;
+
+  // IR / Fundraising roles are core VC fund roles
+  const irTitlePatterns = [
+    /\binvestor\s+relations?\b/,
+    /\bir\s+(analyst|associate|manager|director|officer|lead|head|vp|vice\s+president)\b/,
+    /\bfundraising\b/,
+    /\bcapital\s+raising\b/,
+    /\blp\s+relations?\b/,
+    /\blimited\s+partner\b/,
+  ];
+  if (irTitlePatterns.some(p => p.test(titleLower))) return true;
+
+  return false;
+}
 
 function escapeHtml(str: string): string {
   return str
