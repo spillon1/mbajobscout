@@ -213,7 +213,8 @@ Deno.serve(async (req) => {
 
     console.log(`Email sent to ${ALERT_EMAIL}:`, emailData.id);
 
-    // Jobs already marked as alerted above (all raw jobs, not just matched ones)
+    // Mark processed jobs as alerted only after successful send
+    await markAllAsAlerted();
 
     return new Response(
       JSON.stringify({ success: true, sent: 1, jobCount: newJobs.length }),
