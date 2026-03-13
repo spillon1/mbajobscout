@@ -118,6 +118,7 @@ const Index = () => {
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('vc-subcats', []);
   const [selectedSecondaryFilter, setSelectedSecondaryFilter] = usePersistedState<string[]>('vc-secondary', []);
   const [selectedPayRanges, setSelectedPayRanges] = usePersistedState<PayRange[]>('vc-payranges', []);
+  const [customPayRange, setCustomPayRange] = usePersistedState<CustomPayRange>('vc-custompay', { min: null, max: null });
   useEffect(() => {
     setSources((prev) => prev.filter((s) => !isOccSource(`${s.name} ${s.url}`)));
     setSelectedSources((prev) => prev.filter((name) => !isOccSource(name)));
