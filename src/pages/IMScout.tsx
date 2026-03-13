@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { PayRange, jobMatchesPayRange } from '@/lib/salaryFilter';
 
 function parsePostedDate(dateStr?: string): Date {
   if (!dateStr || dateStr === 'Scraped just now' || dateStr === 'Mock data') return new Date();
@@ -81,6 +82,7 @@ const IMScout = () => {
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('im-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('im-subcats', []);
   const [selectedSecondaryFilter, setSelectedSecondaryFilter] = usePersistedState<string[]>('im-secondary', []);
+  const [selectedPayRanges, setSelectedPayRanges] = usePersistedState<PayRange[]>('im-payranges', []);
 
   const handleCityChange = (city: string) => { setSelectedCity(city); setSources((prev) => prev.map((s) => ({ ...s, url: toIMUrl(getSourceUrlForLocation(s.name, city) || s.url), status: 'unknown' as const, statusMessage: undefined }))); setJobs([]); setHasScraped(false); setDismissedIds(new Set()); };
   const handleToggleSource = (id: string) => { setSources((prev) => prev.map((s) => s.id === id ? { ...s, enabled: !s.enabled } : s)); };
@@ -120,8 +122,9 @@ const IMScout = () => {
     if (selectedSeniorities.length > 0) filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'im', selectedSubCategories));
     filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'im', selectedSecondaryFilter));
+    filtered = filtered.filter((j) => jobMatchesPayRange(j.salary, selectedPayRanges));
     return filtered;
-  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedSecondaryFilter]);
+  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedSecondaryFilter, selectedPayRanges]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -145,7 +148,7 @@ const IMScout = () => {
       </div>
 
       <main className="container max-w-6xl mx-auto px-4 py-6 space-y-4">
-        <FilterRow listedPeriod={listedPeriod} onListedPeriodChange={setListedPeriod} sortBy={sortBy} onSortByChange={setSortBy} datePostedFilter={datePostedFilter} onDatePostedFilterChange={setDatePostedFilter} selectedSeniorities={selectedSeniorities} onSenioritiesChange={setSelectedSeniorities} selectedCompanies={selectedCompanies} onCompaniesChange={setSelectedCompanies} selectedTitles={selectedTitles} onTitlesChange={setSelectedTitles} selectedSources={selectedSources} onSourcesChange={setSelectedSources} filterKeywords={filterKeywords} onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])} onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))} allCompanies={allCompanies} allTitles={allTitles} allSources={allSources} mode="im" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories} selectedSecondaryFilter={selectedSecondaryFilter} onSecondaryFilterChange={setSelectedSecondaryFilter} onClearFilters={() => { setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]); setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]); setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedSecondaryFilter([]); }} />
+        <FilterRow listedPeriod={listedPeriod} onListedPeriodChange={setListedPeriod} sortBy={sortBy} onSortByChange={setSortBy} datePostedFilter={datePostedFilter} onDatePostedFilterChange={setDatePostedFilter} selectedSeniorities={selectedSeniorities} onSenioritiesChange={setSelectedSeniorities} selectedCompanies={selectedCompanies} onCompaniesChange={setSelectedCompanies} selectedTitles={selectedTitles} onTitlesChange={setSelectedTitles} selectedSources={selectedSources} onSourcesChange={setSelectedSources} filterKeywords={filterKeywords} onAddFilterKeyword={(kw) => setFilterKeywords((prev) => [...prev, kw])} onRemoveFilterKeyword={(kw) => setFilterKeywords((prev) => prev.filter((k) => k !== kw))} allCompanies={allCompanies} allTitles={allTitles} allSources={allSources} mode="im" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories} selectedSecondaryFilter={selectedSecondaryFilter} onSecondaryFilterChange={setSelectedSecondaryFilter} selectedPayRanges={selectedPayRanges} onPayRangesChange={setSelectedPayRanges} onClearFilters={() => { setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]); setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]); setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedSecondaryFilter([]); setSelectedPayRanges([]); }} />
 
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-3">
           <button onClick={() => isAuthenticated ? setViewMode(viewMode === 'saved' ? 'search' : 'saved') : setShowAuthModal(true)} className={`border rounded-md bg-card p-2 sm:p-3 text-center transition-all cursor-pointer hover:glow-primary overflow-hidden ${viewMode === 'saved' ? 'border-primary/50 glow-primary' : 'border-border hover:border-primary/30'}`}><div className="font-display text-lg sm:text-2xl font-bold text-primary">{isAuthenticated ? savedJobs.length : '–'}</div><div className="font-display text-[8px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">Saved</div></button>

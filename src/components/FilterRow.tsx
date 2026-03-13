@@ -4,6 +4,7 @@ import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { Seniority } from '@/types/jobs';
 import { SUB_CATEGORIES, ScrapeMode, SECONDARY_FILTERS, TERTIARY_FILTERS } from '@/data/subCategories';
+import { PayRange, PAY_RANGE_OPTIONS } from '@/lib/salaryFilter';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
 export type JobStatus = 'any' | 'open' | 'closed';
@@ -42,6 +43,9 @@ interface FilterRowProps {
   // Tertiary filter (firm type for PE)
   selectedTertiaryFilter?: string[];
   onTertiaryFilterChange?: (values: string[]) => void;
+  // Pay range filter
+  selectedPayRanges?: PayRange[];
+  onPayRangesChange?: (ranges: PayRange[]) => void;
 }
 
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
@@ -105,6 +109,8 @@ export function FilterRow({
   onSecondaryFilterChange,
   selectedTertiaryFilter,
   onTertiaryFilterChange,
+  selectedPayRanges,
+  onPayRangesChange,
 }: FilterRowProps) {
   const subCats = mode ? SUB_CATEGORIES[mode] || [] : [];
   const secondaryFilter = mode ? SECONDARY_FILTERS[mode] : undefined;
@@ -120,7 +126,8 @@ export function FilterRow({
     filterKeywords.length > 0 ||
     (selectedSubCategories && selectedSubCategories.length > 0) ||
     (selectedSecondaryFilter && selectedSecondaryFilter.length > 0) ||
-    (selectedTertiaryFilter && selectedTertiaryFilter.length > 0);
+    (selectedTertiaryFilter && selectedTertiaryFilter.length > 0) ||
+    (selectedPayRanges && selectedPayRanges.length > 0);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -205,6 +212,18 @@ export function FilterRow({
           onSenioritiesChange(labels.map(l => reversed[l] as Seniority));
         }}
       />
+
+      {onPayRangesChange && (
+        <CheckboxFilter
+          label="Pay Range"
+          options={PAY_RANGE_OPTIONS.map(o => o.label)}
+          selected={(selectedPayRanges || []).map(val => PAY_RANGE_OPTIONS.find(o => o.value === val)?.label || val)}
+          onChange={(labels) => {
+            const values = labels.map(l => PAY_RANGE_OPTIONS.find(o => o.label === l)?.value || l) as PayRange[];
+            onPayRangesChange(values);
+          }}
+        />
+      )}
 
       <CheckboxFilter
         label="Companies"
