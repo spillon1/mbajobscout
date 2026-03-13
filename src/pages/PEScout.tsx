@@ -233,9 +233,9 @@ const PEScout = () => {
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'pe', selectedSubCategories));
     filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'pe', selectedSecondaryFilter));
     filtered = filtered.filter((j) => jobMatchesTertiaryFilter(j, 'pe', selectedTertiaryFilter));
-    filtered = filtered.filter((j) => jobMatchesPayRange(j.salary, selectedPayRanges));
+    filtered = filtered.filter((j) => jobMatchesPayRange(j.salary, selectedPayRanges, customPayRange));
     return filtered;
-  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedSecondaryFilter, selectedTertiaryFilter, selectedPayRanges]);
+  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedSecondaryFilter, selectedTertiaryFilter, selectedPayRanges, customPayRange]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
