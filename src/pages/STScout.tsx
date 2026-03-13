@@ -101,7 +101,7 @@ const STScout = () => {
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('st-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('st-subcats', []);
   const [selectedAssetClasses, setSelectedAssetClasses] = usePersistedState<string[]>('st-assetclasses', []);
-
+  const [selectedPayRanges, setSelectedPayRanges] = usePersistedState<PayRange[]>('st-payranges', []);
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
     setSources((prev) => prev.map((s) => ({ ...s, url: toSTUrl(getSourceUrlForLocation(s.name, city) || s.url), status: 'unknown' as const, statusMessage: undefined })));
