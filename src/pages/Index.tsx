@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { Link } from 'react-router-dom';
 import { jobMatchesSubCategories, jobMatchesSecondaryFilter } from '@/data/subCategories';
-import { PayRange, jobMatchesPayRange } from '@/lib/salaryFilter';
+import { PayRange, CustomPayRange, jobMatchesPayRange } from '@/lib/salaryFilter';
 import { NavBar } from '@/components/NavBar';
 
 /** Parse freetext posted date into a Date for sorting. Unknown dates → now (appear first). */
@@ -118,6 +118,7 @@ const Index = () => {
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('vc-subcats', []);
   const [selectedSecondaryFilter, setSelectedSecondaryFilter] = usePersistedState<string[]>('vc-secondary', []);
   const [selectedPayRanges, setSelectedPayRanges] = usePersistedState<PayRange[]>('vc-payranges', []);
+  const [customPayRange, setCustomPayRange] = usePersistedState<CustomPayRange>('vc-custompay', { min: null, max: null });
   useEffect(() => {
     setSources((prev) => prev.filter((s) => !isOccSource(`${s.name} ${s.url}`)));
     setSelectedSources((prev) => prev.filter((name) => !isOccSource(name)));
@@ -285,10 +286,10 @@ const Index = () => {
     }
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'vc', selectedSubCategories));
     filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'vc', selectedSecondaryFilter));
-    filtered = filtered.filter((j) => jobMatchesPayRange(j.salary, selectedPayRanges));
+    filtered = filtered.filter((j) => jobMatchesPayRange(j.salary, selectedPayRanges, customPayRange));
 
     return filtered;
-  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedSubCategories, selectedSecondaryFilter, selectedPayRanges]);
+  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedSubCategories, selectedSecondaryFilter, selectedPayRanges, customPayRange]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -370,6 +371,8 @@ const Index = () => {
           onSecondaryFilterChange={setSelectedSecondaryFilter}
           selectedPayRanges={selectedPayRanges}
           onPayRangesChange={setSelectedPayRanges}
+          customPayRange={customPayRange}
+          onCustomPayRangeChange={setCustomPayRange}
           onClearFilters={() => {
             setListedPeriod('any');
             setDatePostedFilter('all');
@@ -382,6 +385,7 @@ const Index = () => {
             setSelectedSubCategories([]);
             setSelectedSecondaryFilter([]);
             setSelectedPayRanges([]);
+            setCustomPayRange({ min: null, max: null });
           }} />
         
         

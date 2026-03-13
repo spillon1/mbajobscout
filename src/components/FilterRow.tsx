@@ -4,7 +4,7 @@ import { CustomKeywordFilter } from '@/components/CustomKeywordFilter';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { Seniority } from '@/types/jobs';
 import { SUB_CATEGORIES, ScrapeMode, SECONDARY_FILTERS, TERTIARY_FILTERS } from '@/data/subCategories';
-import { PayRange, PAY_RANGE_OPTIONS } from '@/lib/salaryFilter';
+import { PayRange, PAY_RANGE_OPTIONS, CustomPayRange } from '@/lib/salaryFilter';
 
 export type ListedPeriod = 'any' | '1d' | '1w' | '1m' | '3m' | '6m';
 export type JobStatus = 'any' | 'open' | 'closed';
@@ -46,6 +46,8 @@ interface FilterRowProps {
   // Pay range filter
   selectedPayRanges?: PayRange[];
   onPayRangesChange?: (ranges: PayRange[]) => void;
+  customPayRange?: CustomPayRange;
+  onCustomPayRangeChange?: (range: CustomPayRange) => void;
 }
 
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
@@ -111,6 +113,8 @@ export function FilterRow({
   onTertiaryFilterChange,
   selectedPayRanges,
   onPayRangesChange,
+  customPayRange,
+  onCustomPayRangeChange,
 }: FilterRowProps) {
   const subCats = mode ? SUB_CATEGORIES[mode] || [] : [];
   const secondaryFilter = mode ? SECONDARY_FILTERS[mode] : undefined;
@@ -223,6 +227,9 @@ export function FilterRow({
             onPayRangesChange(values);
           }}
           preserveOrder
+          customRangeEnabled={(selectedPayRanges || []).includes('custom')}
+          customPayRange={customPayRange}
+          onCustomPayRangeChange={onCustomPayRangeChange}
         />
       )}
 

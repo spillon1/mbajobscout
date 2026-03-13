@@ -3,7 +3,7 @@ import { usePersistedState } from '@/hooks/usePersistedState';
 import { Link } from 'react-router-dom';
 import { NavBar } from '@/components/NavBar';
 import { jobMatchesSubCategories, jobMatchesSecondaryFilter } from '@/data/subCategories';
-import { PayRange, jobMatchesPayRange } from '@/lib/salaryFilter';
+import { PayRange, CustomPayRange, jobMatchesPayRange } from '@/lib/salaryFilter';
 
 function parsePostedDate(dateStr?: string): Date {
   if (!dateStr || dateStr === 'Scraped just now' || dateStr === 'Mock data') return new Date();
@@ -116,6 +116,7 @@ const IBScout = () => {
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('ib-subcats', []);
   const [selectedFirmType, setSelectedFirmType] = usePersistedState<string[]>('ib-firmtype', []);
   const [selectedPayRanges, setSelectedPayRanges] = usePersistedState<PayRange[]>('ib-payranges', []);
+  const [customPayRange, setCustomPayRange] = usePersistedState<CustomPayRange>('ib-custompay', { min: null, max: null });
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
     setSources((prev) =>
@@ -228,9 +229,9 @@ const IBScout = () => {
     if (selectedSeniorities.length > 0) filtered = filtered.filter((j) => selectedSeniorities.includes(j.seniority));
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'ib', selectedSubCategories));
     filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'ib', selectedFirmType));
-    filtered = filtered.filter((j) => jobMatchesPayRange(j.salary, selectedPayRanges));
+    filtered = filtered.filter((j) => jobMatchesPayRange(j.salary, selectedPayRanges, customPayRange));
     return filtered;
-  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedFirmType, selectedPayRanges]);
+  }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedCity, selectedSubCategories, selectedFirmType, selectedPayRanges, customPayRange]);
 
   const filteredJobs = useMemo(() => {
     const typed = selectedType === 'any' ? baseFilteredJobs : baseFilteredJobs.filter((j) => j.type === selectedType);
@@ -285,10 +286,11 @@ const IBScout = () => {
           mode="ib" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories}
           selectedSecondaryFilter={selectedFirmType} onSecondaryFilterChange={setSelectedFirmType}
           selectedPayRanges={selectedPayRanges} onPayRangesChange={setSelectedPayRanges}
+          customPayRange={customPayRange} onCustomPayRangeChange={setCustomPayRange}
           onClearFilters={() => {
             setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]);
             setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]);
-            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedFirmType([]); setSelectedPayRanges([]);
+            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedFirmType([]); setSelectedPayRanges([]); setCustomPayRange({ min: null, max: null });
           }}
         />
 

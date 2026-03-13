@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronDown, Search } from 'lucide-react';
+import { CustomPayRange } from '@/lib/salaryFilter';
 
 interface CheckboxFilterProps {
   label: string;
@@ -9,9 +10,12 @@ interface CheckboxFilterProps {
   selected: string[];
   onChange: (selected: string[]) => void;
   preserveOrder?: boolean;
+  customRangeEnabled?: boolean;
+  customPayRange?: CustomPayRange;
+  onCustomPayRangeChange?: (range: CustomPayRange) => void;
 }
 
-export function CheckboxFilter({ label, options, selected, onChange, preserveOrder }: CheckboxFilterProps) {
+export function CheckboxFilter({ label, options, selected, onChange, preserveOrder, customRangeEnabled, customPayRange, onCustomPayRangeChange }: CheckboxFilterProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -82,17 +86,39 @@ export function CheckboxFilter({ label, options, selected, onChange, preserveOrd
               <div className="px-2 py-3 text-xs text-muted-foreground text-center">No matches</div>
             ) : (
               filtered.map((option) => (
-                <label
-                  key={option}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-muted cursor-pointer text-xs"
-                >
-                  <Checkbox
-                    checked={selected.includes(option)}
-                    onCheckedChange={() => handleToggle(option)}
-                    className="h-3.5 w-3.5"
-                  />
-                  <span className="truncate">{option}</span>
-                </label>
+                <div key={option}>
+                  <label
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-muted cursor-pointer text-xs"
+                  >
+                    <Checkbox
+                      checked={selected.includes(option)}
+                      onCheckedChange={() => handleToggle(option)}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span className="truncate">{option}</span>
+                  </label>
+                  {option === 'Custom Range' && customRangeEnabled && onCustomPayRangeChange && (
+                    <div className="flex items-center gap-1.5 px-2 py-1.5 ml-5">
+                      <Input
+                        type="number"
+                        placeholder="Min £k"
+                        value={customPayRange?.min ?? ''}
+                        onChange={(e) => onCustomPayRangeChange({ ...customPayRange!, min: e.target.value ? Number(e.target.value) : null, max: customPayRange?.max ?? null })}
+                        className="h-6 w-20 text-xs bg-muted border-border"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <span className="text-xs text-muted-foreground">–</span>
+                      <Input
+                        type="number"
+                        placeholder="Max £k"
+                        value={customPayRange?.max ?? ''}
+                        onChange={(e) => onCustomPayRangeChange({ ...customPayRange!, max: e.target.value ? Number(e.target.value) : null, min: customPayRange?.min ?? null })}
+                        className="h-6 w-20 text-xs bg-muted border-border"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  )}
+                </div>
               ))
             )}
           </div>
