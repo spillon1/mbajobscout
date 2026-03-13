@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { Link } from 'react-router-dom';
 import { jobMatchesSubCategories, jobMatchesSecondaryFilter } from '@/data/subCategories';
+import { PayRange, jobMatchesPayRange } from '@/lib/salaryFilter';
 import { NavBar } from '@/components/NavBar';
 
 /** Parse freetext posted date into a Date for sorting. Unknown dates → now (appear first). */
