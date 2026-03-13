@@ -46,6 +46,8 @@ interface FilterRowProps {
   // Pay range filter
   selectedPayRanges?: PayRange[];
   onPayRangesChange?: (ranges: PayRange[]) => void;
+  customPayRange?: CustomPayRange;
+  onCustomPayRangeChange?: (range: CustomPayRange) => void;
 }
 
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
