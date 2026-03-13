@@ -289,10 +289,11 @@ const PEScout = () => {
           mode="pe" selectedSubCategories={selectedSubCategories} onSubCategoriesChange={setSelectedSubCategories}
           selectedSecondaryFilter={selectedSecondaryFilter} onSecondaryFilterChange={setSelectedSecondaryFilter}
           selectedTertiaryFilter={selectedTertiaryFilter} onTertiaryFilterChange={setSelectedTertiaryFilter}
+          selectedPayRanges={selectedPayRanges} onPayRangesChange={setSelectedPayRanges}
           onClearFilters={() => {
             setListedPeriod('any'); setDatePostedFilter('all'); setSelectedSeniorities([]);
             setSelectedCompanies([]); setSelectedTitles([]); setSelectedSources([]);
-            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedSecondaryFilter([]); setSelectedTertiaryFilter([]);
+            setFilterKeywords([]); setSelectedType('any'); setSelectedSubCategories([]); setSelectedSecondaryFilter([]); setSelectedTertiaryFilter([]); setSelectedPayRanges([]);
           }}
         />
 
