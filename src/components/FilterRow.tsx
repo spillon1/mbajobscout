@@ -222,6 +222,7 @@ export function FilterRow({
             const values = labels.map(l => PAY_RANGE_OPTIONS.find(o => o.label === l)?.value || l) as PayRange[];
             onPayRangesChange(values);
           }}
+          preserveOrder
         />
       )}
 
