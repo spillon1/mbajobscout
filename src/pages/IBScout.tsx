@@ -116,6 +116,7 @@ const IBScout = () => {
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('ib-subcats', []);
   const [selectedFirmType, setSelectedFirmType] = usePersistedState<string[]>('ib-firmtype', []);
   const [selectedPayRanges, setSelectedPayRanges] = usePersistedState<PayRange[]>('ib-payranges', []);
+  const [customPayRange, setCustomPayRange] = usePersistedState<CustomPayRange>('ib-custompay', { min: null, max: null });
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
     setSources((prev) =>
