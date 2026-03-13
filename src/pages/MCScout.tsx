@@ -101,6 +101,7 @@ const MCScout = () => {
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('mc-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('mc-subcats', []);
   const [selectedPayRanges, setSelectedPayRanges] = usePersistedState<PayRange[]>('mc-payranges', []);
+  const [customPayRange, setCustomPayRange] = usePersistedState<CustomPayRange>('mc-custompay', { min: null, max: null });
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
     setSources((prev) => prev.map((s) => ({ ...s, url: toMCUrl(getSourceUrlForLocation(s.name, city) || s.url), status: 'unknown' as const, statusMessage: undefined })));
