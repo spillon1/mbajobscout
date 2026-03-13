@@ -43,6 +43,9 @@ interface FilterRowProps {
   // Tertiary filter (firm type for PE)
   selectedTertiaryFilter?: string[];
   onTertiaryFilterChange?: (values: string[]) => void;
+  // Pay range filter
+  selectedPayRanges?: PayRange[];
+  onPayRangesChange?: (ranges: PayRange[]) => void;
 }
 
 const LISTED_OPTIONS: { value: ListedPeriod; label: string }[] = [
