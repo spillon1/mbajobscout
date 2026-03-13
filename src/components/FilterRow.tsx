@@ -126,7 +126,8 @@ export function FilterRow({
     filterKeywords.length > 0 ||
     (selectedSubCategories && selectedSubCategories.length > 0) ||
     (selectedSecondaryFilter && selectedSecondaryFilter.length > 0) ||
-    (selectedTertiaryFilter && selectedTertiaryFilter.length > 0);
+    (selectedTertiaryFilter && selectedTertiaryFilter.length > 0) ||
+    (selectedPayRanges && selectedPayRanges.length > 0);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
