@@ -8,6 +8,7 @@ interface CheckboxFilterProps {
   options: string[];
   selected: string[];
   onChange: (selected: string[]) => void;
+  preserveOrder?: boolean;
 }
 
 export function CheckboxFilter({ label, options, selected, onChange }: CheckboxFilterProps) {
