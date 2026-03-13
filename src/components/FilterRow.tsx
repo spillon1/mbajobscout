@@ -227,6 +227,9 @@ export function FilterRow({
             onPayRangesChange(values);
           }}
           preserveOrder
+          customRangeEnabled={(selectedPayRanges || []).includes('custom')}
+          customPayRange={customPayRange}
+          onCustomPayRangeChange={onCustomPayRangeChange}
         />
       )}
 
