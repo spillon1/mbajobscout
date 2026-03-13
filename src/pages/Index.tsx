@@ -368,6 +368,8 @@ const Index = () => {
           onSubCategoriesChange={setSelectedSubCategories}
           selectedSecondaryFilter={selectedSecondaryFilter}
           onSecondaryFilterChange={setSelectedSecondaryFilter}
+          selectedPayRanges={selectedPayRanges}
+          onPayRangesChange={setSelectedPayRanges}
           onClearFilters={() => {
             setListedPeriod('any');
             setDatePostedFilter('all');
@@ -379,6 +381,7 @@ const Index = () => {
             setSelectedType('any');
             setSelectedSubCategories([]);
             setSelectedSecondaryFilter([]);
+            setSelectedPayRanges([]);
           }} />
         
         
