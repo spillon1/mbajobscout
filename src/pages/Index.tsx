@@ -286,7 +286,7 @@ const Index = () => {
     }
     filtered = filtered.filter((j) => jobMatchesSubCategories(j, 'vc', selectedSubCategories));
     filtered = filtered.filter((j) => jobMatchesSecondaryFilter(j, 'vc', selectedSecondaryFilter));
-    filtered = filtered.filter((j) => jobMatchesPayRange(j.salary, selectedPayRanges));
+    filtered = filtered.filter((j) => jobMatchesPayRange(j.salary, selectedPayRanges, customPayRange));
 
     return filtered;
   }, [jobs, dismissedIds, isActioned, selectedCompanies, selectedTitles, filterKeywords, selectedSources, sources, datePostedFilter, listedPeriod, selectedSeniorities, selectedSubCategories, selectedSecondaryFilter, selectedPayRanges]);
