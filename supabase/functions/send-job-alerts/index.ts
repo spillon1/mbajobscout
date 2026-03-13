@@ -51,12 +51,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Filter: London-based only
+    // Filter: London-only + VC Investment role-only
     const londonPattern = /\blondon\b/i;
     const remoteUkPattern = /\b(remote|united\s+kingdom|uk)\b/i;
     const nonUkPattern = /\b(usa|canada|us\b|u\.s\.|india|germany|france|spain|italy|australia|singapore|hong\s+kong|dubai|netherlands|ireland|new\s+york|san\s+francisco|toronto|chicago|boston|seattle|los\s+angeles|berlin|paris|amsterdam|mumbai|bangalore|sydney|melbourne)\b/i;
 
-    // Filter: Investment roles only (mirrors client-side subCategories patterns)
+    // Role type = Investment (mirrors VC role filter intent)
     const investmentPatterns = [
       /\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office))/i,
       /\bdeal\b/i,
@@ -68,29 +68,71 @@ Deno.serve(async (req) => {
       /\bventure\s+(capital\s+)?(analyst|associate|principal|partner)\b/i,
     ];
 
+    // Must look like a VC context, not generic finance roles
+    const vcContextPatterns = [
+      /\bventure\s+capital\b/i,
+      /\bvc\b/i,
+      /\bpre[\s\-]?seed\b/i,
+      /\bseed\b/i,
+      /\bseries\s+[a-z]\b/i,
+      /\bearly[\s\-]?stage\b/i,
+      /\bgrowth\s+equity\b/i,
+      /\bportfolio\b/i,
+      /\bstartup(s)?\b/i,
+      /\bstart[\-\s]?up(s)?\b/i,
+      /\bfounder\b/i,
+      /\bventure(s)?\b/i,
+      /\bfund\b/i,
+    ];
+
+    // Explicitly exclude common non-VC roles that were leaking into alerts
+    const nonVcRolePatterns = [
+      /\binvestment\s+bank(ing)?\b/i,
+      /\bcorporate\s+bank(ing)?\b/i,
+      /\basset\s+management\b/i,
+      /\bwealth\s+management\b/i,
+      /\bprivate\s+bank(ing)?\b/i,
+      /\bequity\s+research\b/i,
+      /\btrading\b/i,
+      /\bfixed\s+income\b/i,
+      /\bquant(itative)?\b/i,
+      /\bproduct\s+manager\b/i,
+      /\bsoftware\s+engineer\b/i,
+      /\bdeveloper\b/i,
+    ];
+
     const newJobs = rawJobs.filter(job => {
       const loc = (job.location || '').toLowerCase();
-      // Must be London or generic UK/Remote (not another non-UK city)
       const isLondon = londonPattern.test(loc) || (remoteUkPattern.test(loc) && !nonUkPattern.test(loc));
       if (!isLondon) return false;
 
-      // Must match investment role patterns
-      const text = `${job.title} ${job.description || ''}`;
-      return investmentPatterns.some(p => p.test(text));
+      const text = `${job.title} ${job.description || ''} ${job.company || ''}`;
+      const isInvestmentRole = investmentPatterns.some((p) => p.test(text));
+      if (!isInvestmentRole) return false;
+
+      const hasVcContext = vcContextPatterns.some((p) => p.test(text));
+      if (!hasVcContext) return false;
+
+      const isNonVcRole = nonVcRolePatterns.some((p) => p.test(text));
+      return !isNonVcRole;
     });
 
-    // Mark ALL raw jobs as alerted (so non-matching ones don't pile up)
     const allIds = rawJobs.map(j => j.id);
-    const { error: markAllError } = await supabase
-      .from('scraped_jobs')
-      .update({ alerted: true })
-      .in('id', allIds);
-    if (markAllError) {
-      console.error('Failed to mark all jobs as alerted:', markAllError.message);
-    }
+    const markAllAsAlerted = async () => {
+      if (allIds.length === 0) return;
+      const { error: markAllError } = await supabase
+        .from('scraped_jobs')
+        .update({ alerted: true })
+        .in('id', allIds);
+
+      if (markAllError) {
+        console.error('Failed to mark jobs as alerted:', markAllError.message);
+      }
+    };
 
     if (newJobs.length === 0) {
-      console.log(`No London Investment jobs out of ${rawJobs.length} total un-alerted VC jobs`);
+      await markAllAsAlerted();
+      console.log(`No VC London Investment jobs out of ${rawJobs.length} total un-alerted VC jobs`);
       return new Response(
         JSON.stringify({ success: true, message: 'No matching jobs after filtering', total: rawJobs.length, matched: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
