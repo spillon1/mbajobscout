@@ -1,4 +1,4 @@
-export type PayRange = 'not-stated' | '0-30k' | '30-50k' | '50-75k' | '75-100k' | '100k+';
+export type PayRange = 'not-stated' | '0-30k' | '30-50k' | '50-75k' | '75-100k' | '100k+' | 'custom';
 
 export const PAY_RANGE_OPTIONS: { value: PayRange; label: string }[] = [
   { value: '0-30k', label: '£0–30k' },
@@ -6,14 +6,20 @@ export const PAY_RANGE_OPTIONS: { value: PayRange; label: string }[] = [
   { value: '50-75k', label: '£50–75k' },
   { value: '75-100k', label: '£75–100k' },
   { value: '100k+', label: '£100k+' },
+  { value: 'custom', label: 'Custom Range' },
   { value: 'not-stated', label: 'Not Stated' },
 ];
+
+export interface CustomPayRange {
+  min: number | null;
+  max: number | null;
+}
 
 /**
  * Extract a numeric annual salary (in £k) from a freetext salary string.
  * Returns null if no salary can be parsed.
  */
-function extractSalaryK(salary: string): number | null {
+export function extractSalaryK(salary: string): number | null {
   if (!salary) return null;
   const s = salary.replace(/,/g, '').toLowerCase();
 
@@ -44,7 +50,11 @@ function extractSalaryK(salary: string): number | null {
  * Check if a job matches any of the selected pay ranges.
  * If no ranges selected, all jobs pass.
  */
-export function jobMatchesPayRange(salary: string | undefined, selectedRanges: PayRange[]): boolean {
+export function jobMatchesPayRange(
+  salary: string | undefined,
+  selectedRanges: PayRange[],
+  customRange?: CustomPayRange
+): boolean {
   if (selectedRanges.length === 0) return true;
 
   const hasValue = salary && salary.trim().length > 0;
@@ -64,6 +74,11 @@ export function jobMatchesPayRange(salary: string | undefined, selectedRanges: P
         return salaryK !== null && salaryK >= 75 && salaryK < 100;
       case '100k+':
         return salaryK !== null && salaryK >= 100;
+      case 'custom':
+        if (salaryK === null) return false;
+        if (customRange?.min !== null && customRange?.min !== undefined && salaryK < customRange.min) return false;
+        if (customRange?.max !== null && customRange?.max !== undefined && salaryK > customRange.max) return false;
+        return true;
       default:
         return true;
     }
