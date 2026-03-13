@@ -82,6 +82,7 @@ const StartupScout = () => {
   const [selectedSeniorities, setSelectedSeniorities] = usePersistedState<Seniority[]>('startups-seniorities', []);
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('startups-subcats', []);
   const [selectedPayRanges, setSelectedPayRanges] = usePersistedState<PayRange[]>('startups-payranges', []);
+  const [customPayRange, setCustomPayRange] = usePersistedState<CustomPayRange>('startups-custompay', { min: null, max: null });
   const handleCityChange = (city: string) => { setSelectedCity(city); setSources((prev) => prev.map((s) => ({ ...s, url: toStartupUrl(getSourceUrlForLocation(s.name, city) || s.url), status: 'unknown' as const, statusMessage: undefined }))); setJobs([]); setHasScraped(false); setDismissedIds(new Set()); };
   const handleToggleSource = (id: string) => { setSources((prev) => prev.map((s) => s.id === id ? { ...s, enabled: !s.enabled } : s)); };
   const handleToggleAll = (enabled: boolean) => { setSources((prev) => prev.map((s) => ({ ...s, enabled }))); };
