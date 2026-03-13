@@ -113,6 +113,8 @@ export function FilterRow({
   onTertiaryFilterChange,
   selectedPayRanges,
   onPayRangesChange,
+  customPayRange,
+  onCustomPayRangeChange,
 }: FilterRowProps) {
   const subCats = mode ? SUB_CATEGORIES[mode] || [] : [];
   const secondaryFilter = mode ? SECONDARY_FILTERS[mode] : undefined;
