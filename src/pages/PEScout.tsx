@@ -117,7 +117,7 @@ const PEScout = () => {
   const [selectedSubCategories, setSelectedSubCategories] = usePersistedState<string[]>('pe-subcats', []);
   const [selectedSecondaryFilter, setSelectedSecondaryFilter] = usePersistedState<string[]>('pe-secondary', []);
   const [selectedTertiaryFilter, setSelectedTertiaryFilter] = usePersistedState<string[]>('pe-tertiary', []);
-
+  const [selectedPayRanges, setSelectedPayRanges] = usePersistedState<PayRange[]>('pe-payranges', []);
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
     setSources((prev) =>
