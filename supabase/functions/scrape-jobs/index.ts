@@ -1963,13 +1963,16 @@ function isNotExcludedRole(title: string): boolean {
     /\bchief\s+of\s+staff\b/i,
 
     // Non-VC finance roles (by title, not company)
-    /\bprivate\s+equity\b/i,                  // PE roles (company can still be PE recruiter)
+    /\bprivate\s+equity\b/i,
     /\bm&a\b/i, /\bmergers?\s+(and|&)\s+acquisitions?\b/i,
     /\bcorporate\s+development\b/i,
     /\bcorporate\s+(finance|m&a|private\s+equity)\b/i,
     /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i,
     /\binvestment\s+consultant\b/i,
-    /\binvestment\s+fund\w*\s+(senior\s+)?associate\b/i,  // law firm fund roles
+    /\binvestment\s+strategist\b/i,
+    /\binvestment\s+trust\b/i,
+    /\binvestment\s+counsel/i,
+    /\binvestment\s+fund\w*\s+(senior\s+)?associate\b/i,
     /\bstrategy\s+consult/i, /\bmanagement\s+consult/i,
     /\bquantitative\s+(researcher|trader|analyst)\b/i,
     /\bcommodities\b/i,
@@ -1979,6 +1982,15 @@ function isNotExcludedRole(title: string): boolean {
     /\bcredit\s+invest/i,
     /\bsearch\s+fund\b/i,
     /\bcapital\s+markets?\b/i,
+    /\bwealth\s+manag/i,
+    /\bprivate\s+bank/i,
+    /\basset\s+manag/i,
+    /\bhedge\s+fund\b/i,
+    /\bportfolio\s+manag/i,
+    /\bequity\s+research\b/i,
+    /\bfixed\s+income\b/i,
+    /\bpension\b/i,
+    /\binsurance\b/i,
 
     // Sales / marketing / ops
     /\bb2b\b/i, /\bsales\s+(dev|representative|exec)/i,
