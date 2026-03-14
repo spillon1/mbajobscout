@@ -2047,12 +2047,26 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i,
     /\bdesigner\b/i, /\bux\b/i, /\bcreative\s+director\b/i,
     /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
-    /\bsales\s+(dev|representative|exec|manager|director)/i,
+    /\bsales\s+(dev|representative|exec|manager|director|trader)/i,
     /\bbusiness\s+development\b/i, /\bbdm\b/i,
     /\btax\s+(manager|analyst|advisor|specialist|director)\b/i,
     /\bprocurement\b/i, /\bsupply\s+chain\b/i,
     /\bevent\s+(manager|coordinator|director|operations)\b/i,
-    /\b(?:co-?)?founder\b/i,
+    /\b(?:co-?)?founders?\b/i,
+    // S&T / Trading roles
+    /\bsales\s+trader\b/i, /\bderivatives\b/i, /\btrader\b/i, /\btrading\b/i,
+    /\bficc\b/i, /\bequities\s*\(/i, /\bfutures\b/i, /\boptions\b/i,
+    /\bstructur(er|ing)\b/i,
+    // IM / Asset Management roles
+    /\brisk\s+manag/i, /\bmacro\s+strategist\b/i,
+    /\bresearch\s+associate\b/i, /\bresearch\s+analyst\b/i,
+    /\bfixed\s+income\b/i, /\brfp\s+writer\b/i,
+    /\bcorporate\s+access\b/i, /\bclient\s+transitions?\b/i,
+    /\btrade\s+coordinator\b/i, /\btrade\s+support\b/i,
+    // Non-VC misc
+    /\bentrepreneur\s+in\s+residence\b/i,
+    /\bfinancial\s+report/i, /\bfinancial\s+control/i,
+    /\bactuari/i, /\bunderwriter\b/i, /\bclaims\b/i,
   ];
   if (nonVcRoles.some(p => p.test(titleLower))) return false;
 
