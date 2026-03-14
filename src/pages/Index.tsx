@@ -30,7 +30,7 @@ function parsePostedDate(dateStr?: string): Date {
 const isOccSource = (value: string): boolean => /occ\s*\(cambridge\)|12twenty/i.test(value);
 import { Job, JobType, JobSource, Seniority } from '@/types/jobs';
 import { getDefaultSources, DEFAULT_KEYWORDS } from '@/data/jobData';
-import { UK_CITIES, getLocationString, getSourceUrlForLocation } from '@/data/ukLocations';
+import { UK_CITIES, getLocationString, getSourceUrlForLocation, jobMatchesCity } from '@/data/ukLocations';
 import { FilterRow, ListedPeriod, JobStatus, SortOption, DatePostedFilter } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
@@ -227,39 +227,7 @@ const Index = () => {
       return !NON_UK_INDICATORS.some((pattern) => pattern.test(loc));
     });
 
-    // Then filter by specific city if not "All UK"
-    if (selectedCity !== 'United Kingdom') {
-      const cityLower = selectedCity.toLowerCase();
-      // County/region aliases so e.g. "Oxfordshire" matches "Oxford"
-      const CITY_ALIASES: Record<string, string[]> = {
-        oxford: ['oxfordshire'],
-        cambridge: ['cambridgeshire'],
-        bristol: ['avon'],
-        newcastle: ['tyne and wear', 'tyneside'],
-        nottingham: ['nottinghamshire'],
-        sheffield: ['south yorkshire'],
-        leeds: ['west yorkshire'],
-        liverpool: ['merseyside'],
-        manchester: ['greater manchester'],
-        birmingham: ['west midlands'],
-        southampton: ['hampshire'],
-        bath: ['somerset', 'bath and north east somerset'],
-        aberdeen: ['aberdeenshire']
-      };
-      const aliases = CITY_ALIASES[cityLower] || [];
-      filtered = filtered.filter((j) => {
-        const loc = j.location.toLowerCase();
-        if (loc.includes(cityLower)) return true;
-        if (aliases.some((a) => loc.includes(a))) return true;
-        if (loc.includes('united kingdom') || loc === 'uk' || loc.includes('remote') || loc.includes('various')) return true;
-        // Drop if it mentions a different UK city
-        const otherCities = UK_CITIES.
-        filter((c) => c.value !== 'United Kingdom' && c.value.toLowerCase() !== cityLower).
-        map((c) => c.value.toLowerCase());
-        if (otherCities.some((c) => loc.includes(c))) return false;
-        return false;
-      });
-    }
+    filtered = filtered.filter((j) => jobMatchesCity(j.location, selectedCity));
 
     if (datePostedFilter === 'with-date') {
       filtered = filtered.filter((j) => j.postedDate && j.postedDate !== 'Scraped just now');

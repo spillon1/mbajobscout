@@ -26,7 +26,7 @@ function parsePostedDate(dateStr?: string): Date {
 
 import { Job, JobType, JobSource, Seniority } from '@/types/jobs';
 import { getMCDefaultSources, MC_DEFAULT_KEYWORDS } from '@/data/mcData';
-import { UK_CITIES, getLocationString, getSourceUrlForLocation } from '@/data/ukLocations';
+import { UK_CITIES, getLocationString, getSourceUrlForLocation, jobMatchesCity } from '@/data/ukLocations';
 import { FilterRow, ListedPeriod, JobStatus, SortOption, DatePostedFilter } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
@@ -133,12 +133,7 @@ const MCScout = () => {
     filtered = filtered.filter((j) => enabledSources.includes(j.source));
     const NON_UK_INDICATORS = [/,\s*\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/, /\b(massachusetts|california|new york|texas|florida|illinois|pennsylvania|ohio|georgia|michigan|connecticut|new jersey|virginia|maryland|colorado|washington state|minnesota|north carolina)\b/i, /\b(united states|usa|\bUS\b|canada|australia|germany|france|india|singapore|hong kong|japan|china|brazil|israel|netherlands|switzerland|ireland|spain|italy|sweden|denmark|norway|finland|austria|belgium|portugal|south korea|taiwan|thailand|vietnam|mexico|argentina|chile|south africa|nigeria|kenya|uae|dubai|saudi|qatar)\b/i];
     filtered = filtered.filter((j) => { const loc = j.location; if (!loc || loc === 'London, UK') return true; return !NON_UK_INDICATORS.some((pattern) => pattern.test(loc)); });
-    if (selectedCity !== 'United Kingdom') {
-      const cityLower = selectedCity.toLowerCase();
-      const CITY_ALIASES: Record<string, string[]> = { oxford: ['oxfordshire'], cambridge: ['cambridgeshire'], bristol: ['avon'], newcastle: ['tyne and wear', 'tyneside'], nottingham: ['nottinghamshire'], sheffield: ['south yorkshire'], leeds: ['west yorkshire'], liverpool: ['merseyside'], manchester: ['greater manchester'], birmingham: ['west midlands'], southampton: ['hampshire'], bath: ['somerset', 'bath and north east somerset'], aberdeen: ['aberdeenshire'] };
-      const aliases = CITY_ALIASES[cityLower] || [];
-      filtered = filtered.filter((j) => { const loc = j.location.toLowerCase(); if (loc.includes(cityLower)) return true; if (aliases.some((a) => loc.includes(a))) return true; if (loc.includes('united kingdom') || loc === 'uk' || loc.includes('remote') || loc.includes('various')) return true; const otherCities = UK_CITIES.filter((c) => c.value !== 'United Kingdom' && c.value.toLowerCase() !== cityLower).map((c) => c.value.toLowerCase()); if (otherCities.some((c) => loc.includes(c))) return false; return false; });
-    }
+    filtered = filtered.filter((j) => jobMatchesCity(j.location, selectedCity));
     if (datePostedFilter === 'with-date') filtered = filtered.filter((j) => j.postedDate && j.postedDate !== 'Scraped just now');
     else if (datePostedFilter === 'without-date') filtered = filtered.filter((j) => !j.postedDate || j.postedDate === 'Scraped just now');
     if (listedPeriod !== 'any') { const now = new Date(); const cutoff = new Date(); if (listedPeriod === '1d') cutoff.setDate(now.getDate() - 1); else if (listedPeriod === '1w') cutoff.setDate(now.getDate() - 7); else if (listedPeriod === '1m') cutoff.setMonth(now.getMonth() - 1); else if (listedPeriod === '3m') cutoff.setMonth(now.getMonth() - 3); else if (listedPeriod === '6m') cutoff.setMonth(now.getMonth() - 6); filtered = filtered.filter((j) => parsePostedDate(j.postedDate) >= cutoff); }

@@ -66,7 +66,54 @@ export const UK_CITIES: { value: string; label: string }[] = [
   { value: 'Belfast', label: 'Belfast' },
   { value: 'Aberdeen', label: 'Aberdeen' },
   { value: 'Bath', label: 'Bath' },
+  { value: 'Remote', label: 'Remote' },
 ];
+
+const CITY_ALIASES: Record<string, string[]> = {
+  oxford: ['oxfordshire'],
+  cambridge: ['cambridgeshire'],
+  bristol: ['avon'],
+  newcastle: ['tyne and wear', 'tyneside'],
+  nottingham: ['nottinghamshire'],
+  sheffield: ['south yorkshire'],
+  leeds: ['west yorkshire'],
+  liverpool: ['merseyside'],
+  manchester: ['greater manchester'],
+  birmingham: ['west midlands'],
+  southampton: ['hampshire'],
+  bath: ['somerset', 'bath and north east somerset'],
+  aberdeen: ['aberdeenshire'],
+};
+
+/** Returns true if the job's location text indicates a remote role */
+function isRemoteLocation(loc: string): boolean {
+  return /\bremote\b/i.test(loc);
+}
+
+/** Filter a job by selected city. Returns true if job should be included. */
+export function jobMatchesCity(jobLocation: string, selectedCity: string): boolean {
+  if (selectedCity === 'United Kingdom') return true;
+
+  const loc = jobLocation.toLowerCase();
+
+  if (selectedCity === 'Remote') {
+    return isRemoteLocation(loc);
+  }
+
+  const cityLower = selectedCity.toLowerCase();
+  const aliases = CITY_ALIASES[cityLower] || [];
+
+  if (loc.includes(cityLower)) return true;
+  if (aliases.some((a) => loc.includes(a))) return true;
+  // Generic UK-wide listings match any city, but NOT remote-only
+  if (loc.includes('united kingdom') || loc === 'uk' || loc.includes('various')) return true;
+  // Drop if it mentions a different UK city
+  const otherCities = UK_CITIES
+    .filter((c) => c.value !== 'United Kingdom' && c.value !== 'Remote' && c.value.toLowerCase() !== cityLower)
+    .map((c) => c.value.toLowerCase());
+  if (otherCities.some((c) => loc.includes(c))) return false;
+  return false;
+}
 
 export function getLocationString(city: string): string {
   if (city === 'United Kingdom') return 'United Kingdom';
