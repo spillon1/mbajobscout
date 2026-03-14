@@ -317,6 +317,16 @@ function isValidJob(job: Job, mode: ScrapeMode = 'vc'): boolean {
       /\bgp\s+stakes?\b/i, /\bemerging\s+manager/i, /\bfund\s+of\s+funds\b/i,
       /\binfra(structure)?\s*\/?\s*real\s+assets?\b/i, /\breal\s+assets?\s+invest/i,
       /\binfrastructure\s+invest/i,
+      // Product roles (not VC)
+      /\bproduct\s+(owner|analyst|lead|director|head|specialist)\b/i,
+      // GTM / Go-To-Market roles
+      /\bgo[\s\-]to[\s\-]market\b/i, /\bgtm\b/i,
+      // Testing / QA roles
+      /\btesting\s+(manager|lead|engineer|analyst)\b/i, /\bqa\s+(manager|lead|engineer|analyst)\b/i,
+      /\btest\s+(manager|lead|engineer|analyst)\b/i,
+      // Sales roles (broader)
+      /\bmiddle\s+east\s+sales\b/i, /\bmacro\s+(research|sales)\b/i,
+      /\bsales,/i,
     );
   } else if (mode === 'pe') {
     hardExcludeTitles.push(

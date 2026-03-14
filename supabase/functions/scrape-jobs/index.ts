@@ -2067,6 +2067,16 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bentrepreneur\s+in\s+residence\b/i,
     /\bfinancial\s+report/i, /\bfinancial\s+control/i,
     /\bactuari/i, /\bunderwriter\b/i, /\bclaims\b/i,
+    // Product roles (not VC)
+    /\bproduct\s+(owner|analyst|lead|director|head|specialist)\b/i,
+    // GTM / Go-To-Market roles
+    /\bgo[\s\-]to[\s\-]market\b/i, /\bgtm\b/i,
+    // Testing / QA roles
+    /\btesting\s+(manager|lead|engineer|analyst)\b/i, /\bqa\s+(manager|lead|engineer|analyst)\b/i,
+    /\btest\s+(manager|lead|engineer|analyst)\b/i,
+    // Sales roles (broader)
+    /\bmiddle\s+east\s+sales\b/i, /\bmacro\s+(research|sales)\b/i,
+    /\bsales,/i,
   ];
   if (nonVcRoles.some(p => p.test(titleLower))) return false;
 

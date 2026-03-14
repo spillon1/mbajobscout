@@ -350,6 +350,30 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bprocurement\b/i, /\bsupply\s+chain\b/i,
     /\bevent\s+(manager|coordinator|director|operations)\b/i,
     /\b(?:co-?)?founder\b/i,
+    // S&T / Trading roles
+    /\bsales\s+trader\b/i, /\bderivatives\b/i, /\btrader\b/i, /\btrading\b/i,
+    /\bficc\b/i, /\bequities\s*\(/i, /\bfutures\b/i, /\boptions\b/i,
+    /\bstructur(er|ing)\b/i,
+    // IM / Asset Management roles
+    /\brisk\s+manag/i, /\bmacro\s+strategist\b/i,
+    /\bresearch\s+associate\b/i, /\bresearch\s+analyst\b/i,
+    /\bfixed\s+income\b/i, /\brfp\s+writer\b/i,
+    /\bcorporate\s+access\b/i, /\bclient\s+transitions?\b/i,
+    /\btrade\s+coordinator\b/i, /\btrade\s+support\b/i,
+    // Non-VC misc
+    /\bentrepreneur\s+in\s+residence\b/i,
+    /\bfinancial\s+report/i, /\bfinancial\s+control/i,
+    /\bactuari/i, /\bunderwriter\b/i, /\bclaims\b/i,
+    // Product roles (not VC)
+    /\bproduct\s+(owner|analyst|lead|director|head|specialist)\b/i,
+    // GTM / Go-To-Market roles
+    /\bgo[\s\-]to[\s\-]market\b/i, /\bgtm\b/i,
+    // Testing / QA roles
+    /\btesting\s+(manager|lead|engineer|analyst)\b/i, /\bqa\s+(manager|lead|engineer|analyst)\b/i,
+    /\btest\s+(manager|lead|engineer|analyst)\b/i,
+    // Sales roles (broader)
+    /\bmiddle\s+east\s+sales\b/i, /\bmacro\s+(research|sales)\b/i,
+    /\bsales,/i,
   ];
   if (nonVcRoles.some(p => p.test(titleLower))) return false;
 
