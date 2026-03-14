@@ -180,19 +180,31 @@ Deno.serve(async (req) => {
       /\bventure\s+(capital\s+)?(analyst|associate|principal|partner)\b/i,
     ];
 
-    const newJobs = rawJobs.filter(job => {
+    let actionedExcludedCount = 0;
+    const newJobs = uniqueRawJobs.filter(job => {
       // 1. London filter
       const loc = (job.location || '').toLowerCase();
       const isLondon = londonPattern.test(loc) || (remoteUkPattern.test(loc) && !nonUkPattern.test(loc));
       if (!isLondon) return false;
 
       // 2. Same VC relevance filter used by the scraper
-      if (!isLikelyVcRole(job.title, job.company, job.description)) return false;
+      if (!isLikelyVcRole(job.title, job.company, job.description ?? undefined)) return false;
 
       // 3. Investment role type filter (sub-category)
       const text = `${job.title} ${job.description || ''}`;
       const isInvestmentRole = investmentPatterns.some(p => p.test(text));
-      return isInvestmentRole;
+      if (!isInvestmentRole) return false;
+
+      // 4. Match search behavior: hide actioned jobs (URL OR title+company)
+      const normalizedUrl = normalizeJobUrl(job.url);
+      const titleCompany = titleCompanyKey(job.title, job.company);
+      const isActioned = actionedUrls.has(normalizedUrl) || actionedTitleCompany.has(titleCompany);
+      if (isActioned) {
+        actionedExcludedCount += 1;
+        return false;
+      }
+
+      return true;
     });
 
     // Mark ALL fetched VC jobs as alerted (not just matched ones)
