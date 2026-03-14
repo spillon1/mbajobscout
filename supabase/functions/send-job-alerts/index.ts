@@ -127,6 +127,42 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Resolve alert owner (so we can hide actioned jobs exactly like search)
+    let alertUserId: string | null = null;
+    const { data: alertConfig, error: alertConfigError } = await supabase
+      .from('job_alerts')
+      .select('user_id')
+      .eq('email', ALERT_EMAIL)
+      .eq('enabled', true)
+      .maybeSingle();
+
+    if (alertConfigError) {
+      console.error('Failed to read alert config:', alertConfigError.message);
+    } else {
+      alertUserId = alertConfig?.user_id ?? null;
+    }
+
+    // De-duplicate freshly scraped rows by canonical URL + title/company
+    const uniqueRawJobs = dedupeJobsByCanonicalKey(rawJobs as unknown as ScrapedJob[]);
+
+    // Pull actioned jobs for this alert user and hide them from emails
+    let actionedUrls = new Set<string>();
+    let actionedTitleCompany = new Set<string>();
+
+    if (alertUserId) {
+      const { data: actionRows, error: actionsError } = await supabase
+        .from('job_actions')
+        .select('job_url, job_title, job_company')
+        .eq('user_id', alertUserId);
+
+      if (actionsError) {
+        console.error('Failed to fetch job actions for alert user:', actionsError.message);
+      } else if (actionRows) {
+        actionedUrls = new Set(actionRows.map((a) => normalizeJobUrl(a.job_url)));
+        actionedTitleCompany = new Set(actionRows.map((a) => titleCompanyKey(a.job_title, a.job_company)));
+      }
+    }
+
     // ── Location filter: London only ──
     const londonPattern = /\blondon\b/i;
     const remoteUkPattern = /\b(remote|united\s+kingdom|uk)\b/i;
