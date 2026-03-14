@@ -222,14 +222,14 @@ Deno.serve(async (req) => {
 
     if (newJobs.length === 0) {
       await markAllAsAlerted();
-      console.log(`No VC London Investment jobs out of ${rawJobs.length} total un-alerted VC jobs`);
+      console.log(`No VC London Investment jobs after filtering (raw=${rawJobs.length}, unique=${uniqueRawJobs.length}, actionedExcluded=${actionedExcludedCount})`);
       return new Response(
-        JSON.stringify({ success: true, message: 'No matching jobs after filtering', total: rawJobs.length, matched: 0 }),
+        JSON.stringify({ success: true, message: 'No matching jobs after filtering', total: uniqueRawJobs.length, matched: 0, actionedExcluded: actionedExcludedCount }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Found ${newJobs.length} London Investment jobs (from ${rawJobs.length} total) to send to ${ALERT_EMAIL}`);
+    console.log(`Found ${newJobs.length} London Investment jobs to send to ${ALERT_EMAIL} (raw=${rawJobs.length}, unique=${uniqueRawJobs.length}, actionedExcluded=${actionedExcludedCount})`);
 
     // Build HTML email
     const jobRows = newJobs.map(job => `
