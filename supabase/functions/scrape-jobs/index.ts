@@ -1963,13 +1963,16 @@ function isNotExcludedRole(title: string): boolean {
     /\bchief\s+of\s+staff\b/i,
 
     // Non-VC finance roles (by title, not company)
-    /\bprivate\s+equity\b/i,                  // PE roles (company can still be PE recruiter)
+    /\bprivate\s+equity\b/i,
     /\bm&a\b/i, /\bmergers?\s+(and|&)\s+acquisitions?\b/i,
     /\bcorporate\s+development\b/i,
     /\bcorporate\s+(finance|m&a|private\s+equity)\b/i,
     /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i,
     /\binvestment\s+consultant\b/i,
-    /\binvestment\s+fund\w*\s+(senior\s+)?associate\b/i,  // law firm fund roles
+    /\binvestment\s+strategist\b/i,
+    /\binvestment\s+trust\b/i,
+    /\binvestment\s+counsel/i,
+    /\binvestment\s+fund\w*\s+(senior\s+)?associate\b/i,
     /\bstrategy\s+consult/i, /\bmanagement\s+consult/i,
     /\bquantitative\s+(researcher|trader|analyst)\b/i,
     /\bcommodities\b/i,
@@ -1979,6 +1982,15 @@ function isNotExcludedRole(title: string): boolean {
     /\bcredit\s+invest/i,
     /\bsearch\s+fund\b/i,
     /\bcapital\s+markets?\b/i,
+    /\bwealth\s+manag/i,
+    /\bprivate\s+bank/i,
+    /\basset\s+manag/i,
+    /\bhedge\s+fund\b/i,
+    /\bportfolio\s+manag/i,
+    /\bequity\s+research\b/i,
+    /\bfixed\s+income\b/i,
+    /\bpension\b/i,
+    /\binsurance\b/i,
 
     // Sales / marketing / ops
     /\bb2b\b/i, /\bsales\s+(dev|representative|exec)/i,
@@ -2041,6 +2053,22 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bprocurement\b/i, /\bsupply\s+chain\b/i,
     /\bevent\s+(manager|coordinator|director|operations)\b/i,
     /\b(?:co-?)?founder\b/i,
+    // Non-VC investment roles (asset management, wealth, trusts, etc.)
+    /\binvestment\s+strategist\b/i,
+    /\binvestment\s+trust\b/i,
+    /\binvestment\s+consult/i,
+    /\binvestment\s+counsel/i,
+    /\bwealth\s+manag/i,
+    /\bprivate\s+bank/i,
+    /\basset\s+manag/i,
+    /\bfund\s+of\s+funds\b/i,
+    /\bhedge\s+fund\b/i,
+    /\bportfolio\s+manag/i,
+    /\bequity\s+research\b/i,
+    /\bcredit\s+analyst\b/i,
+    /\bfixed\s+income\b/i,
+    /\bpension\b/i,
+    /\binsurance\b/i,
   ];
   if (nonVcRoles.some(p => p.test(titleLower))) return false;
 
@@ -2051,13 +2079,28 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bventure(s|\s+partners?)\b/,
   ];
 
+  // Strong signal: VC keyword in title or company name → accept
   if (vcSignals.some(p => p.test(titleLower))) return true;
   if (vcSignals.some(p => p.test(companyLower))) return true;
-  if (/venture\s+capital/.test(descLower)) return true;
-  if (/\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower)) return true;
+
+  // Weak signal: VC keyword only in description → require title to have VC-compatible terms
+  const hasDescVcSignal = /venture\s+capital/.test(descLower) || /\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower);
+  if (hasDescVcSignal) {
+    const vcCompatibleTitles = [
+      /\b(analyst|associate|principal|partner|director|vp|vice\s+president|managing\s+director)\b/i,
+      /\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office|strategist|trust|consult|counsel))/i,
+      /\bdeal\b/i, /\borigination\b/i,
+      /\bplatform\b/i, /\bportfolio\s+(support|operations|success)\b/i,
+      /\bvalue\s+creation\b/i, /\boperating\s+partner\b/i,
+      /\binvestor\s+relations?\b/i, /\bfundraising\b/i,
+      /\bfund\s+operations?\b/i, /\bfund\s+manag/i,
+    ];
+    if (vcCompatibleTitles.some(p => p.test(titleLower))) return true;
+    // Description mentions VC but title is not VC-compatible → reject
+    return false;
+  }
 
   // ── IR / Fundraising roles are core VC fund roles ──
-  // These come from VC-keyword searches so context is already VC-specific
   const irTitlePatterns = [
     /\binvestor\s+relations?\b/,
     /\bir\s+(analyst|associate|manager|director|officer|lead|head|vp|vice\s+president)\b/,
