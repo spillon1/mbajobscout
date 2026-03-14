@@ -226,6 +226,20 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bprocurement\b/i, /\bsupply\s+chain\b/i,
     /\bevent\s+(manager|coordinator|director|operations)\b/i,
     /\b(?:co-?)?founder\b/i,
+    // Non-VC investment roles
+    /\binvestment\s+strategist\b/i,
+    /\binvestment\s+trust\b/i,
+    /\binvestment\s+consult/i,
+    /\binvestment\s+counsel/i,
+    /\bwealth\s+manag/i,
+    /\bprivate\s+bank/i,
+    /\basset\s+manag/i,
+    /\bhedge\s+fund\b/i,
+    /\bportfolio\s+manag/i,
+    /\bequity\s+research\b/i,
+    /\bfixed\s+income\b/i,
+    /\bpension\b/i,
+    /\binsurance\b/i,
   ];
   if (nonVcRoles.some(p => p.test(titleLower))) return false;
 
@@ -236,10 +250,25 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bventure(s|\s+partners?)\b/,
   ];
 
+  // Strong signal: VC keyword in title or company name
   if (vcSignals.some(p => p.test(titleLower))) return true;
   if (vcSignals.some(p => p.test(companyLower))) return true;
-  if (/venture\s+capital/.test(descLower)) return true;
-  if (/\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower)) return true;
+
+  // Weak signal: VC keyword only in description → require VC-compatible title
+  const hasDescVcSignal = /venture\s+capital/.test(descLower) || /\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower);
+  if (hasDescVcSignal) {
+    const vcCompatibleTitles = [
+      /\b(analyst|associate|principal|partner|director|vp|vice\s+president|managing\s+director)\b/i,
+      /\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office|strategist|trust|consult|counsel))/i,
+      /\bdeal\b/i, /\borigination\b/i,
+      /\bplatform\b/i, /\bportfolio\s+(support|operations|success)\b/i,
+      /\bvalue\s+creation\b/i, /\boperating\s+partner\b/i,
+      /\binvestor\s+relations?\b/i, /\bfundraising\b/i,
+      /\bfund\s+operations?\b/i, /\bfund\s+manag/i,
+    ];
+    if (vcCompatibleTitles.some(p => p.test(titleLower))) return true;
+    return false;
+  }
 
   // IR / Fundraising roles are core VC fund roles
   const irTitlePatterns = [
