@@ -2053,22 +2053,6 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bprocurement\b/i, /\bsupply\s+chain\b/i,
     /\bevent\s+(manager|coordinator|director|operations)\b/i,
     /\b(?:co-?)?founder\b/i,
-    // Non-VC investment roles (asset management, wealth, trusts, etc.)
-    /\binvestment\s+strategist\b/i,
-    /\binvestment\s+trust\b/i,
-    /\binvestment\s+consult/i,
-    /\binvestment\s+counsel/i,
-    /\bwealth\s+manag/i,
-    /\bprivate\s+bank/i,
-    /\basset\s+manag/i,
-    /\bfund\s+of\s+funds\b/i,
-    /\bhedge\s+fund\b/i,
-    /\bportfolio\s+manag/i,
-    /\bequity\s+research\b/i,
-    /\bcredit\s+analyst\b/i,
-    /\bfixed\s+income\b/i,
-    /\bpension\b/i,
-    /\binsurance\b/i,
   ];
   if (nonVcRoles.some(p => p.test(titleLower))) return false;
 
@@ -2088,12 +2072,13 @@ function isLikelyVcRole(title: string, company: string, description: string | un
   if (hasDescVcSignal) {
     const vcCompatibleTitles = [
       /\b(analyst|associate|principal|partner|director|vp|vice\s+president|managing\s+director)\b/i,
-      /\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office|strategist|trust|consult|counsel))/i,
+      /\binvestment\b/i,
       /\bdeal\b/i, /\borigination\b/i,
-      /\bplatform\b/i, /\bportfolio\s+(support|operations|success)\b/i,
+      /\bplatform\b/i, /\bportfolio\b/i,
       /\bvalue\s+creation\b/i, /\boperating\s+partner\b/i,
       /\binvestor\s+relations?\b/i, /\bfundraising\b/i,
-      /\bfund\s+operations?\b/i, /\bfund\s+manag/i,
+      /\bfund\s+(operations?|manag)/i,
+      /\bwealth\b/i, /\basset\b/i, /\bstrategist\b/i,
     ];
     if (vcCompatibleTitles.some(p => p.test(titleLower))) return true;
     // Description mentions VC but title is not VC-compatible → reject
