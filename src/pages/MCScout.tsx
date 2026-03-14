@@ -26,7 +26,7 @@ function parsePostedDate(dateStr?: string): Date {
 
 import { Job, JobType, JobSource, Seniority } from '@/types/jobs';
 import { getMCDefaultSources, MC_DEFAULT_KEYWORDS } from '@/data/mcData';
-import { UK_CITIES, getLocationString, getSourceUrlForLocation } from '@/data/ukLocations';
+import { UK_CITIES, getLocationString, getSourceUrlForLocation, jobMatchesCity } from '@/data/ukLocations';
 import { FilterRow, ListedPeriod, JobStatus, SortOption, DatePostedFilter } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
