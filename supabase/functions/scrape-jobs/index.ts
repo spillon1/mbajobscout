@@ -2053,22 +2053,6 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bprocurement\b/i, /\bsupply\s+chain\b/i,
     /\bevent\s+(manager|coordinator|director|operations)\b/i,
     /\b(?:co-?)?founder\b/i,
-    // Non-VC investment roles (asset management, wealth, trusts, etc.)
-    /\binvestment\s+strategist\b/i,
-    /\binvestment\s+trust\b/i,
-    /\binvestment\s+consult/i,
-    /\binvestment\s+counsel/i,
-    /\bwealth\s+manag/i,
-    /\bprivate\s+bank/i,
-    /\basset\s+manag/i,
-    /\bfund\s+of\s+funds\b/i,
-    /\bhedge\s+fund\b/i,
-    /\bportfolio\s+manag/i,
-    /\bequity\s+research\b/i,
-    /\bcredit\s+analyst\b/i,
-    /\bfixed\s+income\b/i,
-    /\bpension\b/i,
-    /\binsurance\b/i,
   ];
   if (nonVcRoles.some(p => p.test(titleLower))) return false;
 
