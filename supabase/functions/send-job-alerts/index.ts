@@ -9,6 +9,82 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const ALERT_EMAIL = 'spillon@gmail.com';
 const ALERT_MODE = 'vc';
 
+type ScrapedJob = {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  type: string;
+  source: string;
+  url: string;
+  description: string | null;
+  salary: string | null;
+  posted_date: string | null;
+};
+
+function normalizeText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function titleCompanyKey(title: string, company: string): string {
+  return `${normalizeText(title)}|||${normalizeText(company)}`;
+}
+
+function normalizeJobUrl(url: string): string {
+  const decodedUrl = url.replace(/&amp;/g, '&');
+
+  try {
+    const u = new URL(decodedUrl);
+    u.hash = '';
+
+    // Indeed: keep only the stable job key (jk) when present
+    if (/indeed\.com/i.test(u.hostname)) {
+      const jk = u.searchParams.get('jk');
+      const path = u.pathname.replace(/\/+$/, '') || '/';
+      return jk ? `${u.origin}${path}?jk=${jk}` : `${u.origin}${path}`;
+    }
+
+    // LinkedIn: drop volatile tracking params
+    if (/linkedin\.com/i.test(u.hostname)) {
+      ['refId', 'trackingId', 'trk', 'midToken', 'midSig'].forEach((p) => u.searchParams.delete(p));
+    }
+
+    // Glassdoor: drop volatile tracking params
+    if (/glassdoor/i.test(u.hostname)) {
+      ['src', 'srs', 't', 'pos'].forEach((p) => u.searchParams.delete(p));
+    }
+
+    // Default: strip common tracking params
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ref', 'fbclid', 'gclid'].forEach((p) => u.searchParams.delete(p));
+
+    u.pathname = u.pathname.replace(/\/+$/, '') || '/';
+    return u.toString();
+  } catch {
+    return decodedUrl;
+  }
+}
+
+function dedupeJobsByCanonicalKey(jobs: ScrapedJob[]): ScrapedJob[] {
+  const seen = new Set<string>();
+  const unique: ScrapedJob[] = [];
+
+  for (const job of jobs) {
+    const byUrl = normalizeJobUrl(job.url);
+    const byTitleCompany = titleCompanyKey(job.title, job.company);
+    const key = `${byUrl}|||${byTitleCompany}`;
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(job);
+  }
+
+  return unique;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -51,6 +127,42 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Resolve alert owner (so we can hide actioned jobs exactly like search)
+    let alertUserId: string | null = null;
+    const { data: alertConfig, error: alertConfigError } = await supabase
+      .from('job_alerts')
+      .select('user_id')
+      .eq('email', ALERT_EMAIL)
+      .eq('enabled', true)
+      .maybeSingle();
+
+    if (alertConfigError) {
+      console.error('Failed to read alert config:', alertConfigError.message);
+    } else {
+      alertUserId = alertConfig?.user_id ?? null;
+    }
+
+    // De-duplicate freshly scraped rows by canonical URL + title/company
+    const uniqueRawJobs = dedupeJobsByCanonicalKey(rawJobs as unknown as ScrapedJob[]);
+
+    // Pull actioned jobs for this alert user and hide them from emails
+    let actionedUrls = new Set<string>();
+    let actionedTitleCompany = new Set<string>();
+
+    if (alertUserId) {
+      const { data: actionRows, error: actionsError } = await supabase
+        .from('job_actions')
+        .select('job_url, job_title, job_company')
+        .eq('user_id', alertUserId);
+
+      if (actionsError) {
+        console.error('Failed to fetch job actions for alert user:', actionsError.message);
+      } else if (actionRows) {
+        actionedUrls = new Set(actionRows.map((a) => normalizeJobUrl(a.job_url)));
+        actionedTitleCompany = new Set(actionRows.map((a) => titleCompanyKey(a.job_title, a.job_company)));
+      }
+    }
+
     // ── Location filter: London only ──
     const londonPattern = /\blondon\b/i;
     const remoteUkPattern = /\b(remote|united\s+kingdom|uk)\b/i;
@@ -68,19 +180,31 @@ Deno.serve(async (req) => {
       /\bventure\s+(capital\s+)?(analyst|associate|principal|partner)\b/i,
     ];
 
-    const newJobs = rawJobs.filter(job => {
+    let actionedExcludedCount = 0;
+    const newJobs = uniqueRawJobs.filter(job => {
       // 1. London filter
       const loc = (job.location || '').toLowerCase();
       const isLondon = londonPattern.test(loc) || (remoteUkPattern.test(loc) && !nonUkPattern.test(loc));
       if (!isLondon) return false;
 
       // 2. Same VC relevance filter used by the scraper
-      if (!isLikelyVcRole(job.title, job.company, job.description)) return false;
+      if (!isLikelyVcRole(job.title, job.company, job.description ?? undefined)) return false;
 
       // 3. Investment role type filter (sub-category)
       const text = `${job.title} ${job.description || ''}`;
       const isInvestmentRole = investmentPatterns.some(p => p.test(text));
-      return isInvestmentRole;
+      if (!isInvestmentRole) return false;
+
+      // 4. Match search behavior: hide actioned jobs (URL OR title+company)
+      const normalizedUrl = normalizeJobUrl(job.url);
+      const titleCompany = titleCompanyKey(job.title, job.company);
+      const isActioned = actionedUrls.has(normalizedUrl) || actionedTitleCompany.has(titleCompany);
+      if (isActioned) {
+        actionedExcludedCount += 1;
+        return false;
+      }
+
+      return true;
     });
 
     // Mark ALL fetched VC jobs as alerted (not just matched ones)
@@ -98,14 +222,14 @@ Deno.serve(async (req) => {
 
     if (newJobs.length === 0) {
       await markAllAsAlerted();
-      console.log(`No VC London Investment jobs out of ${rawJobs.length} total un-alerted VC jobs`);
+      console.log(`No VC London Investment jobs after filtering (raw=${rawJobs.length}, unique=${uniqueRawJobs.length}, actionedExcluded=${actionedExcludedCount})`);
       return new Response(
-        JSON.stringify({ success: true, message: 'No matching jobs after filtering', total: rawJobs.length, matched: 0 }),
+        JSON.stringify({ success: true, message: 'No matching jobs after filtering', total: uniqueRawJobs.length, matched: 0, actionedExcluded: actionedExcludedCount }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Found ${newJobs.length} London Investment jobs (from ${rawJobs.length} total) to send to ${ALERT_EMAIL}`);
+    console.log(`Found ${newJobs.length} London Investment jobs to send to ${ALERT_EMAIL} (raw=${rawJobs.length}, unique=${uniqueRawJobs.length}, actionedExcluded=${actionedExcludedCount})`);
 
     // Build HTML email
     const jobRows = newJobs.map(job => `
