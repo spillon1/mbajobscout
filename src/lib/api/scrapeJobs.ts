@@ -325,8 +325,14 @@ function isValidJob(job: Job, mode: ScrapeMode = 'vc'): boolean {
       /\btesting\s+(manager|lead|engineer|analyst)\b/i, /\bqa\s+(manager|lead|engineer|analyst)\b/i,
       /\btest\s+(manager|lead|engineer|analyst)\b/i,
       // Sales roles (broader)
-      /\bmiddle\s+east\s+sales\b/i, /\bmacro\s+(research|sales)\b/i,
-      /\bsales,/i,
+      /\bmiddle\s+east\s+sales\b/i, /\bmacro\s+(research|sales|data)\b/i,
+      /\bsales,/i, /\bresearch\s+sales\b/i,
+      // Technical / non-finance roles
+      /\btechnical\s+business\s+analyst\b/i, /\bbusiness\s+analyst\b/i,
+      /\bassociate\s+general\s+counsel\b/i,
+      /\bgrant\s+writer\b/i, /\bwriter\b/i,
+      /\bmember\s+of\s+technical\s+staff\b/i, /\btechnical\s+staff\b/i,
+      /\bpre[\s\-]?training\b/i,
     );
   } else if (mode === 'pe') {
     hardExcludeTitles.push(
