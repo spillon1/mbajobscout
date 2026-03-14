@@ -30,7 +30,7 @@ function parsePostedDate(dateStr?: string): Date {
 const isOccSource = (value: string): boolean => /occ\s*\(cambridge\)|12twenty/i.test(value);
 import { Job, JobType, JobSource, Seniority } from '@/types/jobs';
 import { getDefaultSources, DEFAULT_KEYWORDS } from '@/data/jobData';
-import { UK_CITIES, getLocationString, getSourceUrlForLocation } from '@/data/ukLocations';
+import { UK_CITIES, getLocationString, getSourceUrlForLocation, jobMatchesCity } from '@/data/ukLocations';
 import { FilterRow, ListedPeriod, JobStatus, SortOption, DatePostedFilter } from '@/components/FilterRow';
 import { JobCard } from '@/components/JobCard';
 import { SourceManager } from '@/components/SourceManager';
