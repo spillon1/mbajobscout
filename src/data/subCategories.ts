@@ -6,18 +6,24 @@ export type SubCategory = {
 
 export type ScrapeMode = 'vc' | 'pe' | 'ib' | 'mc' | 'st' | 'im' | 'tech' | 'startups';
 
+/** Special value meaning "matches none of the other categories" */
+const UNCLASSIFIED_VALUE = 'unclassified';
+const UNCLASSIFIED_OPTION: SubCategory = { value: UNCLASSIFIED_VALUE, label: 'Unclassified', patterns: [] };
+
 export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
   vc: [
-    { value: 'investment', label: 'Investment', patterns: [/\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office|strategist|trust|consult|counsel|manag|direct|officer|writer|market))/i, /\bdeal\b/i, /\borigination\b/i, /\binvestment\s+analyst\b/i, /\binvestment\s+associate\b/i, /\bvc\s+analyst\b/i, /\bvc\s+associate\b/i, /\bventure\s+(capital\s+)?(analyst|associate|principal|partner)\b/i] },
+    { value: 'investment', label: 'Investment', patterns: [/\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office|strategist|trust|consult|counsel|manag|direct|officer|writer|market))/i, /\bdeal\b/i, /\borigination\b/i, /\binvestment\s+analyst\b/i, /\binvestment\s+associate\b/i, /\bvc\s+analyst\b/i, /\bvc\s+associate\b/i, /\bventure\s+(capital\s+)?(analyst|associate|principal|partner|director|manager|vp|vice\s+president)\b/i, /\bvc\s+(manager|director|partner|principal|vp|vice\s+president)\b/i, /\bventure\s+(analyst|associate|director|manager|partner|principal)\b/i] },
     { value: 'platform', label: 'Platform', patterns: [/\bplatform\b/i, /\bportfolio\s+(support|operations|success)\b/i, /\bvalue\s+creation\b/i, /\boperating\s+partner\b/i, /\bportfolio\b/i] },
     { value: 'investor-relations', label: 'Investor Relations', patterns: [/\binvestor\s+relations\b/i, /\bir\b/i, /\bfundraising\b/i, /\blp\s+relations\b/i, /\bcapital\s+raising\b/i] },
     { value: 'fund-ops', label: 'Fund Operations', patterns: [/\bfund\s+operations\b/i, /\bfund\s+admin/i, /\bfund\s+accounting\b/i, /\bfund\s+manag/i, /\bcompliance\b/i, /\boperations\b/i, /\bfinance\b/i, /\binvestment\s+(strategist|trust|consult|counsel|manag|writer|market)/i, /\basset\s+manag/i, /\bwealth\s+manag/i, /\bportfolio\s+manag/i] },
+    UNCLASSIFIED_OPTION,
   ],
   pe: [
     { value: 'investment', label: 'Investment', patterns: [/\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office))/i, /\bdeal\b/i, /\borigination\b/i, /\banalyst\b/i, /\bassociate\b/i, /\bprincipal\b/i] },
     { value: 'portfolio-ops', label: 'Portfolio Operations', patterns: [/\bportfolio\b/i, /\bvalue\s+creation\b/i, /\boperating\s+partner\b/i] },
     { value: 'investor-relations', label: 'Investor Relations', patterns: [/\binvestor\s+relations\b/i, /\bir\b/i, /\bfundraising\b/i, /\blp\s+relations\b/i, /\bcapital\s+raising\b/i] },
     { value: 'fund-ops', label: 'Fund Operations', patterns: [/\bfund\s+operations\b/i, /\bfund\s+admin/i, /\bfund\s+accounting\b/i, /\bcompliance\b/i, /\boperations\b/i, /\bfinance\b/i] },
+    UNCLASSIFIED_OPTION,
   ],
   ib: [
     { value: 'ma', label: 'M&A', patterns: [/\bm&a\b/i, /\bmergers?\s*(and|&)\s*acquisitions?\b/i] },
@@ -25,18 +31,21 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     { value: 'ecm-dcm', label: 'ECM / DCM', patterns: [/\becm\b/i, /\bdcm\b/i, /\bcapital\s+markets\b/i, /\bequity\s+capital\b/i, /\bdebt\s+capital\b/i] },
     { value: 'industry-coverage', label: 'Industry Coverage', patterns: [/\bcoverage\b/i, /\bindustry\b/i, /\bsector\b/i, /\btmt\b/i, /\bhealthcare\b/i, /\benergy\b/i, /\bfig\b/i, /\breal\s+estate\b/i, /\bconsumer\b/i, /\bindustrials\b/i] },
     { value: 'restructuring', label: 'Restructuring', patterns: [/\brestructuring\b/i, /\bturnaround\b/i, /\bdistressed\b/i, /\binsolvency\b/i] },
+    UNCLASSIFIED_OPTION,
   ],
   mc: [
     { value: 'strategy', label: 'Strategy', patterns: [/\bstrategy\b/i, /\bstrategic\b/i] },
     { value: 'operations', label: 'Operations', patterns: [/\boperations\b/i, /\boperational\b/i, /\bprocess\b/i] },
     { value: 'digital', label: 'Digital / Technology', patterns: [/\bdigital\b/i, /\btechnology\b/i, /\btransformation\b/i] },
     { value: 'implementation', label: 'Implementation', patterns: [/\bimplementation\b/i, /\bdelivery\b/i, /\bexecution\b/i] },
+    UNCLASSIFIED_OPTION,
   ],
   st: [
     { value: 'sales', label: 'Sales', patterns: [/\bsales\b/i, /\bequity\s+sales\b/i] },
     { value: 'trading', label: 'Trading', patterns: [/\btrad(er|ing)\b/i] },
     { value: 'structuring', label: 'Structuring', patterns: [/\bstructur(er|ing)\b/i] },
     { value: 'quant-electronic', label: 'Quant / Electronic', patterns: [/\bquant\b/i, /\belectronic\b/i, /\balgo\b/i, /\bsystematic\b/i, /\be[\-\s]?trading\b/i] },
+    UNCLASSIFIED_OPTION,
   ],
   im: [
     { value: 'portfolio-mgmt', label: 'Portfolio Management', patterns: [/\bportfolio\s+manag/i, /\bfund\s+manag/i, /\bpm\b/i] },
@@ -44,6 +53,7 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     { value: 'quant', label: 'Quantitative', patterns: [/\bquant/i, /\balgorithm/i, /\bsystematic\b/i] },
     { value: 'trading', label: 'Trading', patterns: [/\btrad(er|ing)\b/i, /\bexecution\b/i] },
     { value: 'wealth-mgmt', label: 'Wealth Management', patterns: [/\bwealth\s+manag/i, /\bprivate\s+bank/i, /\bprivate\s+wealth/i] },
+    UNCLASSIFIED_OPTION,
   ],
   tech: [
     { value: 'product', label: 'Product', patterns: [/\bproduct\s+(manager|management|lead|director|owner|head)\b/i, /\bpm\b/i] },
@@ -51,6 +61,7 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     { value: 'corp-dev', label: 'Corporate Development', patterns: [/\bcorporate\s+development\b/i, /\bcorp\s*dev\b/i, /\bm&a\b/i] },
     { value: 'growth', label: 'Growth', patterns: [/\bgrowth\b/i, /\bgrowth\s+(manager|lead|marketing)\b/i] },
     { value: 'gtm-sales', label: 'GTM / Sales', patterns: [/\bgtm\b/i, /\bgo.to.market\b/i, /\bsales\b/i, /\baccount\s+executive\b/i] },
+    UNCLASSIFIED_OPTION,
   ],
   startups: [
     { value: 'founder-assoc', label: 'Founder Associate', patterns: [/\bfounder\s+associate\b/i, /\bfounder'?s?\s+associate\b/i, /\bceo\s+office\b/i] },
@@ -59,6 +70,7 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     { value: 'product', label: 'Product', patterns: [/\bproduct\b/i] },
     { value: 'growth-gtm', label: 'Growth / GTM', patterns: [/\bgrowth\b/i, /\bgtm\b/i, /\bgo.to.market\b/i, /\bmarketing\b/i] },
     { value: 'operations', label: 'Operations', patterns: [/\boperations\b/i, /\bops\b/i] },
+    UNCLASSIFIED_OPTION,
   ],
 };
 
@@ -70,6 +82,7 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
       { value: 'series-ab', label: 'Series A / B', patterns: [/\bseries\s+[ab]\b/i, /\bearly\s+growth\b/i] },
       { value: 'growth-late', label: 'Growth / Late Stage', patterns: [/\bgrowth\s+(stage|equity|fund)\b/i, /\blate[\s\-]?stage\b/i, /\bseries\s+[c-z]\b/i, /\bgrowth\b/i] },
       { value: 'multi-stage', label: 'Multi-Stage', patterns: [/\bmulti[\s\-]?stage\b/i, /\bfull[\s\-]?lifecycle\b/i, /\ball[\s\-]?stage/i, /\bcross[\s\-]?stage\b/i] },
+      UNCLASSIFIED_OPTION,
     ],
   },
   st: {
@@ -80,6 +93,7 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
       { value: 'rates', label: 'Rates', patterns: [/\brates\b/i, /\bfixed\s+income\b/i, /\bficc\b/i, /\bgovt?\s+bond/i] },
       { value: 'credit', label: 'Credit', patterns: [/\bcredit\b/i, /\bhigh\s+yield\b/i, /\binvestment\s+grade\b/i] },
       { value: 'commodities', label: 'Commodities', patterns: [/\bcommodit/i, /\benergy\b/i, /\bmetals\b/i, /\boil\b/i, /\bgas\b/i] },
+      UNCLASSIFIED_OPTION,
     ],
   },
   pe: {
@@ -90,6 +104,7 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
       { value: 'credit', label: 'Credit / Debt', patterns: [/\bcredit\b/i, /\bdebt\b/i, /\bprivate\s+credit\b/i, /\bmezzanine\b/i] },
       { value: 'infrastructure', label: 'Infrastructure', patterns: [/\binfrastructure\b/i, /\binfra\b/i] },
       { value: 'secondaries', label: 'Secondaries', patterns: [/\bsecondari/i, /\bsecondary\b/i] },
+      UNCLASSIFIED_OPTION,
     ],
   },
   ib: {
@@ -98,6 +113,7 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
       { value: 'bulge-bracket', label: 'Bulge Bracket', patterns: [/\b(goldman\s+sachs|morgan\s+stanley|j\.?p\.?\s*morgan|bank\s+of\s+america|citigroup|citi\b|barclays|deutsche\s+bank|ubs|credit\s+suisse|hsbc)\b/i] },
       { value: 'elite-boutique', label: 'Elite Boutique', patterns: [/\b(lazard|evercore|centerview|pjt\s+partners|moelis|guggenheim|perella\s+weinberg|pwp|greenhill|rothschild|qatalyst)\b/i] },
       { value: 'middle-market', label: 'Middle Market', patterns: [/\b(houlihan\s+lokey|william\s+blair|raymond\s+james|jefferies|piper\s+sandler|baird|lincoln\s+international|harris\s+williams|dc\s+advisory|numis|liberum|stifel|canaccord)\b/i] },
+      UNCLASSIFIED_OPTION,
     ],
   },
   im: {
@@ -108,6 +124,7 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
       { value: 'wealth-manager', label: 'Wealth Manager', patterns: [/\bwealth\s+manag/i, /\bprivate\s+bank/i, /\bprivate\s+wealth/i] },
       { value: 'family-office', label: 'Family Office', patterns: [/\bfamily\s+office\b/i, /\bsfo\b/i, /\bmfo\b/i] },
       { value: 'institutional', label: 'Institutional Investor', patterns: [/\binstitutional\b/i, /\bpension\b/i, /\bendowment\b/i, /\bsovereign\s+wealth\b/i, /\binsurance\b/i] },
+      UNCLASSIFIED_OPTION,
     ],
   },
 };
@@ -121,9 +138,17 @@ export const TERTIARY_FILTERS: Partial<Record<ScrapeMode, { label: string; optio
       { value: 'mid-market', label: 'Mid-Market', patterns: [/\bmid[\s\-]?market\b/i, /\b(ldc|nvp|endless|kester|dunedin|august\s+equity|key\s+capital|mercia|foresight|mobeus|ypf|primary|pricoa|beechbrook|phoenix\s+equity)\b/i] },
       { value: 'growth-equity-fund', label: 'Growth Equity Fund', patterns: [/\bgrowth\s+equity\b/i, /\bgrowth\s+fund\b/i, /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|jmi\s+equity)\b/i] },
       { value: 'private-credit-fund', label: 'Private Credit Fund', patterns: [/\bprivate\s+credit\b/i, /\bdirect\s+lending\b/i, /\bcredit\s+fund\b/i, /\b(ares|golub|owl\s+rock|blue\s+owl|hayfin|arcmont|pemberton|tikehau|muzinich)\b/i] },
+      UNCLASSIFIED_OPTION,
     ],
   },
 };
+
+/** Check if a job matches none of the named categories in a list */
+function isUnclassified(text: string, allCategories: SubCategory[]): boolean {
+  return !allCategories.some(
+    (cat) => cat.value !== UNCLASSIFIED_VALUE && cat.patterns.some((p) => p.test(text))
+  );
+}
 
 export function jobMatchesSubCategories(
   job: { title: string; description?: string },
@@ -133,7 +158,9 @@ export function jobMatchesSubCategories(
   if (selectedSubCategories.length === 0) return true;
   const cats = SUB_CATEGORIES[mode] || [];
   const text = `${job.title} ${job.description || ''}`;
+
   return selectedSubCategories.some((val) => {
+    if (val === UNCLASSIFIED_VALUE) return isUnclassified(text, cats);
     const cat = cats.find((c) => c.value === val);
     if (!cat) return false;
     return cat.patterns.some((p) => p.test(text));
@@ -149,7 +176,9 @@ export function jobMatchesSecondaryFilter(
   const filter = SECONDARY_FILTERS[mode];
   if (!filter) return true;
   const text = `${job.title} ${job.description || ''} ${(job as any).company || ''}`;
+
   return selectedValues.some((val) => {
+    if (val === UNCLASSIFIED_VALUE) return isUnclassified(text, filter.options);
     const opt = filter.options.find((c) => c.value === val);
     if (!opt) return false;
     return opt.patterns.some((p) => p.test(text));
@@ -165,7 +194,9 @@ export function jobMatchesTertiaryFilter(
   const filter = TERTIARY_FILTERS[mode];
   if (!filter) return true;
   const text = `${job.title} ${job.description || ''} ${(job as any).company || ''}`;
+
   return selectedValues.some((val) => {
+    if (val === UNCLASSIFIED_VALUE) return isUnclassified(text, filter.options);
     const opt = filter.options.find((c) => c.value === val);
     if (!opt) return false;
     return opt.patterns.some((p) => p.test(text));
