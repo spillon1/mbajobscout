@@ -415,13 +415,14 @@ function isValidJob(job: Job, mode: ScrapeMode = 'vc'): boolean {
   // Exclude portfolio-company roles advertised as "at VC Backed Startup" etc.
   if (mode === 'vc' && /\bvc[\s-]backed\b/i.test(titleLower)) return false;
 
-  // For VC mode + LinkedIn source: require positive VC signals (matches edge function logic)
-  if (mode === 'vc' && job.source.toLowerCase().includes('linkedin')) {
+  // For VC mode: require positive VC signals in title, company, or description
+  if (mode === 'vc') {
     const combined = `${titleLower} ${job.company.toLowerCase()} ${descLower}`;
     const vcSignals = [
       /venture\s+capital/,
-      /\bvc\s+(fund|firm|portfolio|investment|analyst|associate|partner|principal|director)/,
+      /\bvc\b/,
       /\bventure(s|\s+partners?)\b/,
+      /\bventure\s+(fund|firm|portfolio|investment|studio|builder)/,
     ];
     if (!vcSignals.some(p => p.test(combined))) return false;
   }
