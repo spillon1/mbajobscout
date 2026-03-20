@@ -1,0 +1,1 @@
+DELETE FROM scraped_jobs WHERE mode = 'vc' AND company ILIKE '%ventures%' AND title NOT ILIKE '%venture capital%' AND title NOT ILIKE '% vc %' AND (description IS NULL OR (description NOT ILIKE '%venture capital%' AND description NOT ILIKE '% vc %'));
