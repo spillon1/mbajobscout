@@ -69,16 +69,18 @@ function normalizeJobUrl(url: string): string {
 }
 
 function dedupeJobsByCanonicalKey(jobs: ScrapedJob[]): ScrapedJob[] {
-  const seen = new Set<string>();
+  const seenUrls = new Set<string>();
+  const seenTitleCompany = new Set<string>();
   const unique: ScrapedJob[] = [];
 
   for (const job of jobs) {
     const byUrl = normalizeJobUrl(job.url);
     const byTitleCompany = titleCompanyKey(job.title, job.company);
-    const key = `${byUrl}|||${byTitleCompany}`;
 
-    if (seen.has(key)) continue;
-    seen.add(key);
+    // Dedupe by either URL or title+company (matches website behavior)
+    if (seenUrls.has(byUrl) || seenTitleCompany.has(byTitleCompany)) continue;
+    seenUrls.add(byUrl);
+    seenTitleCompany.add(byTitleCompany);
     unique.push(job);
   }
 
