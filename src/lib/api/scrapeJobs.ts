@@ -415,16 +415,27 @@ function isValidJob(job: Job, mode: ScrapeMode = 'vc'): boolean {
   // Exclude portfolio-company roles advertised as "at VC Backed Startup" etc.
   if (mode === 'vc' && /\bvc[\s-]backed\b/i.test(titleLower)) return false;
 
-  // For VC mode: require positive VC signals in title, company, or description
+  // For VC mode: require positive VC signals
+  // Company name alone matching "ventures" is NOT enough (e.g. "Blue Ventures" is an NGO)
+  // We require either: (a) title/description has a VC signal, OR (b) company matches a strong VC pattern
   if (mode === 'vc') {
-    const combined = `${titleLower} ${job.company.toLowerCase()} ${descLower}`;
-    const vcSignals = [
+    const companyLower = job.company.toLowerCase();
+    const titleAndDesc = `${titleLower} ${descLower}`;
+
+    // Signals that are strong enough anywhere (title, desc, or company)
+    const strongSignals = [
       /venture\s+capital/,
       /\bvc\b/,
-      /\bventure(s|\s+partners?)\b/,
+      /\bventure\s+partners?\b/,
       /\bventure\s+(fund|firm|portfolio|investment|studio|builder)/,
     ];
-    if (!vcSignals.some(p => p.test(combined))) return false;
+
+    // Check title + description first
+    const hasSignalInContent = strongSignals.some(p => p.test(titleAndDesc));
+    // Company name needs a strong pattern (not just "ventures" alone)
+    const hasStrongCompanySignal = strongSignals.some(p => p.test(companyLower));
+
+    if (!hasSignalInContent && !hasStrongCompanySignal) return false;
   }
 
   return true;
