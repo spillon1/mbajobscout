@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
       if (!isLondon) return false;
 
       // 2. Same VC relevance filter used by the scraper
-      if (!isLikelyVcRole(job.title, job.company, job.description ?? undefined)) return false;
+      if (!isValidJob(job.title, job.company, job.location, job.description ?? undefined, job.posted_date ?? undefined, job.source)) return false;
 
       // 3. Investment role type filter (sub-category)
       const text = `${job.title} ${job.description || ''}`;
@@ -320,119 +320,176 @@ Deno.serve(async (req) => {
   }
 });
 
-// ── Same VC relevance filter used by scrape-jobs ──
-function isLikelyVcRole(title: string, company: string, description: string | undefined): boolean {
+// ── Exact same isValidJob logic as the website scraper (scrapeJobs.ts) ──
+
+/** Parse freetext date strings into Date objects */
+function tryParseDate(dateStr: string): Date | null {
+  const rel = dateStr.match(/(\d+)\s*(hour|day|week|month|year)s?\s*ago/i);
+  if (rel) {
+    const n = parseInt(rel[1]);
+    const unit = rel[2].toLowerCase();
+    const d = new Date();
+    if (unit === 'hour') d.setHours(d.getHours() - n);
+    else if (unit === 'day') d.setDate(d.getDate() - n);
+    else if (unit === 'week') d.setDate(d.getDate() - n * 7);
+    else if (unit === 'month') d.setMonth(d.getMonth() - n);
+    else if (unit === 'year') d.setFullYear(d.getFullYear() - n);
+    return d;
+  }
+  const parsed = new Date(dateStr);
+  if (!isNaN(parsed.getTime())) return parsed;
+  const monthMatch = dateStr.match(/(\w+)\s+(\d{1,2}),?\s+(\d{4})/);
+  if (monthMatch) {
+    const attempt = new Date(`${monthMatch[1]} ${monthMatch[2]}, ${monthMatch[3]}`);
+    if (!isNaN(attempt.getTime())) return attempt;
+  }
+  return null;
+}
+
+function isValidJob(title: string, company: string, location: string, description: string | undefined, postedDate: string | undefined, source: string): boolean {
   const titleLower = title.toLowerCase();
-  const companyLower = company.toLowerCase();
   const descLower = (description || '').toLowerCase();
 
-  // Hard exclusions: clearly non-VC roles (identical to scrape-jobs)
-  const nonVcRoles = [
-    /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director|officer)\b/i,
-    /\bcontent\s+(manager|writer|specialist|strategist)\b/i,
-    /\bsocial\s+media\b/i,
-    /\bcommunications?\s+(manager|director|officer|lead)\b/i,
-    /\bpr\s+(manager|director|officer)\b/i,
-    /\boffice\s+manager\b/i, /\badmin\s+(assistant|coordinator|manager)\b/i,
-    /\bexecutive\s+assistant\b/i, /\bpersonal\s+assistant\b/i,
-    /\blegal\s+counsel\b/i, /\bsolicitor\b/i, /\blawyer\b/i, /\bparalegal\b/i,
-    /\bgeneral\s+counsel\b/i,
-    /\bhr\s+(manager|director|business\s+partner|specialist|officer)\b/i,
-    /\bhuman\s+resources\b/i, /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
-    /\btalent\s+(acquisition|partner|manager)\b/i, /\brecruitment\b/i,
-    /\bheadhunt/i, /\bexecutive\s+search\b/i,
-    /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i, /\bsoftware\b/i,
-    /\bdata\s+scientist\b/i, /\bdata\s+engineer\b/i,
-    /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i,
-    /\bdesigner\b/i, /\bux\b/i, /\bcreative\s+director\b/i,
+  // Exact junk titles
+  const JUNK_TITLES = [
+    'venture capital jobs in london', 'venture capital careers',
+    "the vc industry's trusted resource", 'filters and topics',
+    'search results', 'united states',
+    'the best vc jobs in your city',
+  ];
+  if (JUNK_TITLES.includes(titleLower)) return false;
+  if (titleLower.includes('trusted resource')) return false;
+
+  // Raw markdown fragments or taglines that aren't job titles
+  if (title.includes('](http') || title.includes('](https')) return false;
+  if (/^invest\.|^amplify\.|^grow\./i.test(company)) return false;
+
+  // Pattern-based junk: generic category/location headers
+  if (/^(venture capital|vc)\s+(jobs|careers)\s+(in|near)\s+/i.test(title)) return false;
+  if (/^jobs\s+(in|near)\s+/i.test(title)) return false;
+
+  // Title matches source name exactly
+  if (titleLower === source.toLowerCase()) return false;
+
+  // Unknown company with short or generic title
+  if (company === 'Unknown' && title.length < 15) return false;
+
+  // Description contains newsletter/subscribe spam (not a real job)
+  const spamSignals = ['subscribing to our', 'newsletter', 'subscribe to', 'terms & conditions', 'something went wrong while submitting'];
+  const spamCount = spamSignals.filter(s => descLower.includes(s)).length;
+  if (spamCount >= 2) return false;
+
+  // Hard-exclude patterns for VC mode (universal + finance + VC-specific)
+  const universalExcludes: RegExp[] = [
+    /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
+    /\blegal\s+counsel\b/i, /\blegal\s+associate\b/i,
+    /\blegal\s+(officer|advisor|specialist|director|manager)\b/i,
+    /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
+    /\baccountant\b/i, /\bauditor\b/i,
+    /\bteacher\b/i, /\bnurse\b/i, /\bdoctor\b/i, /\bpharmac/i, /\bclinical\b/i,
+    /\brecruitment\b/i,
+  ];
+
+  const financeExcludes: RegExp[] = [
+    /\bfund\s+controller\b/i, /\bfinancial\s+controller\b/i,
+    /\bportfolio\s+(controller|monitor)\b/i, /\bfund\s+administ/i,
+    /\bfinance\s+(analyst|director|manager|business\s+partner|and\s+portfolio)\b/i,
+    /\bhead\s+of\s+finance\b/i,
+    /\bcompliance\s+(administrator|officer|manager|analyst|specialist|director)\b/i,
+    /\bsearch\s+consultant\b/i, /\bexecutive\s+search\b/i,
+    /\bheadhunt/i, /\btalent\s+(acquisition|partner|manager)\b/i,
+    /\bpeople\s+(partner|manager|director|lead|officer|operations)\b/i,
+    /\bhr\s+(partner|manager|director|business\s+partner|advisor)\b/i,
+    /\bhuman\s+resources\b/i,
+  ];
+
+  const vcSpecificExcludes: RegExp[] = [
+    /\bproduct\s+manager\b/i, /\bproject\s+manager\b/i, /\bdata\s+scientist\b/i,
+    /\bdesigner\b/i, /\bengineer(?:ing)?\b/i, /\bdeveloper\b/i, /\b(?:co-?)?founder\b/i,
+    /\bbusiness\s+development\b/i, /\bbdm\b/i, /\bprogram\s+director\b/i,
+    /\bmarketing\s+(executive|manager|specialist|coordinator|lead|director)\b/i,
+    /\bcontent\s+(manager|writer|specialist)\b/i,
     /\bcustomer\s+success/i, /\baccount\s+(executive|manager)\b/i,
-    /\bsales\s+(dev|representative|exec|manager|director)/i,
-    /\bbusiness\s+development\b/i, /\bbdm\b/i,
-    /\btax\s+(manager|analyst|advisor|specialist|director)\b/i,
-    /\bprocurement\b/i, /\bsupply\s+chain\b/i,
-    /\bevent\s+(manager|coordinator|director|operations)\b/i,
-    /\b(?:co-?)?founder\b/i,
-    // S&T / Trading roles
-    /\bsales\s+trader\b/i, /\bderivatives\b/i, /\btrader\b/i, /\btrading\b/i,
-    /\bficc\b/i, /\bequities\s*\(/i, /\bfutures\b/i, /\boptions\b/i,
-    /\bstructur(er|ing)\b/i,
-    // IM / Asset Management roles
-    /\brisk\s+manag/i, /\bmacro\s+strategist\b/i,
-    /\bresearch\s+associate\b/i, /\bresearch\s+analyst\b/i,
-    /\bfixed\s+income\b/i, /\brfp\s+writer\b/i,
-    /\bcorporate\s+access\b/i, /\bclient\s+transitions?\b/i,
-    /\btrade\s+coordinator\b/i, /\btrade\s+support\b/i,
-    // Non-VC misc
-    /\bentrepreneur\s+in\s+residence\b/i,
-    /\bfinancial\s+report/i, /\bfinancial\s+control/i,
-    /\bactuari/i, /\bunderwriter\b/i, /\bclaims\b/i,
-    // Product roles (not VC)
+    /\bsales\s+(dev|representative|exec|associate|manager|lead|director)/i,
+    /\bconsulting\b/i, /\bconsultant\b/i,
+    /\bchief\s+of\s+staff\b/i,
+    /\bprivate\s+equity\b/i, /\bm&a\b/i, /\bmergers?\s+(and|&)\s+acquisitions?\b/i,
+    /\bcorporate\s+development\b/i, /\bcorporate\s+(finance|m&a)\b/i,
+    /\binvestment\s+banking\b/i, /\binvestment\s+bank\b/i, /\binvestment\s+consultant\b/i,
+    /\binvestment\s+fund\w*\s+(senior\s+)?associate\b/i,
+    /\bstrategy\s+consult/i, /\bmanagement\s+consult/i,
+    /\bquantitative\s+(researcher|trader|analyst)\b/i, /\bcommodities\b/i,
+    /\bstructurer\b/i, /\breal\s+estate\b/i, /\breic\b/i, /\breit\b/i,
+    /\bproperty\s*(\/|\s+and\s+|\s+&\s+)?\s*invest/i, /\bproperty\s+director/i, /\bproperty\s+fund/i,
+    /\bcredit\b/i,
+    /\bcapital\s+markets?\b/i, /\bsearch\s+fund\b/i,
+    /\bhedge\s+fund\b/i, /\bfund\s+of\s+(hedge\s+)?funds?\b/i,
+    /\boperations\s+(associate|executive|manager|director|analyst|officer|lead|specialist|coordinator)\b/i,
+    /\bstrategy\s+(&|and)\s+operations\b/i,
+    /\b(nav|net\s+asset\s+value)\s+(and|&)\s+operations\b/i,
+    /\bfund\s+account/i,
+    /\brisk\s+(&|and)\s+valuation\b/i, /\brisk\s+retention\b/i,
+    /\bpublic\s+markets?\b/i,
+    /\btransactions?\s+management\b/i,
+    /\bopportunistic\b/i,
+    /\bprivate\s+assets?\b/i,
+    /\bdebt\s+advisory\b/i, /\bdebt\s+capital\b/i, /\bdebt\s+finance\b/i,
+    /\blarge.cap\s+pe\b/i, /\bmid.cap\s+pe\b/i,
+    /\bpan.european\b.*\bpe\b/i,
+    /\bmerchant\s+capital\b/i,
+    /\bgp\s+stakes?\b/i, /\bemerging\s+manager/i, /\bfund\s+of\s+funds\b/i,
+    /\binfra(structure)?\s*\/?\s*real\s+assets?\b/i, /\breal\s+assets?\s+invest/i,
+    /\binfrastructure\s+invest/i,
     /\bproduct\s+(owner|analyst|lead|director|head|specialist)\b/i,
-    // GTM / Go-To-Market roles
     /\bgo[\s\-]to[\s\-]market\b/i, /\bgtm\b/i,
-    // Testing / QA roles
     /\btesting\s+(manager|lead|engineer|analyst)\b/i, /\bqa\s+(manager|lead|engineer|analyst)\b/i,
     /\btest\s+(manager|lead|engineer|analyst)\b/i,
-    // Sales roles (broader)
     /\bmiddle\s+east\s+sales\b/i, /\bmacro\s+(research|sales|data)\b/i,
     /\bsales,/i, /\bresearch\s+sales\b/i,
-    // Technical / non-finance roles
     /\btechnical\s+business\s+analyst\b/i, /\bbusiness\s+analyst\b/i,
     /\bassociate\s+general\s+counsel\b/i,
     /\bgrant\s+writer\b/i, /\bwriter\b/i,
     /\bmember\s+of\s+technical\s+staff\b/i, /\btechnical\s+staff\b/i,
     /\bpre[\s\-]?training\b/i,
-    // IB / PE / consulting leakage
-    /\binvestment\s+bank(ing)?\b/i,
-    /\bm\s*&\s*a\b/i, /\bmergers?\s+(and|&)\s+acquisitions?\b/i,
-    /\bprivate\s+equity\b/i,
-    /\bcorporate\s+development\b/i, /\bcorporate\s+(finance|m\s*&\s*a)\b/i,
-    /\bcapital\s+markets?\b/i,
-    /\bmanagement\s+consult/i, /\bstrategy\s+consult/i,
-    /\bconsulting\b/i, /\bconsultant\b/i,
-  ];
-  if (nonVcRoles.some(p => p.test(titleLower))) return false;
-
-  // VC signals
-  const vcSignals = [
-    /venture\s+capital/,
-    /\bvc\s+(fund|firm|portfolio|backed|investment|analyst|associate|partner|principal|director)/,
-    /\bventure(s|\s+partners?)\b/,
   ];
 
-  // Strong signal: VC keyword in title or company name
-  if (vcSignals.some(p => p.test(titleLower))) return true;
-  if (vcSignals.some(p => p.test(companyLower))) return true;
+  const allExcludes = [...universalExcludes, ...financeExcludes, ...vcSpecificExcludes];
+  if (allExcludes.some(p => p.test(titleLower))) return false;
 
-  // Weak signal: VC keyword only in description → require VC-compatible title
-  const hasDescVcSignal = /venture\s+capital/.test(descLower) || /\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower);
-  if (hasDescVcSignal) {
-    const vcCompatibleTitles = [
-      /\b(analyst|associate|principal|partner|director|vp|vice\s+president|managing\s+director)\b/i,
-      /\binvestment\b/i,
-      /\bdeal\b/i, /\borigination\b/i,
-      /\bplatform\b/i, /\bportfolio\b/i,
-      /\bvalue\s+creation\b/i, /\boperating\s+partner\b/i,
-      /\binvestor\s+relations?\b/i, /\bfundraising\b/i,
-      /\bfund\s+(operations?|manag)/i,
-      /\bwealth\b/i, /\basset\b/i, /\bstrategist\b/i,
-    ];
-    if (vcCompatibleTitles.some(p => p.test(titleLower))) return true;
-    return false;
+  // Skip entries that are clearly not job postings
+  const skipWords = ['cookie policy', 'privacy policy', 'sign in', 'log in', 'contact us'];
+  if (skipWords.some(w => titleLower.includes(w))) return false;
+
+  // Filter out jobs older than 6 months
+  if (postedDate && postedDate !== 'Scraped just now') {
+    const parsed = tryParseDate(postedDate);
+    if (parsed) {
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      if (parsed < sixMonthsAgo) return false;
+    }
   }
 
-  // IR / Fundraising roles are core VC fund roles
-  const irTitlePatterns = [
-    /\binvestor\s+relations?\b/,
-    /\bir\s+(analyst|associate|manager|director|officer|lead|head|vp|vice\s+president)\b/,
-    /\bfundraising\b/,
-    /\bcapital\s+raising\b/,
-    /\blp\s+relations?\b/,
-    /\blimited\s+partner\b/,
-  ];
-  if (irTitlePatterns.some(p => p.test(titleLower))) return true;
+  // Exclude portfolio-company roles
+  if (/\bvc[\s-]backed\b/i.test(titleLower)) return false;
 
-  return false;
+  // Require positive VC signals
+  const companyLower = company.toLowerCase();
+  const titleAndDesc = `${titleLower} ${descLower}`;
+
+  const strongSignals = [
+    /venture\s+capital/,
+    /\bvc\b/,
+    /\bventure\s+partners?\b/,
+    /\bventure\s+(fund|firm|portfolio|investment|studio|builder)/,
+  ];
+
+  const hasSignalInContent = strongSignals.some(p => p.test(titleAndDesc));
+  const hasStrongCompanySignal = strongSignals.some(p => p.test(companyLower));
+
+  if (!hasSignalInContent && !hasStrongCompanySignal) return false;
+
+  return true;
 }
 
 function escapeHtml(str: string): string {
