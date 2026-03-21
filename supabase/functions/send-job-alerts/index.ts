@@ -382,6 +382,14 @@ function isLikelyVcRole(title: string, company: string, description: string | un
     /\bgrant\s+writer\b/i, /\bwriter\b/i,
     /\bmember\s+of\s+technical\s+staff\b/i, /\btechnical\s+staff\b/i,
     /\bpre[\s\-]?training\b/i,
+    // IB / PE / consulting leakage
+    /\binvestment\s+bank(ing)?\b/i,
+    /\bm\s*&\s*a\b/i, /\bmergers?\s+(and|&)\s+acquisitions?\b/i,
+    /\bprivate\s+equity\b/i,
+    /\bcorporate\s+development\b/i, /\bcorporate\s+(finance|m\s*&\s*a)\b/i,
+    /\bcapital\s+markets?\b/i,
+    /\bmanagement\s+consult/i, /\bstrategy\s+consult/i,
+    /\bconsulting\b/i, /\bconsultant\b/i,
   ];
   if (nonVcRoles.some(p => p.test(titleLower))) return false;
 
