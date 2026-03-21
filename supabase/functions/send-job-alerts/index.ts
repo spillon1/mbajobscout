@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
       if (!isLondon) return false;
 
       // 2. Same VC relevance filter used by the scraper
-      if (!isLikelyVcRole(job.title, job.company, job.description ?? undefined)) return false;
+      if (!isValidJob(job.title, job.company, job.location, job.description ?? undefined, job.posted_date ?? undefined, job.source)) return false;
 
       // 3. Investment role type filter (sub-category)
       const text = `${job.title} ${job.description || ''}`;
