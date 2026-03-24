@@ -147,6 +147,24 @@ Deno.serve(async (req) => {
     // De-duplicate freshly scraped rows by canonical URL + title/company
     const uniqueRawJobs = dedupeJobsByCanonicalKey(rawJobs as unknown as ScrapedJob[]);
 
+    // Cross-day dedup: fetch previously-alerted jobs to avoid re-sending
+    const previouslyAlertedTitleCompany = new Set<string>();
+    {
+      const { data: alertedRows, error: alertedError } = await supabase
+        .from('scraped_jobs')
+        .select('title, company')
+        .eq('alerted', true)
+        .eq('mode', ALERT_MODE);
+
+      if (alertedError) {
+        console.error('Failed to fetch previously alerted jobs:', alertedError.message);
+      } else if (alertedRows) {
+        for (const row of alertedRows) {
+          previouslyAlertedTitleCompany.add(titleCompanyKey(row.title, row.company));
+        }
+      }
+    }
+
     // Pull actioned jobs for this alert user and hide them from emails
     let actionedUrls = new Set<string>();
     let actionedTitleCompany = new Set<string>();
