@@ -215,9 +215,12 @@ Deno.serve(async (req) => {
       const isInvestmentRole = investmentPatterns.some(p => p.test(text));
       if (!isInvestmentRole) return false;
 
-      // 4. Match search behavior: hide actioned jobs (URL OR title+company)
-      const normalizedUrl = normalizeJobUrl(job.url);
+      // 4. Cross-day dedup: skip jobs already sent in previous alerts
       const titleCompany = titleCompanyKey(job.title, job.company);
+      if (previouslyAlertedTitleCompany.has(titleCompany)) return false;
+
+      // 5. Match search behavior: hide actioned jobs (URL OR title+company)
+      const normalizedUrl = normalizeJobUrl(job.url);
       const isActioned = actionedUrls.has(normalizedUrl) || actionedTitleCompany.has(titleCompany);
       if (isActioned) {
         actionedExcludedCount += 1;
