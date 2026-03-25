@@ -105,12 +105,45 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch un-alerted VC-mode jobs only
+    // Resolve alert owner + last checkpoint
+    let alertUserId: string | null = null;
+    let lastAlertedAt: string | null = null;
+    const { data: alertConfig, error: alertConfigError } = await supabase
+      .from('job_alerts')
+      .select('user_id, last_alerted_at')
+      .eq('email', ALERT_EMAIL)
+      .eq('enabled', true)
+      .maybeSingle();
+
+    if (alertConfigError) {
+      console.error('Failed to read alert config:', alertConfigError.message);
+    } else {
+      alertUserId = alertConfig?.user_id ?? null;
+      lastAlertedAt = alertConfig?.last_alerted_at ?? null;
+    }
+
+    const fallbackSince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const sinceIso = lastAlertedAt ?? fallbackSince;
+
+    const updateLastAlertedAt = async () => {
+      const { error: updateAlertError } = await supabase
+        .from('job_alerts')
+        .update({ last_alerted_at: new Date().toISOString() })
+        .eq('email', ALERT_EMAIL)
+        .eq('enabled', true);
+
+      if (updateAlertError) {
+        console.error('Failed to update last_alerted_at checkpoint:', updateAlertError.message);
+      }
+    };
+
+    // Fetch un-alerted VC jobs created since the last alert checkpoint
     const { data: rawJobs, error: jobsError } = await supabase
       .from('scraped_jobs')
       .select('*')
       .eq('alerted', false)
       .eq('mode', ALERT_MODE)
+      .gt('scraped_at', sinceIso)
       .order('scraped_at', { ascending: false });
 
     if (jobsError) {
@@ -122,26 +155,12 @@ Deno.serve(async (req) => {
     }
 
     if (!rawJobs || rawJobs.length === 0) {
-      console.log('No new (un-alerted) VC jobs to send');
+      await updateLastAlertedAt();
+      console.log(`No new (un-alerted) VC jobs to send since ${sinceIso}`);
       return new Response(
         JSON.stringify({ success: true, message: 'No new jobs', count: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    }
-
-    // Resolve alert owner (so we can hide actioned jobs exactly like search)
-    let alertUserId: string | null = null;
-    const { data: alertConfig, error: alertConfigError } = await supabase
-      .from('job_alerts')
-      .select('user_id')
-      .eq('email', ALERT_EMAIL)
-      .eq('enabled', true)
-      .maybeSingle();
-
-    if (alertConfigError) {
-      console.error('Failed to read alert config:', alertConfigError.message);
-    } else {
-      alertUserId = alertConfig?.user_id ?? null;
     }
 
     // De-duplicate freshly scraped rows by canonical URL + title/company
@@ -169,18 +188,15 @@ Deno.serve(async (req) => {
     let actionedUrls = new Set<string>();
     let actionedTitleCompany = new Set<string>();
 
-    if (alertUserId) {
-      const { data: actionRows, error: actionsError } = await supabase
-        .from('job_actions')
-        .select('job_url, job_title, job_company')
-        .eq('user_id', alertUserId);
+    const { data: actionRows, error: actionsError } = await supabase
+      .from('job_actions')
+      .select('job_url, job_title, job_company');
 
-      if (actionsError) {
-        console.error('Failed to fetch job actions for alert user:', actionsError.message);
-      } else if (actionRows) {
-        actionedUrls = new Set(actionRows.map((a) => normalizeJobUrl(a.job_url)));
-        actionedTitleCompany = new Set(actionRows.map((a) => titleCompanyKey(a.job_title, a.job_company)));
-      }
+    if (actionsError) {
+      console.error('Failed to fetch job actions for alert filtering:', actionsError.message);
+    } else if (actionRows) {
+      actionedUrls = new Set(actionRows.map((a) => normalizeJobUrl(a.job_url)));
+      actionedTitleCompany = new Set(actionRows.map((a) => titleCompanyKey(a.job_title, a.job_company)));
     }
 
     // ── Location filter: London only ──
@@ -245,6 +261,7 @@ Deno.serve(async (req) => {
 
     if (newJobs.length === 0) {
       await markAllAsAlerted();
+      await updateLastAlertedAt();
       console.log(`No VC London Investment jobs after filtering (raw=${rawJobs.length}, unique=${uniqueRawJobs.length}, actionedExcluded=${actionedExcludedCount})`);
       return new Response(
         JSON.stringify({ success: true, message: 'No matching jobs after filtering', total: uniqueRawJobs.length, matched: 0, actionedExcluded: actionedExcludedCount }),
@@ -326,6 +343,7 @@ Deno.serve(async (req) => {
 
     console.log(`Email sent to ${ALERT_EMAIL}:`, emailData.id);
     await markAllAsAlerted();
+    await updateLastAlertedAt();
 
     return new Response(
       JSON.stringify({ success: true, sent: 1, jobCount: newJobs.length }),
