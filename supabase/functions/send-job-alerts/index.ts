@@ -106,11 +106,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Resolve alert owner + last checkpoint
-    let alertUserId: string | null = null;
     let lastAlertedAt: string | null = null;
     const { data: alertConfig, error: alertConfigError } = await supabase
       .from('job_alerts')
-      .select('user_id, last_alerted_at')
+      .select('last_alerted_at')
       .eq('email', ALERT_EMAIL)
       .eq('enabled', true)
       .maybeSingle();
@@ -118,7 +117,6 @@ Deno.serve(async (req) => {
     if (alertConfigError) {
       console.error('Failed to read alert config:', alertConfigError.message);
     } else {
-      alertUserId = alertConfig?.user_id ?? null;
       lastAlertedAt = alertConfig?.last_alerted_at ?? null;
     }
 
