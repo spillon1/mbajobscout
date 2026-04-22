@@ -621,8 +621,7 @@ function parseVenture5Jobs(
       }
     }
 
-    if (searchCity && !jobLocation) continue;
-    if (searchCity && jobLocation && !jobLocation.toLowerCase().includes(searchCity)) continue;
+    if (!jobLocationMatches(jobLocation, searchCity)) continue;
 
     // Capture posted date from the full listing item
     let postedDate = 'Scraped just now';
