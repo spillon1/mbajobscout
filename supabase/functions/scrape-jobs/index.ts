@@ -524,7 +524,10 @@ async function enrichVenture5PostedDates(jobs: any[], searchCity: string): Promi
   console.log(`Venture5: ${missingDateJobs.length} jobs missing dates, trying RSS enrichment`);
 
   try {
-    const rssUrl = `https://venture5.com/jobs/?feed=job_feed&search_location=${encodeURIComponent(searchCity)}`;
+    const isCountryWide = !searchCity || searchCity === 'united kingdom' || searchCity === 'uk';
+    const rssUrl = isCountryWide
+      ? 'https://venture5.com/jobs/?feed=job_feed'
+      : `https://venture5.com/jobs/?feed=job_feed&search_location=${encodeURIComponent(searchCity)}`;
     const response = await fetch(rssUrl);
     if (!response.ok) {
       console.log('Venture5 RSS feed failed, keeping jobs without dates');
