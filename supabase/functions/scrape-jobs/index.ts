@@ -3,6 +3,40 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+/**
+ * Returns true if the job's location string is acceptable for the requested search city.
+ * - When searchCity is empty or "united kingdom" (country-wide), any UK / Remote / Hybrid /
+ *   empty location passes. This lets overnight scrapes capture every UK-eligible role.
+ * - Otherwise, requires the city name to appear in the job's location (existing behavior).
+ *
+ * Use this in every scraper instead of a raw `location.includes(searchCity)` check.
+ */
+function jobLocationMatches(jobLocation: string | undefined, searchCity: string): boolean {
+  const city = (searchCity || '').trim().toLowerCase();
+  const loc = (jobLocation || '').trim().toLowerCase();
+
+  if (!city || city === 'united kingdom' || city === 'uk') {
+    if (!loc) return true;
+    return (
+      loc.includes('united kingdom') ||
+      /\buk\b/.test(loc) ||
+      /\bengland\b/.test(loc) ||
+      /\bscotland\b/.test(loc) ||
+      /\bwales\b/.test(loc) ||
+      /\bnorthern\s+ireland\b/.test(loc) ||
+      loc.includes('remote') ||
+      loc.includes('hybrid') ||
+      // Common UK city names — accept these as "UK" without requiring explicit country tag
+      /\b(london|manchester|birmingham|edinburgh|glasgow|bristol|leeds|cambridge|oxford|liverpool|sheffield|nottingham|reading|brighton|cardiff|belfast)\b/.test(loc)
+    );
+  }
+
+  if (!loc) return true;
+  if (loc.includes(city)) return true;
+  if (loc.includes('remote') || loc.includes('hybrid')) return true;
+  return false;
+}
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 interface ScrapeRequest {
