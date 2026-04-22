@@ -413,9 +413,12 @@ async function scrapeVenture5(
   searchLocation: string
 ): Promise<any[]> {
   const searchCity = searchLocation.split(',')[0]?.trim().toLowerCase();
-  // Use Venture5's built-in location search to pre-filter
-  const filteredUrl = `https://venture5.com/jobs/?search_location=${encodeURIComponent(searchCity)}`;
-  console.log(`Venture5: scraping pre-filtered URL: ${filteredUrl}`);
+  const isCountryWide = !searchCity || searchCity === 'united kingdom' || searchCity === 'uk';
+  // For country-wide searches, hit the unfiltered listings; otherwise use Venture5's city pre-filter
+  const filteredUrl = isCountryWide
+    ? 'https://venture5.com/jobs/'
+    : `https://venture5.com/jobs/?search_location=${encodeURIComponent(searchCity)}`;
+  console.log(`Venture5: scraping URL: ${filteredUrl} (countryWide=${isCountryWide})`);
 
   // Try the actions scrape with retries (Bad Gateway / 502 are transient)
   let markdown = '';
