@@ -3,6 +3,40 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+/**
+ * Returns true if the job's location string is acceptable for the requested search city.
+ * - When searchCity is empty or "united kingdom" (country-wide), any UK / Remote / Hybrid /
+ *   empty location passes. This lets overnight scrapes capture every UK-eligible role.
+ * - Otherwise, requires the city name to appear in the job's location (existing behavior).
+ *
+ * Use this in every scraper instead of a raw `location.includes(searchCity)` check.
+ */
+function jobLocationMatches(jobLocation: string | undefined, searchCity: string): boolean {
+  const city = (searchCity || '').trim().toLowerCase();
+  const loc = (jobLocation || '').trim().toLowerCase();
+
+  if (!city || city === 'united kingdom' || city === 'uk') {
+    if (!loc) return true;
+    return (
+      loc.includes('united kingdom') ||
+      /\buk\b/.test(loc) ||
+      /\bengland\b/.test(loc) ||
+      /\bscotland\b/.test(loc) ||
+      /\bwales\b/.test(loc) ||
+      /\bnorthern\s+ireland\b/.test(loc) ||
+      loc.includes('remote') ||
+      loc.includes('hybrid') ||
+      // Common UK city names — accept these as "UK" without requiring explicit country tag
+      /\b(london|manchester|birmingham|edinburgh|glasgow|bristol|leeds|cambridge|oxford|liverpool|sheffield|nottingham|reading|brighton|cardiff|belfast)\b/.test(loc)
+    );
+  }
+
+  if (!loc) return true;
+  if (loc.includes(city)) return true;
+  if (loc.includes('remote') || loc.includes('hybrid')) return true;
+  return false;
+}
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 interface ScrapeRequest {
@@ -118,47 +152,10 @@ Deno.serve(async (req) => {
         // LinkedIn Jobs
         if (source.url.includes('linkedin.com')) {
           const searchCity = location.split(',')[0]?.trim() || 'London';
-          const isAlreadyCountryWide = searchCity.toLowerCase() === 'united kingdom';
-
-          // Pass 1: city-specific search (existing behavior)
-          const cityJobs = await scrapeLinkedIn(apiKey, source, keywords, location);
-
-          // Pass 2: country-wide search to catch roles tagged "United Kingdom" only
-          let countryJobs: any[] = [];
-          if (!isAlreadyCountryWide) {
-            try {
-              countryJobs = await scrapeLinkedIn(apiKey, source, keywords, 'United Kingdom');
-            } catch (e) {
-              console.warn(`LinkedIn country-wide pass failed: ${(e as Error).message}`);
-            }
-          }
-
-          // Merge + dedupe by jobUrl (fallback to title+company)
-          const seen = new Set<string>();
-          const merged: any[] = [];
-          for (const j of [...cityJobs, ...countryJobs]) {
-            const key = (j.jobUrl || j.url || '').trim().toLowerCase()
-              || `${(j.title || '').toLowerCase().trim()}::${(j.company || '').toLowerCase().trim()}`;
-            if (!key || seen.has(key)) continue;
-            seen.add(key);
-            merged.push(j);
-          }
-
-          // Secondary location filter: keep London / UK / Remote / Hybrid / empty
-          const cityLower = searchCity.toLowerCase();
-          const locOk = (loc: string | undefined) => {
-            if (!loc) return true;
-            const l = loc.toLowerCase();
-            return l.includes(cityLower)
-              || l.includes('united kingdom')
-              || /\buk\b/.test(l)
-              || l.includes('remote')
-              || l.includes('hybrid');
-          };
-          const locFiltered = merged.filter((j: any) => locOk(j.location));
-
+          const linkedinJobs = await scrapeLinkedIn(apiKey, source, keywords, location);
+          const locFiltered = linkedinJobs.filter((j: any) => jobLocationMatches(j.location, searchCity));
           const filtered = locFiltered.filter((j: any) => roleFilter(j.title, j.company, j.description));
-          console.log(`Found ${filtered.length} relevant jobs from LinkedIn (city: ${cityJobs.length}, country: ${countryJobs.length}, merged: ${merged.length}, loc-filtered: ${locFiltered.length})`);
+          console.log(`Found ${filtered.length} relevant jobs from LinkedIn (raw: ${linkedinJobs.length}, loc-filtered: ${locFiltered.length})`);
           return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
 
@@ -416,9 +413,12 @@ async function scrapeVenture5(
   searchLocation: string
 ): Promise<any[]> {
   const searchCity = searchLocation.split(',')[0]?.trim().toLowerCase();
-  // Use Venture5's built-in location search to pre-filter
-  const filteredUrl = `https://venture5.com/jobs/?search_location=${encodeURIComponent(searchCity)}`;
-  console.log(`Venture5: scraping pre-filtered URL: ${filteredUrl}`);
+  const isCountryWide = !searchCity || searchCity === 'united kingdom' || searchCity === 'uk';
+  // For country-wide searches, hit the unfiltered listings; otherwise use Venture5's city pre-filter
+  const filteredUrl = isCountryWide
+    ? 'https://venture5.com/jobs/'
+    : `https://venture5.com/jobs/?search_location=${encodeURIComponent(searchCity)}`;
+  console.log(`Venture5: scraping URL: ${filteredUrl} (countryWide=${isCountryWide})`);
 
   // Try the actions scrape with retries (Bad Gateway / 502 are transient)
   let markdown = '';
@@ -524,7 +524,10 @@ async function enrichVenture5PostedDates(jobs: any[], searchCity: string): Promi
   console.log(`Venture5: ${missingDateJobs.length} jobs missing dates, trying RSS enrichment`);
 
   try {
-    const rssUrl = `https://venture5.com/jobs/?feed=job_feed&search_location=${encodeURIComponent(searchCity)}`;
+    const isCountryWide = !searchCity || searchCity === 'united kingdom' || searchCity === 'uk';
+    const rssUrl = isCountryWide
+      ? 'https://venture5.com/jobs/?feed=job_feed'
+      : `https://venture5.com/jobs/?feed=job_feed&search_location=${encodeURIComponent(searchCity)}`;
     const response = await fetch(rssUrl);
     if (!response.ok) {
       console.log('Venture5 RSS feed failed, keeping jobs without dates');
@@ -624,8 +627,7 @@ function parseVenture5Jobs(
       }
     }
 
-    if (searchCity && !jobLocation) continue;
-    if (searchCity && jobLocation && !jobLocation.toLowerCase().includes(searchCity)) continue;
+    if (!jobLocationMatches(jobLocation, searchCity)) continue;
 
     // Capture posted date from the full listing item
     let postedDate = 'Scraped just now';
@@ -2684,10 +2686,7 @@ function parseStructuredCards(
     // Filter by user's search location if provided
     if (searchLocation) {
       const searchCity = searchLocation.split(',')[0].trim().toLowerCase();
-      if (searchCity) {
-        if (!jobLocation) continue;
-        if (!jobLocation.toLowerCase().includes(searchCity)) continue;
-      }
+      if (!jobLocationMatches(jobLocation, searchCity)) continue;
     }
 
     // Find type field
@@ -2874,16 +2873,14 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
     const roleWords = /\b(analyst|associate|manager|director|officer|lead|head|engineer|developer|assistant|coordinator|specialist|consultant|partner|principal|intern|advisor|administrator|accountant|controller|recruiter|designer|scientist|researcher|strategist|president|vice\s+president|vp)\b/i;
     if (!roleWords.test(title)) continue;
 
-    // Enforce location filter from user search (e.g. London)
+    // Enforce location filter from user search (city-specific or country-wide via helper)
     if (searchCity) {
-      const locLower = jobLocation.toLowerCase();
       const titleLower2 = title.toLowerCase();
-      const locationMatchesCity = locLower.includes(searchCity);
+      const locOk = jobLocationMatches(jobLocation, searchCity);
       const titleMatchesCity = titleLower2.includes(searchCity);
-      // Skip if neither location nor title mention the search city
-      if (!locationMatchesCity && !titleMatchesCity) continue;
-      // If the parsed location doesn't match but the title does, override with search location
-      if (!locationMatchesCity && titleMatchesCity) {
+      if (!locOk && !titleMatchesCity) continue;
+      // If location didn't match but title did, normalize to search location
+      if (!locOk && titleMatchesCity) {
         jobLocation = searchLocation || jobLocation;
       }
     }
@@ -3102,7 +3099,7 @@ function parseInnovatorsRoomJobs(
     const url = match[4].split('&utm_')[0] + '&utm_source=techjobs_newsletter';
     const typeStr = (match[5] || '').toLowerCase();
 
-    if (!locationStr.toLowerCase().includes(searchCity)) continue;
+    if (!jobLocationMatches(locationStr, searchCity)) continue;
 
     jobs.push({
       id: crypto.randomUUID(),
@@ -3127,7 +3124,7 @@ function parseInnovatorsRoomJobs(
     const url = match[3].split('&utm_')[0] + '&utm_source=techjobs_newsletter';
     const locationStr = match[4].replace(/🇬🇧/g, '').trim();
 
-    if (!locationStr.toLowerCase().includes(searchCity)) continue;
+    if (!jobLocationMatches(locationStr, searchCity)) continue;
     if (jobs.some(j => j.url === url)) continue;
 
     jobs.push({
@@ -3173,7 +3170,7 @@ function parseInnovatorsRoomJobs(
     const locationStr = locMatch ? locMatch[1].trim() : '';
     
     // Must contain the search city (e.g. "london", "manchester")
-    if (!locationStr.toLowerCase().includes(searchCity)) continue;
+    if (!jobLocationMatches(locationStr, searchCity)) continue;
 
     jobs.push({
       id: crypto.randomUUID(),

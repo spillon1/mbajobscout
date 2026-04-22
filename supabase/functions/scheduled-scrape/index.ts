@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               sources: config.sources,
               keywords: config.keywords,
-              location: 'London, UK',
+              location: 'United Kingdom',
               persist: true,
               mode: config.mode,
             }),
