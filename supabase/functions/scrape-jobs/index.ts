@@ -2680,10 +2680,7 @@ function parseStructuredCards(
     // Filter by user's search location if provided
     if (searchLocation) {
       const searchCity = searchLocation.split(',')[0].trim().toLowerCase();
-      if (searchCity) {
-        if (!jobLocation) continue;
-        if (!jobLocation.toLowerCase().includes(searchCity)) continue;
-      }
+      if (!jobLocationMatches(jobLocation, searchCity)) continue;
     }
 
     // Find type field
