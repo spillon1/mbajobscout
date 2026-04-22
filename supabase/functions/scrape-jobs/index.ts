@@ -152,47 +152,10 @@ Deno.serve(async (req) => {
         // LinkedIn Jobs
         if (source.url.includes('linkedin.com')) {
           const searchCity = location.split(',')[0]?.trim() || 'London';
-          const isAlreadyCountryWide = searchCity.toLowerCase() === 'united kingdom';
-
-          // Pass 1: city-specific search (existing behavior)
-          const cityJobs = await scrapeLinkedIn(apiKey, source, keywords, location);
-
-          // Pass 2: country-wide search to catch roles tagged "United Kingdom" only
-          let countryJobs: any[] = [];
-          if (!isAlreadyCountryWide) {
-            try {
-              countryJobs = await scrapeLinkedIn(apiKey, source, keywords, 'United Kingdom');
-            } catch (e) {
-              console.warn(`LinkedIn country-wide pass failed: ${(e as Error).message}`);
-            }
-          }
-
-          // Merge + dedupe by jobUrl (fallback to title+company)
-          const seen = new Set<string>();
-          const merged: any[] = [];
-          for (const j of [...cityJobs, ...countryJobs]) {
-            const key = (j.jobUrl || j.url || '').trim().toLowerCase()
-              || `${(j.title || '').toLowerCase().trim()}::${(j.company || '').toLowerCase().trim()}`;
-            if (!key || seen.has(key)) continue;
-            seen.add(key);
-            merged.push(j);
-          }
-
-          // Secondary location filter: keep London / UK / Remote / Hybrid / empty
-          const cityLower = searchCity.toLowerCase();
-          const locOk = (loc: string | undefined) => {
-            if (!loc) return true;
-            const l = loc.toLowerCase();
-            return l.includes(cityLower)
-              || l.includes('united kingdom')
-              || /\buk\b/.test(l)
-              || l.includes('remote')
-              || l.includes('hybrid');
-          };
-          const locFiltered = merged.filter((j: any) => locOk(j.location));
-
+          const linkedinJobs = await scrapeLinkedIn(apiKey, source, keywords, location);
+          const locFiltered = linkedinJobs.filter((j: any) => jobLocationMatches(j.location, searchCity));
           const filtered = locFiltered.filter((j: any) => roleFilter(j.title, j.company, j.description));
-          console.log(`Found ${filtered.length} relevant jobs from LinkedIn (city: ${cityJobs.length}, country: ${countryJobs.length}, merged: ${merged.length}, loc-filtered: ${locFiltered.length})`);
+          console.log(`Found ${filtered.length} relevant jobs from LinkedIn (raw: ${linkedinJobs.length}, loc-filtered: ${locFiltered.length})`);
           return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
 
