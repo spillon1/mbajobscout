@@ -3093,7 +3093,7 @@ function parseInnovatorsRoomJobs(
     const url = match[4].split('&utm_')[0] + '&utm_source=techjobs_newsletter';
     const typeStr = (match[5] || '').toLowerCase();
 
-    if (!locationStr.toLowerCase().includes(searchCity)) continue;
+    if (!jobLocationMatches(locationStr, searchCity)) continue;
 
     jobs.push({
       id: crypto.randomUUID(),
