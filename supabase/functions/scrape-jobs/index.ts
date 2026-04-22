@@ -3164,7 +3164,7 @@ function parseInnovatorsRoomJobs(
     const locationStr = locMatch ? locMatch[1].trim() : '';
     
     // Must contain the search city (e.g. "london", "manchester")
-    if (!locationStr.toLowerCase().includes(searchCity)) continue;
+    if (!jobLocationMatches(locationStr, searchCity)) continue;
 
     jobs.push({
       id: crypto.randomUUID(),
