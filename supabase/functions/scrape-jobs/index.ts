@@ -2867,16 +2867,14 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
     const roleWords = /\b(analyst|associate|manager|director|officer|lead|head|engineer|developer|assistant|coordinator|specialist|consultant|partner|principal|intern|advisor|administrator|accountant|controller|recruiter|designer|scientist|researcher|strategist|president|vice\s+president|vp)\b/i;
     if (!roleWords.test(title)) continue;
 
-    // Enforce location filter from user search (e.g. London)
+    // Enforce location filter from user search (city-specific or country-wide via helper)
     if (searchCity) {
-      const locLower = jobLocation.toLowerCase();
       const titleLower2 = title.toLowerCase();
-      const locationMatchesCity = locLower.includes(searchCity);
+      const locOk = jobLocationMatches(jobLocation, searchCity);
       const titleMatchesCity = titleLower2.includes(searchCity);
-      // Skip if neither location nor title mention the search city
-      if (!locationMatchesCity && !titleMatchesCity) continue;
-      // If the parsed location doesn't match but the title does, override with search location
-      if (!locationMatchesCity && titleMatchesCity) {
+      if (!locOk && !titleMatchesCity) continue;
+      // If location didn't match but title did, normalize to search location
+      if (!locOk && titleMatchesCity) {
         jobLocation = searchLocation || jobLocation;
       }
     }
