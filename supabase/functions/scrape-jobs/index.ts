@@ -3118,7 +3118,7 @@ function parseInnovatorsRoomJobs(
     const url = match[3].split('&utm_')[0] + '&utm_source=techjobs_newsletter';
     const locationStr = match[4].replace(/🇬🇧/g, '').trim();
 
-    if (!locationStr.toLowerCase().includes(searchCity)) continue;
+    if (!jobLocationMatches(locationStr, searchCity)) continue;
     if (jobs.some(j => j.url === url)) continue;
 
     jobs.push({
