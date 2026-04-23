@@ -79,6 +79,40 @@ function jobLocationMatches(jobLocation: string | undefined, searchCity: string)
   return false;
 }
 
+function isGenericUkFallbackLocation(jobLocation: string | undefined): boolean {
+  const loc = (jobLocation || '').trim().toLowerCase();
+  return loc === 'united kingdom' || loc === 'uk' || loc === 'london, uk' || loc === 'london uk';
+}
+
+function inferLocationFromJobUrl(jobUrl: string | undefined): string {
+  const rawUrl = (jobUrl || '').trim();
+  if (!rawUrl) return '';
+
+  let decodedUrl = rawUrl;
+  try {
+    decodedUrl = decodeURIComponent(rawUrl);
+  } catch {
+    decodedUrl = rawUrl;
+  }
+
+  const match = decodedUrl.toLowerCase().match(/-in-([a-z0-9-]+?)(?:-\d+)?(?:\/|$|\?)/i);
+  return match ? match[1].replace(/-/g, ' ').trim() : '';
+}
+
+function resolveJobLocation(job: { location?: string; url?: string; sourceUrl?: string }): string {
+  const explicitLocation = (job.location || '').trim();
+  const inferredLocation = inferLocationFromJobUrl(job.url || job.sourceUrl);
+
+  // URL slugs like "...-in-san-francisco-ca" are more trustworthy than generic UK fallbacks,
+  // and should also win when they explicitly point outside the UK.
+  if (inferredLocation && (isNonUkLocation(inferredLocation) || isGenericUkFallbackLocation(explicitLocation))) {
+    return inferredLocation;
+  }
+
+  if (explicitLocation) return explicitLocation;
+  return inferredLocation;
+}
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 interface ScrapeRequest {
