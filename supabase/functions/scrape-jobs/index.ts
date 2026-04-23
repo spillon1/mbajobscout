@@ -11,12 +11,54 @@ const corsHeaders = {
  *
  * Use this in every scraper instead of a raw `location.includes(searchCity)` check.
  */
+/**
+ * Returns true if the job location string clearly indicates a non-UK country/region.
+ * Used to reject roles that slipped through with US/EU/APAC locations.
+ */
+function isNonUkLocation(jobLocation: string | undefined): boolean {
+  const loc = (jobLocation || '').trim().toLowerCase();
+  if (!loc) return false;
+
+  // Explicit non-UK countries
+  const nonUkCountries = [
+    'united states', 'usa', 'u.s.a', 'u.s.', ' us ', ', us',
+    'canada', 'mexico', 'brazil', 'argentina',
+    'germany', 'france', 'spain', 'italy', 'netherlands', 'belgium',
+    'switzerland', 'sweden', 'norway', 'denmark', 'finland', 'ireland',
+    'poland', 'portugal', 'austria', 'greece', 'czech',
+    'australia', 'new zealand',
+    'china', 'india', 'japan', 'singapore', 'hong kong', 'south korea',
+    'uae', 'dubai', 'abu dhabi', 'saudi', 'qatar', 'israel',
+    'south africa', 'nigeria', 'kenya', 'egypt',
+  ];
+  if (nonUkCountries.some(c => loc.includes(c))) return true;
+
+  // US state codes ", CA" / ", NY" / ", TX" etc. (avoid matching ", UK"/", IE")
+  if (/,\s*(al|ak|az|ar|ca|co|ct|de|fl|ga|hi|id|il|in|ia|ks|ky|la|me|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy|dc)\b/i.test(loc)) return true;
+
+  // Common US/foreign cities that frequently appear in VC listings
+  if (/\b(new york|san francisco|menlo park|palo alto|mountain view|los angeles|boston|chicago|seattle|austin|miami|toronto|vancouver|berlin|paris|amsterdam|dublin|zurich|munich|stockholm|sydney|singapore|tokyo|mumbai|bangalore|tel aviv|dubai)\b/.test(loc)) return true;
+
+  return false;
+}
+
+/**
+ * Returns true if the job's location string is acceptable for the requested search city.
+ * - When searchCity is empty or "united kingdom" (country-wide), any UK / Remote / Hybrid
+ *   location passes. EMPTY locations are NOT accepted (they're unknown, not UK).
+ * - Otherwise, requires the city name to appear in the job's location.
+ * - Always rejects locations that explicitly reference a non-UK country/state/city.
+ */
 function jobLocationMatches(jobLocation: string | undefined, searchCity: string): boolean {
   const city = (searchCity || '').trim().toLowerCase();
   const loc = (jobLocation || '').trim().toLowerCase();
 
+  // Hard reject any explicitly non-UK location
+  if (isNonUkLocation(loc)) return false;
+
   if (!city || city === 'united kingdom' || city === 'uk') {
-    if (!loc) return true;
+    // Country-wide search: require *some* positive UK signal — empty = unknown, not UK
+    if (!loc) return false;
     return (
       loc.includes('united kingdom') ||
       /\buk\b/.test(loc) ||
@@ -27,11 +69,11 @@ function jobLocationMatches(jobLocation: string | undefined, searchCity: string)
       loc.includes('remote') ||
       loc.includes('hybrid') ||
       // Common UK city names — accept these as "UK" without requiring explicit country tag
-      /\b(london|manchester|birmingham|edinburgh|glasgow|bristol|leeds|cambridge|oxford|liverpool|sheffield|nottingham|reading|brighton|cardiff|belfast)\b/.test(loc)
+      /\b(london|manchester|birmingham|edinburgh|glasgow|bristol|leeds|cambridge|oxford|liverpool|sheffield|nottingham|reading|brighton|cardiff|belfast|coventry|york|bath|aberdeen|dundee|swansea|newcastle|southampton|portsmouth|milton keynes|guildford)\b/.test(loc)
     );
   }
 
-  if (!loc) return true;
+  if (!loc) return false; // City-specific search: empty = reject
   if (loc.includes(city)) return true;
   if (loc.includes('remote') || loc.includes('hybrid')) return true;
   return false;
@@ -260,7 +302,7 @@ Deno.serve(async (req) => {
         const rows = dedupedResults.map((j: any) => ({
           title: j.title,
           company: j.company || 'Unknown',
-          location: j.location || 'London, UK',
+          location: j.location && j.location.trim() ? j.location : 'United Kingdom',
           type: j.type || 'full-time',
           source: j.source,
           source_url: j.sourceUrl || j.url || '',
@@ -619,11 +661,23 @@ function parseVenture5Jobs(
     const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about', 'latest news'];
     if (skipWords.some((w) => title.toLowerCase().includes(w))) continue;
 
+    // Capture the most location-like line: prefer UK signals, otherwise take any
+    // "City, Region" / "City, COUNTRY" line so non-UK roles are rejected later.
     let jobLocation = '';
+    const ukRegex = /london|england|uk|united kingdom|scotland|wales|manchester|birmingham|edinburgh|glasgow|bristol|leeds|cambridge|oxford/i;
+    const locRegex = /^[A-Za-z][A-Za-z\s.\-']*,\s*[A-Za-z][A-Za-z\s.\-']+$/;
+
     for (const part of parts) {
-      if (/london|england|uk|united kingdom/i.test(part) && !part.includes('Posted')) {
-        jobLocation = part;
-        break;
+      if (part.includes('Posted')) continue;
+      if (ukRegex.test(part)) { jobLocation = part; break; }
+    }
+    if (!jobLocation) {
+      for (const part of parts) {
+        if (part.includes('Posted')) continue;
+        if (locRegex.test(part) || /,\s*(CA|NY|TX|MA|IL|WA|FL|DC|PA|GA|CO|NC|VA|OH|MI|NJ|MD|OR|UT|AZ|CT|MN|NV|TN|MO|IN|WI|SC|LA|KY|OK|IA|KS|AR|MS|NE|ID|NM|HI|NH|ME|RI|MT|DE|SD|ND|AK|VT|WV|WY)\b/.test(part)) {
+          jobLocation = part;
+          break;
+        }
       }
     }
 
