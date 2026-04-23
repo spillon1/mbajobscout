@@ -2491,8 +2491,10 @@ function parseEFinancialCareersJobs(
     else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
 
     if (jobs.some(j => j.url === url)) continue;
-    if (isNonUkLocation(jobLocation)) continue;
-    if (!jobLocation) jobLocation = 'United Kingdom';
+    if (!jobLocation) {
+      jobLocation = inferLocationFromJobUrl(url);
+    }
+    if (!jobLocation || !jobLocationMatches(jobLocation, 'united kingdom')) continue;
 
     jobs.push({
       id: crypto.randomUUID(),
@@ -2569,7 +2571,7 @@ async function scrapeRssFeed(
 
     // Parse title format: "VC Internship @ Breega in London, England"
     let company = 'Unknown';
-    let jobLocation = 'London, UK';
+    let jobLocation = '';
     let title = item.title;
 
     const locMatch = title.match(/\s+in\s+(.+?)$/i);
@@ -2971,7 +2973,9 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
       }
     }
 
-    if (!jobLocation || jobLocation === '') jobLocation = 'London, UK';
+    if (!jobLocation || jobLocation === '') {
+      jobLocation = inferLocationFromJobUrl(url);
+    }
 
     const skipWords = ['filter', 'menu', 'sign in', 'cookie', 'follow', 'saved jobs', 'ai mode', 'forums', 'images', 'news', 'county', 'from your ip'];
     if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
@@ -2986,14 +2990,8 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
 
     // Enforce location filter from user search (city-specific or country-wide via helper)
     if (searchCity) {
-      const titleLower2 = title.toLowerCase();
       const locOk = jobLocationMatches(jobLocation, searchCity);
-      const titleMatchesCity = titleLower2.includes(searchCity);
-      if (!locOk && !titleMatchesCity) continue;
-      // If location didn't match but title did, normalize to search location
-      if (!locOk && titleMatchesCity) {
-        jobLocation = searchLocation || jobLocation;
-      }
+      if (!locOk) continue;
     }
 
     let type = 'full-time';
