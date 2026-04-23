@@ -2454,6 +2454,8 @@ function parseEFinancialCareersJobs(
     else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
 
     if (jobs.some(j => j.url === url)) continue;
+    if (isNonUkLocation(jobLocation)) continue;
+    if (!jobLocation) jobLocation = 'United Kingdom';
 
     jobs.push({
       id: crypto.randomUUID(),
