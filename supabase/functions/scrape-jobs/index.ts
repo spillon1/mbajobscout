@@ -302,7 +302,7 @@ Deno.serve(async (req) => {
         const rows = dedupedResults.map((j: any) => ({
           title: j.title,
           company: j.company || 'Unknown',
-          location: j.location || 'London, UK',
+          location: j.location && j.location.trim() ? j.location : 'United Kingdom',
           type: j.type || 'full-time',
           source: j.source,
           source_url: j.sourceUrl || j.url || '',
