@@ -2392,13 +2392,26 @@ function parseEFinancialCareersJobs(
       lineIdx++;
     }
 
+    // The "company" line sometimes contains a location+contract-type string
+    // (e.g. "London, United KingdomPermanent") when the company name is missing
+    // from the markdown. Detect that and skip — leave company as Unknown so the
+    // following block can parse it as the location instead.
+    const looksLikeLocationLine = (s: string): boolean =>
+      /\b(United Kingdom|UK|England|Scotland|Wales|London|Manchester|Edinburgh|Birmingham|Bristol|Cambridge|Oxford|Leeds|Glasgow|Belfast|Liverpool|Sheffield|Nottingham|Reading|Brighton|Cardiff|Newcastle|Remote|Hybrid)\b/i.test(s)
+      && /(Permanent|Contract|Temporary|Freelance|Part Time|Internship)\s*$/i.test(s);
+
     let company = 'Unknown';
-    if (lineIdx < lines.length && !lines[lineIdx].startsWith('![') && !lines[lineIdx].startsWith('[')) {
+    if (
+      lineIdx < lines.length &&
+      !lines[lineIdx].startsWith('![') &&
+      !lines[lineIdx].startsWith('[') &&
+      !looksLikeLocationLine(lines[lineIdx])
+    ) {
       company = lines[lineIdx].trim();
       lineIdx++;
     }
 
-    let jobLocation = 'London, UK';
+    let jobLocation = '';
     let contractType = 'Permanent';
     if (lineIdx < lines.length) {
       const locLine = lines[lineIdx];
@@ -2547,6 +2560,11 @@ async function scrapeRssFeed(
       .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 500);
+
+    // Location filter — RSS feeds (esp. John Gannon Blog) include global roles.
+    // Reject anything explicitly non-UK, and apply the searchCity gate.
+    const searchCity = (location || '').split(',')[0]?.trim().toLowerCase() || '';
+    if (!jobLocationMatches(jobLocation, searchCity)) continue;
 
     jobs.push({
       id: crypto.randomUUID(),
