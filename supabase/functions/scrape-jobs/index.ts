@@ -661,11 +661,23 @@ function parseVenture5Jobs(
     const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about', 'latest news'];
     if (skipWords.some((w) => title.toLowerCase().includes(w))) continue;
 
+    // Capture the most location-like line: prefer UK signals, otherwise take any
+    // "City, Region" / "City, COUNTRY" line so non-UK roles are rejected later.
     let jobLocation = '';
+    const ukRegex = /london|england|uk|united kingdom|scotland|wales|manchester|birmingham|edinburgh|glasgow|bristol|leeds|cambridge|oxford/i;
+    const locRegex = /^[A-Za-z][A-Za-z\s.\-']*,\s*[A-Za-z][A-Za-z\s.\-']+$/;
+
     for (const part of parts) {
-      if (/london|england|uk|united kingdom/i.test(part) && !part.includes('Posted')) {
-        jobLocation = part;
-        break;
+      if (part.includes('Posted')) continue;
+      if (ukRegex.test(part)) { jobLocation = part; break; }
+    }
+    if (!jobLocation) {
+      for (const part of parts) {
+        if (part.includes('Posted')) continue;
+        if (locRegex.test(part) || /,\s*(CA|NY|TX|MA|IL|WA|FL|DC|PA|GA|CO|NC|VA|OH|MI|NJ|MD|OR|UT|AZ|CT|MN|NV|TN|MO|IN|WI|SC|LA|KY|OK|IA|KS|AR|MS|NE|ID|NM|HI|NH|ME|RI|MT|DE|SD|ND|AK|VT|WV|WY)\b/.test(part)) {
+          jobLocation = part;
+          break;
+        }
       }
     }
 
