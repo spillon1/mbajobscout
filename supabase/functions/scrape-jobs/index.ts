@@ -295,6 +295,7 @@ Deno.serve(async (req) => {
       const junkTitles = ['venture capital jobs in london', 'venture capital careers', "the vc industry's trusted resource", 'filters and topics', 'search results', 'united states'];
       if (junkTitles.includes(titleLower)) return false;
       if (job.company === 'Unknown' && job.title.length < 10) return false;
+      if (!jobLocationMatches(resolveJobLocation(job), location.split(',')[0]?.trim() || '')) return false;
 
       // Age filter
       // Don't drop Venture5 jobs without dates — they may still be valid recent postings
@@ -333,10 +334,12 @@ Deno.serve(async (req) => {
         const supabase = createClient(supabaseUrl, serviceKey);
 
         // Upsert jobs (preserves alerted flag for existing URLs, new URLs default to false)
-        const rows = dedupedResults.map((j: any) => ({
+        const rows = dedupedResults.map((j: any) => {
+          const resolvedLocation = resolveJobLocation(j);
+          return ({
           title: j.title,
           company: j.company || 'Unknown',
-          location: j.location && j.location.trim() ? j.location : 'United Kingdom',
+          location: resolvedLocation,
           type: j.type || 'full-time',
           source: j.source,
           source_url: j.sourceUrl || j.url || '',
@@ -344,7 +347,7 @@ Deno.serve(async (req) => {
           posted_date: j.postedDate || j.posted_date || null,
           description: j.description || null,
           salary: j.salary || null,
-        }));
+        })});
 
         const { error: insertError } = await supabase
           .from('scraped_jobs')
