@@ -336,18 +336,19 @@ Deno.serve(async (req) => {
         // Upsert jobs (preserves alerted flag for existing URLs, new URLs default to false)
         const rows = dedupedResults.map((j: any) => {
           const resolvedLocation = resolveJobLocation(j);
-          return ({
-          title: j.title,
-          company: j.company || 'Unknown',
-          location: resolvedLocation,
-          type: j.type || 'full-time',
-          source: j.source,
-          source_url: j.sourceUrl || j.url || '',
-          url: j.url || j.sourceUrl || '',
-          posted_date: j.postedDate || j.posted_date || null,
-          description: j.description || null,
-          salary: j.salary || null,
-        })});
+          return {
+            title: j.title,
+            company: j.company || 'Unknown',
+            location: resolvedLocation,
+            type: j.type || 'full-time',
+            source: j.source,
+            source_url: j.sourceUrl || j.url || '',
+            url: j.url || j.sourceUrl || '',
+            posted_date: j.postedDate || j.posted_date || null,
+            description: j.description || null,
+            salary: j.salary || null,
+          };
+        });
 
         const { error: insertError } = await supabase
           .from('scraped_jobs')
