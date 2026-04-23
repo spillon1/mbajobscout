@@ -79,6 +79,40 @@ function jobLocationMatches(jobLocation: string | undefined, searchCity: string)
   return false;
 }
 
+function isGenericUkFallbackLocation(jobLocation: string | undefined): boolean {
+  const loc = (jobLocation || '').trim().toLowerCase();
+  return loc === 'united kingdom' || loc === 'uk' || loc === 'london, uk' || loc === 'london uk';
+}
+
+function inferLocationFromJobUrl(jobUrl: string | undefined): string {
+  const rawUrl = (jobUrl || '').trim();
+  if (!rawUrl) return '';
+
+  let decodedUrl = rawUrl;
+  try {
+    decodedUrl = decodeURIComponent(rawUrl);
+  } catch {
+    decodedUrl = rawUrl;
+  }
+
+  const match = decodedUrl.toLowerCase().match(/-in-([a-z0-9-]+?)(?:-\d+)?(?:\/|$|\?)/i);
+  return match ? match[1].replace(/-/g, ' ').trim() : '';
+}
+
+function resolveJobLocation(job: { location?: string; url?: string; sourceUrl?: string }): string {
+  const explicitLocation = (job.location || '').trim();
+  const inferredLocation = inferLocationFromJobUrl(job.url || job.sourceUrl);
+
+  // URL slugs like "...-in-san-francisco-ca" are more trustworthy than generic UK fallbacks,
+  // and should also win when they explicitly point outside the UK.
+  if (inferredLocation && (isNonUkLocation(inferredLocation) || isGenericUkFallbackLocation(explicitLocation))) {
+    return inferredLocation;
+  }
+
+  if (explicitLocation) return explicitLocation;
+  return inferredLocation;
+}
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 interface ScrapeRequest {
@@ -261,6 +295,7 @@ Deno.serve(async (req) => {
       const junkTitles = ['venture capital jobs in london', 'venture capital careers', "the vc industry's trusted resource", 'filters and topics', 'search results', 'united states'];
       if (junkTitles.includes(titleLower)) return false;
       if (job.company === 'Unknown' && job.title.length < 10) return false;
+      if (!jobLocationMatches(resolveJobLocation(job), location.split(',')[0]?.trim() || '')) return false;
 
       // Age filter
       // Don't drop Venture5 jobs without dates — they may still be valid recent postings
@@ -299,18 +334,21 @@ Deno.serve(async (req) => {
         const supabase = createClient(supabaseUrl, serviceKey);
 
         // Upsert jobs (preserves alerted flag for existing URLs, new URLs default to false)
-        const rows = dedupedResults.map((j: any) => ({
-          title: j.title,
-          company: j.company || 'Unknown',
-          location: j.location && j.location.trim() ? j.location : 'United Kingdom',
-          type: j.type || 'full-time',
-          source: j.source,
-          source_url: j.sourceUrl || j.url || '',
-          url: j.url || j.sourceUrl || '',
-          posted_date: j.postedDate || j.posted_date || null,
-          description: j.description || null,
-          salary: j.salary || null,
-        }));
+        const rows = dedupedResults.map((j: any) => {
+          const resolvedLocation = resolveJobLocation(j);
+          return {
+            title: j.title,
+            company: j.company || 'Unknown',
+            location: resolvedLocation,
+            type: j.type || 'full-time',
+            source: j.source,
+            source_url: j.sourceUrl || j.url || '',
+            url: j.url || j.sourceUrl || '',
+            posted_date: j.postedDate || j.posted_date || null,
+            description: j.description || null,
+            salary: j.salary || null,
+          };
+        });
 
         const { error: insertError } = await supabase
           .from('scraped_jobs')
@@ -2454,8 +2492,10 @@ function parseEFinancialCareersJobs(
     else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
 
     if (jobs.some(j => j.url === url)) continue;
-    if (isNonUkLocation(jobLocation)) continue;
-    if (!jobLocation) jobLocation = 'United Kingdom';
+    if (!jobLocation) {
+      jobLocation = inferLocationFromJobUrl(url);
+    }
+    if (!jobLocation || !jobLocationMatches(jobLocation, 'united kingdom')) continue;
 
     jobs.push({
       id: crypto.randomUUID(),
@@ -2532,7 +2572,7 @@ async function scrapeRssFeed(
 
     // Parse title format: "VC Internship @ Breega in London, England"
     let company = 'Unknown';
-    let jobLocation = 'London, UK';
+    let jobLocation = '';
     let title = item.title;
 
     const locMatch = title.match(/\s+in\s+(.+?)$/i);
@@ -2934,7 +2974,9 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
       }
     }
 
-    if (!jobLocation || jobLocation === '') jobLocation = 'London, UK';
+    if (!jobLocation || jobLocation === '') {
+      jobLocation = inferLocationFromJobUrl(url);
+    }
 
     const skipWords = ['filter', 'menu', 'sign in', 'cookie', 'follow', 'saved jobs', 'ai mode', 'forums', 'images', 'news', 'county', 'from your ip'];
     if (skipWords.some(w => title.toLowerCase().includes(w))) continue;
@@ -2949,14 +2991,8 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
 
     // Enforce location filter from user search (city-specific or country-wide via helper)
     if (searchCity) {
-      const titleLower2 = title.toLowerCase();
       const locOk = jobLocationMatches(jobLocation, searchCity);
-      const titleMatchesCity = titleLower2.includes(searchCity);
-      if (!locOk && !titleMatchesCity) continue;
-      // If location didn't match but title did, normalize to search location
-      if (!locOk && titleMatchesCity) {
-        jobLocation = searchLocation || jobLocation;
-      }
+      if (!locOk) continue;
     }
 
     let type = 'full-time';
