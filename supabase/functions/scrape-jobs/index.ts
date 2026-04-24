@@ -2931,11 +2931,13 @@ function extractJobDetails(
     url = `${source.url}#job-${Math.abs(hash)}`;
   }
 
+  const inferredLocation = inferLocationFromJobUrl(url);
+
   return {
     id: crypto.randomUUID(),
     title: title.slice(0, 200),
     company,
-    location: 'London, UK',
+    location: inferredLocation || '',
     type,
     source: source.name,
     sourceUrl: source.url,
