@@ -1,0 +1,1 @@
+DELETE FROM public.scraped_jobs WHERE url ~* '-in-(remote|hybrid|cambridge-ma|boston-ma|new-york|san-francisco|menlo-park|palo-alto|berlin|paris|amsterdam|dublin|toronto|singapore|tokyo|sydney)';

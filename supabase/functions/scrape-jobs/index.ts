@@ -35,6 +35,8 @@ function isNonUkLocation(jobLocation: string | undefined): boolean {
 
   // US state codes ", CA" / ", NY" / ", TX" etc. (avoid matching ", UK"/", IE")
   if (/,\s*(al|ak|az|ar|ca|co|ct|de|fl|ga|hi|id|il|in|ia|ks|ky|la|me|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy|dc)\b/i.test(loc)) return true;
+  // Same as above but space-separated (URL slugs like "cambridge ma", "boston ma", "san francisco ca")
+  if (/\b(al|ak|az|ar|ca|co|ct|de|fl|ga|hi|id|il|in|ia|ks|ky|la|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy|dc)\b\s*$/i.test(loc) && /\s/.test(loc.trim())) return true;
 
   // Common US/foreign cities that frequently appear in VC listings
   if (/\b(new york|san francisco|menlo park|palo alto|mountain view|los angeles|boston|chicago|seattle|austin|miami|toronto|vancouver|berlin|paris|amsterdam|dublin|zurich|munich|stockholm|sydney|singapore|tokyo|mumbai|bangalore|tel aviv|dubai)\b/.test(loc)) return true;
@@ -107,6 +109,12 @@ function resolveJobLocation(job: { location?: string; url?: string; sourceUrl?: 
   // and should also win when they explicitly point outside the UK.
   if (inferredLocation && (isNonUkLocation(inferredLocation) || isGenericUkFallbackLocation(explicitLocation))) {
     return inferredLocation;
+  }
+
+  // If URL slug says "remote" or "hybrid", trust it over a city-specific explicit location
+  // (Venture5 sometimes mislabels remote roles with a city default).
+  if (/^(remote|hybrid)\b/i.test(inferredLocation)) {
+    return inferredLocation.charAt(0).toUpperCase() + inferredLocation.slice(1);
   }
 
   if (explicitLocation) return explicitLocation;
@@ -699,16 +707,26 @@ function parseVenture5Jobs(
     const skipWords = ['newsletter', 'subscribe', 'cookie', 'sign in', 'load more', 'advertisement', 'menu', 'about', 'latest news'];
     if (skipWords.some((w) => title.toLowerCase().includes(w))) continue;
 
-    // Capture the most location-like line: prefer UK signals, otherwise take any
+    // Capture the most location-like line: prefer Remote/Hybrid, then UK signals, then any
     // "City, Region" / "City, COUNTRY" line so non-UK roles are rejected later.
     let jobLocation = '';
+    const remoteRegex = /^(remote|hybrid|remote\s*\/\s*hybrid|hybrid\s*\/\s*remote)\b/i;
     const ukRegex = /london|england|uk|united kingdom|scotland|wales|manchester|birmingham|edinburgh|glasgow|bristol|leeds|cambridge|oxford/i;
     const locRegex = /^[A-Za-z][A-Za-z\s.\-']*,\s*[A-Za-z][A-Za-z\s.\-']+$/;
 
+    // 1. Remote/Hybrid takes priority (job is location-agnostic)
     for (const part of parts) {
       if (part.includes('Posted')) continue;
-      if (ukRegex.test(part)) { jobLocation = part; break; }
+      if (remoteRegex.test(part.trim())) { jobLocation = part.trim(); break; }
     }
+    // 2. UK signals
+    if (!jobLocation) {
+      for (const part of parts) {
+        if (part.includes('Posted')) continue;
+        if (ukRegex.test(part)) { jobLocation = part; break; }
+      }
+    }
+    // 3. Any City, Region pattern
     if (!jobLocation) {
       for (const part of parts) {
         if (part.includes('Posted')) continue;
@@ -717,6 +735,11 @@ function parseVenture5Jobs(
           break;
         }
       }
+    }
+    // 4. Fallback: derive from URL slug (e.g. "...-in-remote" → "Remote", "...-in-cambridge-ma" → non-UK reject)
+    if (!jobLocation) {
+      const inferred = inferLocationFromJobUrl(url);
+      if (inferred) jobLocation = inferred;
     }
 
     if (!jobLocationMatches(jobLocation, searchCity)) continue;
