@@ -111,6 +111,12 @@ function resolveJobLocation(job: { location?: string; url?: string; sourceUrl?: 
     return inferredLocation;
   }
 
+  // If URL slug says "remote" or "hybrid", trust it over a city-specific explicit location
+  // (Venture5 sometimes mislabels remote roles with a city default).
+  if (/^(remote|hybrid)\b/i.test(inferredLocation)) {
+    return inferredLocation.charAt(0).toUpperCase() + inferredLocation.slice(1);
+  }
+
   if (explicitLocation) return explicitLocation;
   return inferredLocation;
 }
