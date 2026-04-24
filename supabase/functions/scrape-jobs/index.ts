@@ -2931,11 +2931,13 @@ function extractJobDetails(
     url = `${source.url}#job-${Math.abs(hash)}`;
   }
 
+  const inferredLocation = inferLocationFromJobUrl(url);
+
   return {
     id: crypto.randomUUID(),
     title: title.slice(0, 200),
     company,
-    location: 'London, UK',
+    location: inferredLocation || '',
     type,
     source: source.name,
     sourceUrl: source.url,
@@ -2973,7 +2975,7 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
     // Google Jobs format: Title \\ Location \\ • via Company
     // Extract company from "• via X" suffix in the last part
     let company = 'Unknown';
-    let jobLocation = 'London, UK';
+    let jobLocation = '';
 
     // Find "via Company" in any part
     const viaPattern = /•?\s*via\s+(.+)$/i;
