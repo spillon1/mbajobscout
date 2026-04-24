@@ -2975,7 +2975,7 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
     // Google Jobs format: Title \\ Location \\ • via Company
     // Extract company from "• via X" suffix in the last part
     let company = 'Unknown';
-    let jobLocation = 'London, UK';
+    let jobLocation = '';
 
     // Find "via Company" in any part
     const viaPattern = /•?\s*via\s+(.+)$/i;
