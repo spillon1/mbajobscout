@@ -35,6 +35,8 @@ function isNonUkLocation(jobLocation: string | undefined): boolean {
 
   // US state codes ", CA" / ", NY" / ", TX" etc. (avoid matching ", UK"/", IE")
   if (/,\s*(al|ak|az|ar|ca|co|ct|de|fl|ga|hi|id|il|in|ia|ks|ky|la|me|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy|dc)\b/i.test(loc)) return true;
+  // Same as above but space-separated (URL slugs like "cambridge ma", "boston ma", "san francisco ca")
+  if (/\b(al|ak|az|ar|ca|co|ct|de|fl|ga|hi|id|il|in|ia|ks|ky|la|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy|dc)\b\s*$/i.test(loc) && /\s/.test(loc.trim())) return true;
 
   // Common US/foreign cities that frequently appear in VC listings
   if (/\b(new york|san francisco|menlo park|palo alto|mountain view|los angeles|boston|chicago|seattle|austin|miami|toronto|vancouver|berlin|paris|amsterdam|dublin|zurich|munich|stockholm|sydney|singapore|tokyo|mumbai|bangalore|tel aviv|dubai)\b/.test(loc)) return true;
