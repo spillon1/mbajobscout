@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { JobActionRecord } from '@/hooks/useJobActions';
 import { CheckCircle2, XCircle, Undo2, ChevronDown, ChevronUp } from 'lucide-react';
+import { getOutboundUrl } from '@/lib/urlSafety';
 
 interface ApplicationsPanelProps {
   appliedJobs: JobActionRecord[];
