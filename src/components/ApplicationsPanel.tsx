@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { JobActionRecord } from '@/hooks/useJobActions';
 import { CheckCircle2, XCircle, Undo2, ChevronDown, ChevronUp } from 'lucide-react';
+import { getOutboundUrl } from '@/lib/urlSafety';
 
 interface ApplicationsPanelProps {
   appliedJobs: JobActionRecord[];
@@ -37,7 +38,14 @@ export function ApplicationsPanel({ appliedJobs, notInterestedJobs, onRemove }: 
               {appliedJobs.map((job) => (
                 <li key={job.id} className="px-3 py-2 flex items-start justify-between gap-2 group">
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{job.job_title}</p>
+                    <a
+                      href={getOutboundUrl(job.job_url) ?? undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-medium text-foreground truncate hover:text-primary hover:underline block"
+                    >
+                      {job.job_title}
+                    </a>
                     <p className="text-[11px] text-muted-foreground truncate">{job.job_company} · {job.job_source}</p>
                   </div>
                   <button
@@ -77,7 +85,14 @@ export function ApplicationsPanel({ appliedJobs, notInterestedJobs, onRemove }: 
               {notInterestedJobs.map((job) => (
                 <li key={job.id} className="px-3 py-2 flex items-start justify-between gap-2 group">
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{job.job_title}</p>
+                    <a
+                      href={getOutboundUrl(job.job_url) ?? undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-medium text-foreground truncate hover:text-primary hover:underline block"
+                    >
+                      {job.job_title}
+                    </a>
                     <p className="text-[11px] text-muted-foreground truncate">{job.job_company} · {job.job_source}</p>
                   </div>
                   <button
