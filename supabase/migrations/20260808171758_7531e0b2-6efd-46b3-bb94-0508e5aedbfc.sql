@@ -1,0 +1,2 @@
+ALTER TABLE public.scraped_jobs ADD COLUMN IF NOT EXISTS last_seen_at timestamp with time zone NOT NULL DEFAULT now();
+CREATE INDEX IF NOT EXISTS scraped_jobs_last_seen_idx ON public.scraped_jobs (source, last_seen_at);
