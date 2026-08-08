@@ -63,6 +63,12 @@ function isLondonish(location: string): boolean {
   if (NON_UK.test(loc)) return false;
   if (LONDON.test(loc)) return true;
   if (UK_NON_LONDON.test(loc)) return false;
+
+  // "Reigate, England, United Kingdom" → named UK town that isn't London
+  const city = loc.split(',')[0].trim();
+  const generic = /^(england|scotland|wales|northern\s+ireland|united\s+kingdom|uk|gb|great\s+britain|remote|hybrid|remote\s*\/?\s*hybrid|anywhere)$/;
+  if (city && !generic.test(city)) return false;
+
   return UK_REMOTE.test(loc);
 }
 
