@@ -2544,7 +2544,10 @@ async function scrapeRssFeed(
 ): Promise<any[]> {
   const allItems: Array<{ title: string; link: string; description: string; pubDate: string }> = [];
   const MAX_PAGES = 50; // Cap at 50 pages (500 items) to avoid timeouts
+  const MAX_AGE_DAYS = 30; // WP Job Manager listings expire after ~30 days
+  const cutoffMs = Date.now() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
   const baseUrl = source.url;
+  let reachedOldItems = false;
 
   // WordPress RSS feeds default to 10 items — paginate with &paged=N
   for (let page = 1; page <= MAX_PAGES; page++) {
@@ -2563,8 +2566,22 @@ async function scrapeRssFeed(
 
       if (items.length === 0) break; // Empty page = done
 
-      allItems.push(...items);
-      console.log(`RSS page ${page}: ${items.length} items from ${source.name}`);
+      // Drop stale (likely expired) listings and stop paginating once we're past the cutoff
+      const fresh = items.filter((it) => {
+        if (!it.pubDate) return true;
+        const t = Date.parse(it.pubDate);
+        if (Number.isNaN(t)) return true;
+        if (t < cutoffMs) {
+          reachedOldItems = true;
+          return false;
+        }
+        return true;
+      });
+
+      allItems.push(...fresh);
+      console.log(`RSS page ${page}: ${fresh.length}/${items.length} fresh items from ${source.name}`);
+
+      if (reachedOldItems) break;
 
       // If fewer than 10 items, likely the last page
       if (items.length < 10) break;
@@ -2575,7 +2592,8 @@ async function scrapeRssFeed(
     }
   }
 
-  console.log(`RSS total: ${allItems.length} items from ${source.name}`);
+  console.log(`RSS total: ${allItems.length} fresh items from ${source.name}`);
+
 
   const jobs: any[] = [];
 
