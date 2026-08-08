@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      alert_checkpoints: {
+        Row: {
+          alert_key: string
+          last_alerted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          alert_key: string
+          last_alerted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alert_key?: string
+          last_alerted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      alert_sent_log: {
+        Row: {
+          alert_key: string
+          dedupe_key: string
+          id: string
+          job_company: string
+          job_title: string
+          job_url: string
+          sent_at: string
+        }
+        Insert: {
+          alert_key: string
+          dedupe_key: string
+          id?: string
+          job_company: string
+          job_title: string
+          job_url: string
+          sent_at?: string
+        }
+        Update: {
+          alert_key?: string
+          dedupe_key?: string
+          id?: string
+          job_company?: string
+          job_title?: string
+          job_url?: string
+          sent_at?: string
+        }
+        Relationships: []
+      }
       job_actions: {
         Row: {
           action: string
