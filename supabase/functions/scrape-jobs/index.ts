@@ -2173,6 +2173,11 @@ function isNotExcludedRole(title: string): boolean {
     return false;
   }
 
+  // ── Expert-network / gig listings (not real jobs) ──
+  // e.g. "Expert Opportunity - Venture Capital Associate ($100/hr, up to $2,000/week)"
+  if (/\bexpert\s+(opportunity|network|call|consultation)\b/i.test(titleLower)) return false;
+  if (/\$\s?\d+\s?\/\s?(hr|hour)\b/i.test(titleLower)) return false;
+  if (/\bper\s+week\b|\bup\s+to\s+\$[\d,]+\s*\/?\s*week\b/i.test(titleLower)) return false;
 
 
   // ── Hard profession exclusions (clearly not VC investment roles) ──
