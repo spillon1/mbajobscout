@@ -19,6 +19,9 @@ Deno.serve(async (req) => {
     const limit: number = Math.min(Number(body.limit) || 400, 1000);
     const recheckDays: number = Number(body.recheckDays) || 3;
     const dryRun: boolean = body.dryRun === true;
+    const source: string | undefined = typeof body.source === 'string' && body.source.trim()
+      ? body.source.trim().slice(0, 100)
+      : undefined;
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -27,12 +30,15 @@ Deno.serve(async (req) => {
 
     const cutoff = new Date(Date.now() - recheckDays * 86400000).toISOString();
 
-    const { data: rows, error } = await supabase
+    let query = supabase
       .from('scraped_jobs')
       .select('id, title, company, url, source, expiry_checked_at')
       .or(`expiry_checked_at.is.null,expiry_checked_at.lt.${cutoff}`)
-      .order('expiry_checked_at', { ascending: true, nullsFirst: true })
-      .limit(limit);
+      .order('expiry_checked_at', { ascending: true, nullsFirst: true });
+
+    if (source) query = query.eq('source', source);
+
+    const { data: rows, error } = await query.limit(limit);
 
     if (error) throw error;
     if (!rows || rows.length === 0) {

@@ -604,7 +604,17 @@ async function scrapeVenture5(
   console.log(`Venture5 markdown preview: ${markdown.substring(0, 500)}`);
 
   const parsedJobs = parseVenture5Jobs(markdown, source, searchCity);
-  return await enrichVenture5PostedDates(parsedJobs, searchCity);
+  const enrichedJobs = await enrichVenture5PostedDates(parsedJobs, searchCity);
+
+  // Venture5 keeps expired listings in its search results, so verify each detail page
+  // before returning it to the persistence flow. Unknown responses are retained to
+  // avoid dropping valid jobs when the source times out or blocks the request.
+  const checked = await checkListingsBatch(enrichedJobs, (job) => job.url, 12, 8000);
+  const liveOrUnknown = checked.filter((result) => result.status !== 'expired').map((result) => result.item);
+  const expiredCount = checked.length - liveOrUnknown.length;
+  console.log(`Venture5 live check: kept=${liveOrUnknown.length} expired=${expiredCount} total=${checked.length}`);
+
+  return liveOrUnknown;
 }
 
 async function enrichVenture5PostedDates(jobs: any[], searchCity: string): Promise<any[]> {
