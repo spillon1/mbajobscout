@@ -139,6 +139,7 @@ export type Database = {
           alerted: boolean
           company: string
           description: string | null
+          expiry_checked_at: string | null
           id: string
           location: string
           mode: string
@@ -155,6 +156,7 @@ export type Database = {
           alerted?: boolean
           company?: string
           description?: string | null
+          expiry_checked_at?: string | null
           id?: string
           location?: string
           mode?: string
@@ -171,6 +173,7 @@ export type Database = {
           alerted?: boolean
           company?: string
           description?: string | null
+          expiry_checked_at?: string | null
           id?: string
           location?: string
           mode?: string
