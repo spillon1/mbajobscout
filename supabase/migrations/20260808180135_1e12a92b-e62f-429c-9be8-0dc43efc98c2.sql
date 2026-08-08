@@ -1,0 +1,1 @@
+DELETE FROM public.scraped_jobs WHERE title ~* 'expert (opportunity|network|call|consultation)' OR title ~* '\$ ?[0-9]+ ?/ ?(hr|hour)' OR title ~* 'up to \$[0-9,]+ ?/? ?week';
