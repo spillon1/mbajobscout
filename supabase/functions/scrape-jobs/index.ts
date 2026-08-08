@@ -368,8 +368,20 @@ Deno.serve(async (req) => {
         const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, serviceKey);
 
+        // Verify every candidate against its own listing page before storing it.
+        // 'unknown' is kept (blocked/transient), only confirmed 'expired' is dropped.
+        let persistable = dedupedResults;
+        try {
+          const verified = await checkListingsBatch(dedupedResults, (j: any) => j.url || j.sourceUrl || '', 12, 8000);
+          persistable = verified.filter((v) => v.status !== 'expired').map((v) => v.item);
+          console.log(`[Persist] Expiry check dropped ${dedupedResults.length - persistable.length} expired listings`);
+        } catch (expiryErr) {
+          console.error('[Persist] Expiry verification failed, keeping all:', expiryErr);
+        }
+
+        const seenAt = new Date().toISOString();
         // Upsert jobs (preserves alerted flag for existing URLs, new URLs default to false)
-        const rows = dedupedResults.map((j: any) => {
+        const rows = persistable.map((j: any) => {
           const resolvedLocation = resolveJobLocation(j);
           return {
             title: j.title,
@@ -382,8 +394,11 @@ Deno.serve(async (req) => {
             posted_date: j.postedDate || j.posted_date || null,
             description: j.description || null,
             salary: j.salary || null,
+            last_seen_at: seenAt,
+            expiry_checked_at: seenAt,
           };
         });
+
 
         const { error: insertError } = await supabase
           .from('scraped_jobs')
