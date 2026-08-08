@@ -20,7 +20,9 @@ export type ExpiryStatus = 'live' | 'expired' | 'unknown';
  * drop a job on a transient failure.
  */
 export async function checkListingStatus(url: string, timeoutMs = 8000): Promise<ExpiryStatus> {
-  if (!url || !/^https?:\/\//i.test(url)) return 'unknown';
+  if (!url || /^https?:\/\//i.test(url) === false) return 'unknown';
+  if (/linkedin\.com/i.test(url)) return await checkLinkedInStatus(url, timeoutMs);
+
   try {
     const res = await fetch(url, {
       redirect: 'follow',
