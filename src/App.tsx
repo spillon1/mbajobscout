@@ -13,7 +13,9 @@ import IMScout from "./pages/IMScout";
 import TechScout from "./pages/TechScout";
 import StartupScout from "./pages/StartupScout";
 import OutboundRedirect from "./pages/OutboundRedirect";
+import OAuthConsent from "./pages/OAuthConsent";
 import NotFound from "./pages/NotFound";
+
 
 const queryClient = new QueryClient();
 
