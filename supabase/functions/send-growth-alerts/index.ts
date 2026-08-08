@@ -121,6 +121,7 @@ function isCandidate(job: ScrapedJob): boolean {
   const company = job.company || '';
   if (isJunk(title, company, job.source || '', job.description || '')) return false;
   if (NOISE.some((p) => p.test(title))) return false;
+  if (ADVISORY.test(title) || ADVISORY.test(company)) return false;
   if (!ROLE_SHAPE.test(title)) return false;
   return true;
 }
