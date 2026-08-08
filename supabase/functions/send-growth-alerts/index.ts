@@ -89,6 +89,9 @@ const SECONDARY_TERMS: RegExp[] = [
 // ── Pure PE / non-tech secondaries → belongs on the PE tab ──
 const PE_SECONDARY_MARKERS = /\b(buyout|lbo|leveraged|private\s+equity\s+secondar|pe\s+secondar|infrastructure\s+secondar|real\s+estate\s+secondar|credit\s+secondar|private\s+credit|real\s+assets?\s+secondar)\b/i;
 
+// ── Sell-side / advisory, not direct investing ──
+const ADVISORY = /\b(investment\s+bank(ing)?|placement\s+agent|secondary\s+advisory|secondaries\s+advisory|m&a\s+advisory|capital\s+markets\s+advisory|fund\s+placement|coverage\s+banker)\b/i;
+
 // ── Non-investment noise ──
 const NOISE: RegExp[] = [
   /\bgrowth\s+(marketing|hacker|hacking|manager|lead|strategist|analytics|product|marketer|specialist|executive)\b/i,
