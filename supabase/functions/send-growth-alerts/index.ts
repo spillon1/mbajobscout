@@ -168,21 +168,27 @@ Deno.serve(async (req) => {
       ? new Date(Date.now() - daysParam * 24 * 60 * 60 * 1000).toISOString()
       : (checkpoint?.last_alerted_at ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
-    const { data: rawJobs, error: jobsError } = await supabase
-      .from('scraped_jobs')
-      .select('*')
-      .in('mode', ['vc', 'pe'])
-      .gt('scraped_at', sinceIso)
-      .order('scraped_at', { ascending: false })
-      .limit(3000);
+    // Paginate: PostgREST caps each response at 1000 rows
+    const jobs: ScrapedJob[] = [];
+    const PAGE = 1000;
+    for (let page = 0; page < 12; page++) {
+      const { data, error: jobsError } = await supabase
+        .from('scraped_jobs')
+        .select('*')
+        .in('mode', ['vc', 'pe'])
+        .gt('scraped_at', sinceIso)
+        .order('scraped_at', { ascending: false })
+        .range(page * PAGE, page * PAGE + PAGE - 1);
 
-    if (jobsError) {
-      return new Response(JSON.stringify({ success: false, error: jobsError.message }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      if (jobsError) {
+        return new Response(JSON.stringify({ success: false, error: jobsError.message }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const batch = (data ?? []) as ScrapedJob[];
+      jobs.push(...batch);
+      if (batch.length < PAGE) break;
     }
-
-    const jobs = (rawJobs ?? []) as ScrapedJob[];
 
     // Already-sent dedupe
     const { data: sentRows } = await supabase
