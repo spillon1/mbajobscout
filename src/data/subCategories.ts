@@ -94,8 +94,8 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
           /\bscale[\s\-]?up\s+(fund|invest)/i,
           /\bcontinuation\s+(fund|vehicle)\b/i,
           /\bcrossover\s+(fund|investor|investing)\b/i,
-          /\bgrowth\b(?!\s*(marketing|hacker|hacking|manager|lead|gtm|strategist|analytics|product|consultant|and\s+gtm|\/\s*gtm))/i,
-          /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|coatue|tiger\s+global|dragoneer|iconiq|softbank|vision\s+fund|vitruvian|highland\s+europe|eurazeo|lightrock|sofina|bond\s+capital|g\s+squared|jmi\s+equity|kkr\s+growth|permira\s+growth|balderton|index\s+ventures\s+growth|felix\s+capital|smash\s+capital)\b/i,
+          /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|coatue|tiger\s+global|dragoneer|iconiq|softbank|vision\s+fund|vitruvian|highland\s+europe|eurazeo\s+growth|lightrock|sofina|bond\s+capital|g\s+squared|jmi\s+equity|kkr\s+growth|permira\s+growth|index\s+ventures\s+growth|felix\s+capital|smash\s+capital)\b/i,
+
         ],
       },
       {
