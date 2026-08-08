@@ -95,6 +95,8 @@ Deno.serve(async (req) => {
     return json({
       success: true,
       checked: rows.length,
+      staleDeleted,
+
       expired: expiredIds.length,
       live: liveIds.length,
       unknown,
