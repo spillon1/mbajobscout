@@ -131,7 +131,16 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
     label: 'Strategy',
     options: [
       { value: 'buyout', label: 'Buyout', patterns: [/\bbuyout\b/i, /\blbo\b/i, /\bleveraged\b/i] },
-      { value: 'growth-equity', label: 'Growth Equity', patterns: [/\bgrowth\b/i, /\bgrowth\s+equity\b/i] },
+      {
+        value: 'growth-equity',
+        label: 'Growth Equity',
+        patterns: [
+          /\bgrowth\s+(equity|investing|investment|investor|investors|capital|fund|funds|team|portfolio|buyout|stage)\b/i,
+          /\b(tech|technology|software)\s+growth\b/i,
+          /\bexpansion\s+capital\b/i,
+          /\blate[\s\-]?stage\b/i,
+        ],
+      },
       { value: 'credit', label: 'Credit / Debt', patterns: [/\bcredit\b/i, /\bdebt\b/i, /\bprivate\s+credit\b/i, /\bmezzanine\b/i] },
       { value: 'infrastructure', label: 'Infrastructure', patterns: [/\binfrastructure\b/i, /\binfra\b/i] },
       { value: 'secondaries', label: 'Secondaries', patterns: [/\bsecondari/i, /\bsecondary\b/i] },
