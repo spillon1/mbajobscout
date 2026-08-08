@@ -217,7 +217,13 @@ function isValidJob(job: Job, mode: ScrapeMode = 'vc'): boolean {
   if (/^(venture capital|vc)\s+(jobs|careers)\s+(in|near)\s+/i.test(job.title)) return false;
   if (/^jobs\s+(in|near)\s+/i.test(job.title)) return false;
 
+  // Expert-network / gig listings (e.g. "Expert Opportunity - VC Associate ($100/hr)")
+  if (/\bexpert\s+(opportunity|network|call|consultation)\b/i.test(titleLower)) return false;
+  if (/\$\s?\d+\s?\/\s?(hr|hour)\b/i.test(titleLower)) return false;
+  if (/\bup\s+to\s+\$[\d,]+\s*\/?\s*week\b/i.test(titleLower)) return false;
+
   // Title matches source name exactly
+
   if (titleLower === job.source.toLowerCase()) return false;
 
   // Unknown company with short or generic title
