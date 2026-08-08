@@ -122,6 +122,8 @@ function resolveJobLocation(job: { location?: string; url?: string; sourceUrl?: 
 }
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkListingsBatch } from '../_shared/job-expiry.ts';
+
 
 interface ScrapeRequest {
   sources: { name: string; url: string }[];
