@@ -60,8 +60,14 @@ export async function checkListingStatus(url: string, timeoutMs = 8000): Promise
 async function checkLinkedInStatus(url: string, timeoutMs: number): Promise<ExpiryStatus> {
   const id = url.match(/(?:jobs\/view\/(?:[^/?#]*-)?)(\d{6,})/)?.[1];
   if (!id) return 'unknown';
-  try {
-    const res = await fetch(`https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${id}`, {
+  const endpoints = [
+    `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${id}`,
+    `https://www.linkedin.com/jobs/view/${id}`,
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint, {
       redirect: 'follow',
       headers: {
         'User-Agent':
@@ -69,29 +75,32 @@ async function checkLinkedInStatus(url: string, timeoutMs: number): Promise<Expi
         'Accept': 'text/html',
       },
       signal: AbortSignal.timeout(timeoutMs),
-    });
+      });
 
-    if (res.status === 404 || res.status === 410) return 'expired';
-    if (res.status === 429 || res.status === 999 || !res.ok) return 'unknown';
+      if (res.status === 404 || res.status === 410) return 'expired';
+      // Try the public page when the guest endpoint throttles or blocks us.
+      if (res.status === 429 || res.status === 999 || !res.ok) continue;
 
-    const html = await res.text();
-    if (html.trim().length < 200) return 'expired';
+      const html = await res.text();
+      if (html.trim().length < 200) return 'expired';
 
-    if (/closed-job__flavor--closed|class="[^"]*closed-job\b/i.test(html)) return 'expired';
+      if (/closed-job__flavor--closed|class="[^"]*closed-job\b/i.test(html)) return 'expired';
 
-    const validThrough = html.match(/"validThrough"\s*:\s*"([^"]+)"/)?.[1];
-    if (validThrough) {
-      const ts = Date.parse(validThrough);
-      if (!Number.isNaN(ts) && ts < Date.now()) return 'expired';
+      const validThrough = html.match(/"validThrough"\s*:\s*"([^"]+)"/)?.[1];
+      if (validThrough) {
+        const ts = Date.parse(validThrough);
+        if (!Number.isNaN(ts) && ts < Date.now()) return 'expired';
+      }
+
+      const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+      if (EXPIRED_MARKERS.some((re) => re.test(text))) return 'expired';
+
+      return 'live';
+    } catch {
+      // Fall through to the alternate endpoint.
     }
-
-    const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    if (EXPIRED_MARKERS.some((re) => re.test(text))) return 'expired';
-
-    return 'live';
-  } catch {
-    return 'unknown';
   }
+  return 'unknown';
 }
 
 /** Run status checks with bounded concurrency. */
@@ -102,12 +111,21 @@ export async function checkListingsBatch<T>(
   timeoutMs = 8000
 ): Promise<Array<{ item: T; status: ExpiryStatus }>> {
   const out: Array<{ item: T; status: ExpiryStatus }> = [];
-  for (let i = 0; i < items.length; i += concurrency) {
-    const batch = items.slice(i, i + concurrency);
-    const results = await Promise.all(
-      batch.map(async (item) => ({ item, status: await checkListingStatus(getUrl(item), timeoutMs) }))
-    );
-    out.push(...results);
+  const linkedIn = items.filter((item) => /linkedin\.com/i.test(getUrl(item)));
+  const other = items.filter((item) => !/linkedin\.com/i.test(getUrl(item)));
+
+  async function run(group: T[], limit: number) {
+    for (let i = 0; i < group.length; i += limit) {
+      const batch = group.slice(i, i + limit);
+      const results = await Promise.all(
+        batch.map(async (item) => ({ item, status: await checkListingStatus(getUrl(item), timeoutMs) }))
+      );
+      out.push(...results);
+    }
   }
+
+  // LinkedIn aggressively throttles bursts; large batches were turning almost every
+  // check into `unknown`, allowing visibly closed roles to survive indefinitely.
+  await Promise.all([run(linkedIn, Math.min(2, concurrency)), run(other, concurrency)]);
   return out;
 }
