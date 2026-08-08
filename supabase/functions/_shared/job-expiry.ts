@@ -107,7 +107,20 @@ async function checkLinkedInStatus(url: string, timeoutMs: number): Promise<Expi
       const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
       if (EXPIRED_MARKERS.some((re) => re.test(text))) return 'expired';
 
+      // Closed guest postings still render the top card + description, but LinkedIn
+      // strips every apply CTA (apply button / contextual sign-in modal). A fully
+      // rendered card with no apply affordance means applications are closed.
+      if (endpoint.includes('jobs-guest')) {
+        const rendered = /top-card-layout__title|topcard__title/i.test(html);
+        const hasApplyCta =
+          /apply-button|apply-modal|contextual-sign-in-modal|sign-up-modal|apply-link-offsite|"applyMethod"|data-tracking-control-name="[^"]*apply/i.test(
+            html,
+          );
+        if (rendered && !hasApplyCta) return 'expired';
+      }
+
       return 'live';
+
     } catch {
       // Fall through to the alternate endpoint.
     }
