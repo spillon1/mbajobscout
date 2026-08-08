@@ -122,7 +122,7 @@ function resolveJobLocation(job: { location?: string; url?: string; sourceUrl?: 
 }
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { checkListingsBatch } from '../_shared/job-expiry.ts';
+import { checkListingsBatch, hasExpiredMarker } from '../_shared/job-expiry.ts';
 import { fetchJobDescription, mapPool } from '../_shared/job-description.ts';
 
 
@@ -354,6 +354,17 @@ Deno.serve(async (req) => {
           }
         });
         console.log(`Description enrichment: ${got}/${needsDesc.length} fetched`);
+
+        // The fetched page is the freshest evidence we have — if it carries a
+        // "listing has expired" banner, drop the job right here.
+        const beforeExpiry = dedupedResults.length;
+        for (let i = dedupedResults.length - 1; i >= 0; i--) {
+          const j: any = dedupedResults[i];
+          if (j.description && hasExpiredMarker(j.description)) dedupedResults.splice(i, 1);
+        }
+        if (beforeExpiry !== dedupedResults.length) {
+          console.log(`Dropped ${beforeExpiry - dedupedResults.length} listings with expiry banners in their page text`);
+        }
       }
     } catch (enrichErr) {
       console.error('Description enrichment failed:', enrichErr);
