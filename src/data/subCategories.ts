@@ -15,14 +15,14 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     { value: 'investment', label: 'Investment', patterns: [/\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office|strategist|trust|consult|counsel|manag|direct|officer|writer|market))/i, /\bdeal\b/i, /\borigination\b/i, /\binvestment\s+analyst\b/i, /\binvestment\s+associate\b/i, /\binvestment\s+(manager|director|principal|partner)\b/i, /\bsecondar(y|ies)\b/i, /\bvc\s+analyst\b/i, /\bvc\s+associate\b/i, /\bventure\s+(capital\s+)?(analyst|associate|principal|partner|director|manager|vp|vice\s+president)\b/i, /\bvc\s+(manager|director|partner|principal|vp|vice\s+president)\b/i, /\bventure\s+(analyst|associate|director|manager|partner|principal)\b/i] },
     { value: 'platform', label: 'Platform', patterns: [/\bplatform\b/i, /\bportfolio\s+(support|operations|success)\b/i, /\bvalue\s+creation\b/i, /\boperating\s+partner\b/i, /\bportfolio\b/i] },
     { value: 'investor-relations', label: 'Investor Relations', patterns: [/\binvestor\s+relations\b/i, /\bir\b/i, /\bfundraising\b/i, /\blp\s+relations\b/i, /\bcapital\s+raising\b/i] },
-    { value: 'fund-ops', label: 'Fund Operations', patterns: [/\bfund\s+operations\b/i, /\bfund\s+admin/i, /\bfund\s+accounting\b/i, /\bfund\s+manag/i, /\bcompliance\b/i, /\boperations\b/i, /\bfinance\b/i, /\binvestment\s+(strategist|trust|consult|counsel|manag|writer|market)/i, /\basset\s+manag/i, /\bwealth\s+manag/i, /\bportfolio\s+manag/i] },
+    { value: 'fund-ops', label: 'Fund Operations', patterns: [/\bfund\s+operations\b/i, /\bfund\s+admin/i, /\bfund\s+accounting\b/i, /\bfund\s+manag/i, /\bcompliance\b/i, /\boperations\b/i, /\bops\b/i, /\boperational\b/i, /\bfinance\b/i, /\binvestment\s+(strategist|trust|consult|counsel|manag|writer|market)/i, /\basset\s+manag/i, /\bwealth\s+manag/i, /\bportfolio\s+manag/i] },
     UNCLASSIFIED_OPTION,
   ],
   pe: [
     { value: 'investment', label: 'Investment', patterns: [/\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office))/i, /\bdeal\b/i, /\borigination\b/i, /\banalyst\b/i, /\bassociate\b/i, /\bprincipal\b/i] },
     { value: 'portfolio-ops', label: 'Portfolio Operations', patterns: [/\bportfolio\b/i, /\bvalue\s+creation\b/i, /\boperating\s+partner\b/i] },
     { value: 'investor-relations', label: 'Investor Relations', patterns: [/\binvestor\s+relations\b/i, /\bir\b/i, /\bfundraising\b/i, /\blp\s+relations\b/i, /\bcapital\s+raising\b/i] },
-    { value: 'fund-ops', label: 'Fund Operations', patterns: [/\bfund\s+operations\b/i, /\bfund\s+admin/i, /\bfund\s+accounting\b/i, /\bcompliance\b/i, /\boperations\b/i, /\bfinance\b/i] },
+    { value: 'fund-ops', label: 'Fund Operations', patterns: [/\bfund\s+operations\b/i, /\bfund\s+admin/i, /\bfund\s+accounting\b/i, /\bcompliance\b/i, /\boperations\b/i, /\bops\b/i, /\boperational\b/i, /\bfinance\b/i] },
     UNCLASSIFIED_OPTION,
   ],
   ib: [
