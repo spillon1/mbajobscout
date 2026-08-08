@@ -2144,6 +2144,14 @@ function matchesUserKeywords(title: string, company: string, description: string
 function isNotExcludedRole(title: string): boolean {
   const titleLower = title.toLowerCase();
 
+  // ── Malformed / non-job titles (source listing headline isn't a role) ──
+  // e.g. "About Alumni Ventures", "Who we are", "Join our team"
+  if (/^(about|who\s+we\s+are|our\s+(team|mission|story)|join\s+(us|our\s+team)|company\s+overview|general\s+application|talent\s+(pool|network|community)|open\s+application|speculative)\b/i.test(titleLower)) {
+    return false;
+  }
+
+
+
   // ── Hard profession exclusions (clearly not VC investment roles) ──
   const hardExclude = [
     // Tech / engineering
