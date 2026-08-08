@@ -174,6 +174,14 @@ function matchesGrowthAlert(job: ScrapedJob, description?: string, fromDescripti
     return false;
   }
 
+  // A secondaries title explicitly badged private equity / buyout belongs on the
+  // PE tab unless the title itself carries a VC / tech / growth signal.
+  if (/\bsecondar(y|ies)\b/i.test(title) &&
+      /\b(private\s+equity|\bpe\b|buyout|lbo|infrastructure|real\s+estate|credit)\b/i.test(title) &&
+      !/\b(vc|venture|tech|technology|software|growth|startup)\b/i.test(title)) {
+    return false;
+  }
+
   if (!isGrowth && !secondariesIsTechFlavoured) return false;
 
   // Guard: a plain "private equity buyout" role that only mentions growth in passing
