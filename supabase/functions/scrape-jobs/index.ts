@@ -1786,6 +1786,7 @@ function isLikelyIbRole(title: string, company: string, description: string | un
     /\bsolicitor\b/i, /\blawyer\b/i, /\bbarrister\b/i, /\bparalegal\b/i,
     /\blegal\s+counsel\b/i, /\blegal\s+associate\b/i,
     /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
+    /\btreasury\b/i, /\btreasurer\b/i,
     /\baccountant\b/i, /\bauditor\b/i, /\bfund\s+controller\b/i,
     /\bportfolio\s+controller\b/i, /\bfund\s+administ/i,
     /\bfinance\s+(analyst|director|manager|business\s+partner)\b/i,
@@ -2105,6 +2106,7 @@ function isNotExcludedRole(title: string): boolean {
     /\bcorporate\s+(solicitor|lawyer|counsel|attorney)/i,
 
     // Finance ops / accounting
+    /\btreasury\b/i, /\btreasurer\b/i,
     /\baccountant\b/i, /\bauditor\b/i, /\bfund\s+controller\b/i,
     /\bportfolio\s+controller\b/i, /\bfund\s+administ/i, /\bportfolio\s+monitor/i,
     /\bfinance\s+(analyst|director|manager|business\s+partner)\b/i,
