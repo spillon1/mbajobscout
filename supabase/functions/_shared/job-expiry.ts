@@ -51,6 +51,47 @@ export async function checkListingStatus(url: string, timeoutMs = 8000): Promise
   }
 }
 
+/**
+ * LinkedIn hides the "no longer accepting applications" banner from logged-out
+ * visitors, so the public page always looks live. The guest posting endpoint is the
+ * only signal available: removed/closed posts return 404/410 (or an empty body),
+ * and JSON-LD sometimes carries a past `validThrough` date.
+ */
+async function checkLinkedInStatus(url: string, timeoutMs: number): Promise<ExpiryStatus> {
+  const id = url.match(/(?:jobs\/view\/(?:[^/?#]*-)?)(\d{6,})/)?.[1];
+  if (!id) return 'unknown';
+  try {
+    const res = await fetch(`https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${id}`, {
+      redirect: 'follow',
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+        'Accept': 'text/html',
+      },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+
+    if (res.status === 404 || res.status === 410) return 'expired';
+    if (res.status === 429 || res.status === 999 || !res.ok) return 'unknown';
+
+    const html = await res.text();
+    if (html.trim().length < 200) return 'expired';
+
+    const validThrough = html.match(/"validThrough"\s*:\s*"([^"]+)"/)?.[1];
+    if (validThrough) {
+      const ts = Date.parse(validThrough);
+      if (!Number.isNaN(ts) && ts < Date.now()) return 'expired';
+    }
+
+    const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    if (EXPIRED_MARKERS.some((re) => re.test(text))) return 'expired';
+
+    return 'live';
+  } catch {
+    return 'unknown';
+  }
+}
+
 /** Run status checks with bounded concurrency. */
 export async function checkListingsBatch<T>(
   items: T[],
