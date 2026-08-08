@@ -208,13 +208,15 @@ Deno.serve(async (req) => {
     for (const job of jobs) {
       const key = titleCompanyKey(job.title, job.company);
       const nUrl = normalizeJobUrl(job.url);
-      if (seen.has(key) || seen.has(nUrl)) continue;
+      const titleKey = normalizeText(job.title);
+      if (seen.has(key) || seen.has(nUrl) || seen.has(titleKey)) continue;
       if (alreadySent.has(key)) continue;
       if (actionedUrls.has(nUrl) || actionedTC.has(key)) continue;
       if (!isLondonish(job.location)) continue;
       if (!matchesGrowthAlert(job)) continue;
       seen.add(key);
       seen.add(nUrl);
+      seen.add(titleKey);
       matched.push(job);
     }
 
