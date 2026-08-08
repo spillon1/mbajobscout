@@ -1,0 +1,1 @@
+DELETE FROM public.scraped_jobs WHERE title ~* '(fundrais|capital rais|placement agent)';
