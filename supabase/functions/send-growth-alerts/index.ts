@@ -296,7 +296,7 @@ Deno.serve(async (req) => {
 
     if (toEnrich.length > 0) {
       const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY') ?? undefined;
-      const descriptions = await mapPool(toEnrich, 6, (job) =>
+      const descriptions = await mapPool(toEnrich, 3, (job) =>
         fetchJobDescription(job.url, { firecrawlKey }).catch(() => ''));
 
       const updates: { id: string; description: string }[] = [];
