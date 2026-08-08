@@ -812,7 +812,7 @@ function parseVenture5Jobs(
 
     let type = 'full-time';
     const fullText = `${title} ${company}`.toLowerCase();
-    if (fullText.includes('intern') && !fullText.includes('internal')) type = 'internship';
+    if (/\bintern(?:ship|s)?\b/.test(fullText)) type = 'internship';
     else if (fullText.includes('graduate') || fullText.includes('entry level') || fullText.includes('visiting analyst')) type = 'graduate';
 
     if (jobs.some((j) => j.url === url || (j.title === title && j.company === company))) continue;
@@ -962,7 +962,7 @@ async function scrapeIndeed(
       .map((j: any) => {
         let type = 'full-time';
         const tl = (j.title || '').toLowerCase();
-        if (tl.includes('intern') && !tl.includes('internal')) type = 'internship';
+        if (/\bintern(?:ship|s)?\b/.test(tl)) type = 'internship';
         else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
 
         let jobUrl = j.url || '';
@@ -1093,7 +1093,7 @@ function parseIndeedJobs(
 
     let type: string = 'full-time';
     const tl = title.toLowerCase();
-    if (tl.includes('intern') && !tl.includes('internal')) type = 'internship';
+    if (/\bintern(?:ship|s)?\b/.test(tl)) type = 'internship';
     else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
 
     if (!jobs.some(j => j.title === title && j.company === company)) {
@@ -1131,7 +1131,7 @@ function parseIndeedJobs(
 
       let type: string = 'full-time';
       const tl = title.toLowerCase();
-      if (tl.includes('intern') && !tl.includes('internal')) type = 'internship';
+      if (/\bintern(?:ship|s)?\b/.test(tl)) type = 'internship';
       else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
 
       if (!jobs.some(j => j.title === title && j.company === company)) {
@@ -1395,7 +1395,7 @@ function parseGlassdoorJobs(
 
     let type = 'full-time';
     const tl = title.toLowerCase();
-    if (tl.includes('intern') && !tl.includes('internal')) type = 'internship';
+    if (/\bintern(?:ship|s)?\b/.test(tl)) type = 'internship';
     else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
 
     if (!jobs.some(j => j.title === title && j.company === company)) {
@@ -1576,7 +1576,7 @@ function parseOcc12TwentyJobs(
 
     let type = 'full-time';
     const titleLower = title.toLowerCase();
-    if (titleLower.includes('intern') && !titleLower.includes('internal')) type = 'internship';
+    if (/\bintern(?:ship|s)?\b/.test(titleLower)) type = 'internship';
     else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
 
     if (!jobs.some(j => j.title === title && j.company === company)) {
@@ -1664,7 +1664,7 @@ function parseOcc12TwentyJobs(
 
       let type = 'full-time';
       const titleLower = title.toLowerCase();
-      if (titleLower.includes('intern') && !titleLower.includes('internal')) type = 'internship';
+      if (/\bintern(?:ship|s)?\b/.test(titleLower)) type = 'internship';
       else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
 
       const hash = Array.from(new TextEncoder().encode(title)).reduce((a, b) => ((a << 5) - a + b) | 0, 0);
@@ -2589,7 +2589,7 @@ function parseEFinancialCareersJobs(
 
     let type = 'full-time';
     const titleLower = title.toLowerCase();
-    if (titleLower.includes('intern') && !titleLower.includes('internal')) type = 'internship';
+    if (/\bintern(?:ship|s)?\b/.test(titleLower)) type = 'internship';
     else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
 
     if (jobs.some(j => j.url === url)) continue;
@@ -2694,7 +2694,7 @@ async function scrapeRssFeed(
     if (title.length < 3) title = item.title.split(/\s+[@-]\s+/)[0].trim();
 
     let type = 'full-time';
-    if (fullText.includes('intern') && !fullText.includes('internal')) type = 'internship';
+    if (/\bintern(?:ship|s)?\b/.test(fullText)) type = 'internship';
     else if (fullText.includes('graduate') || fullText.includes('grad scheme') || fullText.includes('entry level') || fullText.includes('entry-level')) type = 'graduate';
 
     let salary: string | undefined;
@@ -2948,7 +2948,7 @@ function parseStructuredCards(
 
     let type = 'full-time';
     const typeLower = typeField.toLowerCase();
-    if (typeLower.includes('intern')) type = 'internship';
+    if (/\bintern(?:ship|s)?\b/.test(typeLower)) type = 'internship';
     else if (typeLower.includes('graduate') || typeLower.includes('grad')) type = 'graduate';
     else if (typeLower.includes('other')) type = 'full-time';
 
@@ -2996,7 +2996,7 @@ function extractJobDetails(
   }
 
   let type: string = 'full-time';
-  if (fullText.includes('intern') && !fullText.includes('internal')) type = 'internship';
+  if (/\bintern(?:ship|s)?\b/.test(fullText)) type = 'internship';
   else if (fullText.includes('graduate') || fullText.includes('grad scheme') || fullText.includes('entry level')) type = 'graduate';
 
   let salary: string | undefined;
@@ -3110,7 +3110,7 @@ function parseGoogleJobs(markdown: string, source: { name: string; url: string }
 
     let type = 'full-time';
     const fullText = `${title} ${company}`.toLowerCase();
-    if (fullText.includes('intern') && !fullText.includes('internal') && !fullText.includes('international')) type = 'internship';
+    if (/\bintern(?:ship|s)?\b/.test(fullText)) type = 'internship';
     else if (fullText.includes('graduate') || fullText.includes('entry level')) type = 'graduate';
 
     let salary: string | undefined;
@@ -3570,7 +3570,7 @@ function parseLinkedInGuestJobs(
 
     let type = 'full-time';
     const tl = title.toLowerCase();
-    if (tl.includes('intern') && !tl.includes('internal')) type = 'internship';
+    if (/\bintern(?:ship|s)?\b/.test(tl)) type = 'internship';
     else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
 
     if (!jobs.some(j => j.title === title && j.company === company)) {
@@ -3620,7 +3620,7 @@ function parseLinkedInGuestJobs(
 
       let type = 'full-time';
       const tl = title.toLowerCase();
-      if (tl.includes('intern') && !tl.includes('internal')) type = 'internship';
+      if (/\bintern(?:ship|s)?\b/.test(tl)) type = 'internship';
       else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
 
       if (!jobs.some(j => j.title === title && j.company === company)) {
@@ -3643,7 +3643,7 @@ function parseLinkedInGuestJobs(
 
 function inferInnovatorsRoomType(title: string, typeHint: string): string {
   const lower = (title + ' ' + typeHint).toLowerCase();
-  if (lower.includes('intern') && !lower.includes('internal')) return 'internship';
+  if (/\bintern(?:ship|s)?\b/.test(lower)) return 'internship';
   if (/\b(graduate|entry.level|trainee)\b/.test(lower)) return 'graduate';
   return 'full-time';
 }
