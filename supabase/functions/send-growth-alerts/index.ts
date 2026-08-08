@@ -107,15 +107,44 @@ function isJunk(title: string, company: string, source: string, description: str
   return false;
 }
 
-function matchesGrowthAlert(job: ScrapedJob): boolean {
+/** Cheap gate: is this even an investment role in the right shape? */
+function isCandidate(job: ScrapedJob): boolean {
   const title = job.title || '';
-  const desc = job.description || '';
+  const company = job.company || '';
+  if (isJunk(title, company, job.source || '', job.description || '')) return false;
+  if (NOISE.some((p) => p.test(title))) return false;
+  if (!ROLE_SHAPE.test(title)) return false;
+  return true;
+}
+
+// Strong, unambiguous stage phrases — used when the signal comes from the body
+// of a job description rather than the title (descriptions mention "growth" in
+// boilerplate all the time, so a single loose hit is not enough).
+const STRONG_GROWTH_TERMS: RegExp[] = [
+  /\bgrowth\s+(equity|investing|investment|investments|investor|capital)\b/i,
+  /\b(tech|technology|software)\s+growth\b/i,
+  /\blate[\s\-]?stage\b/i,
+  /\bpre[\s\-]?ipo\b/i,
+  /\bexpansion\s+capital\b/i,
+  /\bseries\s+[c-z]\b/i,
+  /\bsecondar(y|ies)\b/i,
+];
+
+function countStrongHits(text: string): number {
+  return STRONG_GROWTH_TERMS.reduce((n, p) => n + (p.test(text) ? 1 : 0), 0);
+}
+
+/**
+ * Stage match. `fromDescription` = the text includes a fetched job description,
+ * so we demand stronger evidence to avoid boilerplate false positives.
+ */
+function matchesGrowthAlert(job: ScrapedJob, description?: string, fromDescription = false): boolean {
+  const title = job.title || '';
+  const desc = description ?? job.description ?? '';
   const company = job.company || '';
   const text = `${title} ${desc} ${company}`;
 
-  if (isJunk(title, company, job.source || '', desc)) return false;
-  if (NOISE.some((p) => p.test(title))) return false;
-  if (!ROLE_SHAPE.test(title)) return false;
+  if (!isCandidate(job)) return false;
 
   const isGrowth = GROWTH_TERMS.some((p) => p.test(text));
   const mentionsSecondaries = SECONDARY_TERMS.some((p) => p.test(text));
@@ -133,8 +162,21 @@ function matchesGrowthAlert(job: ScrapedJob): boolean {
   // Guard: a plain "private equity buyout" role that only mentions growth in passing
   if (!mentionsSecondaries && /\b(buyout|lbo|leveraged\s+finance)\b/i.test(title)) return false;
 
+  if (fromDescription) {
+    // Description-driven hit: require either an explicit stage phrase in the
+    // opening of the posting, or two distinct strong signals anywhere.
+    const head = desc.slice(0, 1200);
+    const strongHead = STRONG_GROWTH_TERMS.some((p) => p.test(head));
+    if (!strongHead && countStrongHits(desc) < 2) return false;
+    // A buyout/PE-heavy description wins over a passing growth mention.
+    const peHits = (desc.match(/\b(buyout|lbo|leveraged\s+buyout|large[\s\-]?cap\s+private\s+equity)\b/gi) ?? []).length;
+    const growthHits = (desc.match(/\b(growth\s+(equity|capital|investing|investment)|late[\s\-]?stage|pre[\s\-]?ipo|venture)\b/gi) ?? []).length;
+    if (peHits > growthHits) return false;
+  }
+
   return true;
 }
+
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
