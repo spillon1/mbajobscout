@@ -2649,42 +2649,14 @@ async function scrapeRssFeed(
     });
   }
 
-  // Verify listings are still live (WP Job Manager marks dead roles "This listing has expired")
-  const verified = await filterOutExpiredListings(jobs);
+  // Verify each listing against its own page — expired roles stay in these feeds forever
+  const checked = await checkListingsBatch(jobs, (j) => j.url, 8);
+  const verified = checked.filter((c) => c.status !== 'expired').map((c) => c.item);
   console.log(`RSS live check: ${verified.length}/${jobs.length} still open for ${source.name}`);
 
   return verified;
 }
 
-const EXPIRED_MARKERS = /this listing has expired|this job (listing )?has expired|position (has been )?filled|no longer accepting applications|applications (are )?closed/i;
-
-async function filterOutExpiredListings(jobs: any[]): Promise<any[]> {
-  const CONCURRENCY = 5;
-  const live: any[] = [];
-
-  for (let i = 0; i < jobs.length; i += CONCURRENCY) {
-    const batch = jobs.slice(i, i + CONCURRENCY);
-    const results = await Promise.all(
-      batch.map(async (job) => {
-        try {
-          const res = await fetch(job.url, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; JobScout/1.0)' },
-            signal: AbortSignal.timeout(8000),
-          });
-          if (res.status === 404 || res.status === 410) return null;
-          if (!res.ok) return job; // Can't tell — keep it
-          const html = (await res.text()).slice(0, 200000);
-          return EXPIRED_MARKERS.test(html) ? null : job;
-        } catch {
-          return job; // Network hiccup — don't drop
-        }
-      })
-    );
-    for (const r of results) if (r) live.push(r);
-  }
-
-  return live;
-}
 
 
 function parseRssItems(xml: string): Array<{ title: string; link: string; description: string; pubDate: string }> {
