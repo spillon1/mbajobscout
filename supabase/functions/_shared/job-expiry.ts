@@ -14,12 +14,24 @@ const EXPIRED_MARKERS = [
 
 export type ExpiryStatus = 'live' | 'expired' | 'unknown';
 
+/** True when a page/description body contains an explicit "listing closed" marker. */
+export function hasExpiredMarker(text: string): boolean {
+  if (!text) return false;
+  return EXPIRED_MARKERS.some((re) => re.test(text));
+}
+
+/** Listing URLs often arrive HTML-escaped (`&amp;`), which breaks query params. */
+function normalizeUrl(url: string): string {
+  return (url || '').replace(/&amp;/gi, '&').trim();
+}
+
 /**
  * Fetch a listing and decide whether it is still open.
  * Returns 'unknown' when we can't tell (blocked, timeout, non-2xx) so callers never
  * drop a job on a transient failure.
  */
-export async function checkListingStatus(url: string, timeoutMs = 8000): Promise<ExpiryStatus> {
+export async function checkListingStatus(rawUrl: string, timeoutMs = 8000): Promise<ExpiryStatus> {
+  const url = normalizeUrl(rawUrl);
   if (!url || /^https?:\/\//i.test(url) === false) return 'unknown';
   if (/linkedin\.com/i.test(url)) return await checkLinkedInStatus(url, timeoutMs);
 
