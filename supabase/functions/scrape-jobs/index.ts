@@ -337,6 +337,30 @@ Deno.serve(async (req) => {
 
     console.log(`Total jobs found: ${dedupedResults.length} (filtered from ${results.length})`);
 
+    // Fetch descriptions for listings that arrived without one. Stage filters
+    // (Growth / Late Stage, Secondaries) need the body text — many relevant roles
+    // are titled just "Investor" or "Investment Associate".
+    try {
+      const needsDesc = dedupedResults.filter((j: any) => !j.description || j.description.length < 200).slice(0, 220);
+      if (needsDesc.length > 0) {
+        const deadline = Date.now() + 60_000;
+        let got = 0;
+        await mapPool(needsDesc, 10, async (job: any) => {
+          if (Date.now() > deadline) return;
+          const text = await fetchJobDescription(job.url || job.sourceUrl || '', { firecrawlKey: apiKey });
+          if (text && text.length > 120) {
+            job.description = text.slice(0, 12000);
+            got++;
+          }
+        });
+        console.log(`Description enrichment: ${got}/${needsDesc.length} fetched`);
+      }
+    } catch (enrichErr) {
+      console.error('Description enrichment failed:', enrichErr);
+    }
+
+
+
     // Persist to DB if requested (used by scheduled cron)
     if (persist && dedupedResults.length > 0) {
       try {
