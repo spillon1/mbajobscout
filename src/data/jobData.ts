@@ -42,7 +42,17 @@ export const DEFAULT_KEYWORDS = [
   'Venture capital fund operations',
   'VC fund operations',
   'VC investor relations',
+  'Growth equity',
+  'Growth investing',
+  'Technology growth investing',
+  'Growth investor',
+  'Late stage venture capital',
+  'Pre-IPO investing',
+  'Venture capital secondaries',
+  'Tech secondaries',
+  'Growth secondaries',
 ];
+
 
 // These are MOCK jobs for UI demonstration only — not real listings.
 // Real data will come from Firecrawl scraping once connected.

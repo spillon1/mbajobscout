@@ -2284,6 +2284,23 @@ function isLikelyVcRole(title: string, company: string, description: string | un
   ];
   if (irTitlePatterns.some(p => p.test(titleLower))) return true;
 
+  // ── Growth equity / late-stage / tech-secondaries roles belong in VC scope ──
+  const growthText = `${titleLower} ${companyLower}`;
+  const pureePeSecondaries = /\bprivate\s+equity\s+secondar/.test(growthText) || /\bbuyout\s+secondar/.test(growthText);
+  const growthSignals = [
+    /\bgrowth\s+(equity|investing|investment|investor|capital|fund|funds|buyout)\b/,
+    /\b(tech|technology|software)\s+growth\b/,
+    /\blate[\s\-]?stage\s+(vc|venture|invest|fund|growth)/,
+    /\bpre[\s\-]?ipo\b/,
+    /\bexpansion\s+capital\b/,
+    /\bcontinuation\s+(fund|vehicle)\b/,
+    /\b(vc|venture|venture\s+capital|tech|technology|growth|software)[^.\n]{0,40}\bsecondar(y|ies)\b/,
+    /\bsecondar(y|ies)\b[^.\n]{0,40}\b(vc|venture|venture\s+capital|tech|technology|growth)\b/,
+    /\b(gp|lp)[\s\-]?led\s+secondar/,
+  ];
+  const investingContext = /\b(analyst|associate|principal|partner|director|vp|vice\s+president|managing\s+director|investor|investment|portfolio|deal|origination|internship|intern)\b/.test(titleLower);
+  if (!pureePeSecondaries && investingContext && growthSignals.some(p => p.test(growthText))) return true;
+
   return false;
 }
 
