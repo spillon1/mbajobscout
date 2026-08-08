@@ -79,12 +79,13 @@ Deno.serve(async (req) => {
           await supabase.from('scraped_jobs').delete().in('id', expiredIds.slice(i, i + 100));
         }
       }
-      const touch = [...liveIds, ...results.filter((r) => r.status === 'unknown').map((r) => (r.item as any).id)];
-      for (let i = 0; i < touch.length; i += 100) {
+      // Do not mark an inconclusive check as completed. It must remain due so the
+      // next cron run retries it instead of hiding it for another three days.
+      for (let i = 0; i < liveIds.length; i += 100) {
         await supabase
           .from('scraped_jobs')
           .update({ expiry_checked_at: new Date().toISOString() })
-          .in('id', touch.slice(i, i + 100));
+          .in('id', liveIds.slice(i, i + 100));
       }
     }
 

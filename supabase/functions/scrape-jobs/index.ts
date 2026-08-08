@@ -369,11 +369,23 @@ Deno.serve(async (req) => {
         const supabase = createClient(supabaseUrl, serviceKey);
 
         // Verify every candidate against its own listing page before storing it.
-        // 'unknown' is kept (blocked/transient), only confirmed 'expired' is dropped.
+        // LinkedIn must be positively live: keeping throttled/unknown checks was the
+        // main route by which closed listings repeatedly entered the database.
         let persistable = dedupedResults;
+        const expiryStatusByUrl = new Map<string, 'live' | 'expired' | 'unknown'>();
         try {
           const verified = await checkListingsBatch(dedupedResults, (j: any) => j.url || j.sourceUrl || '', 12, 8000);
-          persistable = verified.filter((v) => v.status !== 'expired').map((v) => v.item);
+          for (const result of verified) {
+            const item = result.item as any;
+            expiryStatusByUrl.set(item.url || item.sourceUrl || '', result.status);
+          }
+          persistable = verified
+            .filter((v) => {
+              const item = v.item as any;
+              const isLinkedIn = /linkedin\.com/i.test(item.url || item.sourceUrl || '');
+              return v.status === 'live' || (!isLinkedIn && v.status === 'unknown');
+            })
+            .map((v) => v.item);
           console.log(`[Persist] Expiry check dropped ${dedupedResults.length - persistable.length} expired listings`);
         } catch (expiryErr) {
           console.error('[Persist] Expiry verification failed, keeping all:', expiryErr);
@@ -395,7 +407,7 @@ Deno.serve(async (req) => {
             description: j.description || null,
             salary: j.salary || null,
             last_seen_at: seenAt,
-            expiry_checked_at: seenAt,
+            expiry_checked_at: expiryStatusByUrl.get(j.url || j.sourceUrl || '') === 'live' ? seenAt : null,
           };
         });
 
