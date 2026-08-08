@@ -112,8 +112,11 @@ async function checkLinkedInStatus(url: string, timeoutMs: number): Promise<Expi
       // rendered card with no apply affordance means applications are closed.
       if (endpoint.includes('jobs-guest')) {
         const rendered = /top-card-layout__title|topcard__title/i.test(html);
+        // Generic sign-in modals are injected for unrelated controls (AI, save,
+        // ellipsis, etc.) and therefore are not evidence that applications are
+        // open. Only count markup explicitly tied to applying for this job.
         const hasApplyCta =
-          /apply-button|apply-modal|contextual-sign-in-modal|sign-up-modal|apply-link-offsite|"applyMethod"|data-tracking-control-name="[^"]*apply/i.test(
+          /apply-button|apply-modal|apply-link-offsite|"applyMethod"|data-tracking-control-name="[^"]*apply/i.test(
             html,
           );
         if (rendered && !hasApplyCta) return 'expired';
