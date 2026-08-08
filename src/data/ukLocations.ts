@@ -90,6 +90,15 @@ function isRemoteLocation(loc: string): boolean {
   return /\bremote\b/i.test(loc);
 }
 
+/** True when the location text names no specific town (e.g. "United Kingdom", "England, UK") */
+function isGenericUkLocation(loc: string): boolean {
+  const stripped = loc
+    .replace(/\b(united kingdom|great britain|england|scotland|wales|northern ireland|uk|gb|greater|area|region|various|locations?|nationwide|multiple)\b/g, ' ')
+    .replace(/[^a-z]+/g, ' ')
+    .trim();
+  return stripped.length === 0;
+}
+
 /** Filter a job by selected city. Returns true if job should be included. */
 export function jobMatchesCity(jobLocation: string, selectedCity: string): boolean {
   if (selectedCity === 'United Kingdom') return true;
@@ -105,13 +114,9 @@ export function jobMatchesCity(jobLocation: string, selectedCity: string): boole
 
   if (loc.includes(cityLower)) return true;
   if (aliases.some((a) => loc.includes(a))) return true;
-  // Generic UK-wide listings match any city, but NOT remote-only
-  if (loc.includes('united kingdom') || loc === 'uk' || loc.includes('various')) return true;
-  // Drop if it mentions a different UK city
-  const otherCities = UK_CITIES
-    .filter((c) => c.value !== 'United Kingdom' && c.value !== 'Remote' && c.value.toLowerCase() !== cityLower)
-    .map((c) => c.value.toLowerCase());
-  if (otherCities.some((c) => loc.includes(c))) return false;
+  // UK-wide listings (no specific town named) match any city, but NOT remote-only
+  if (!isRemoteLocation(loc) && isGenericUkLocation(loc)) return true;
+  // Any other named town/city → not a match
   return false;
 }
 
