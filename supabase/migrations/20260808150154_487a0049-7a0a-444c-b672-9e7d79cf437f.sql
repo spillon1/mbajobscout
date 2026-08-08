@@ -1,0 +1,1 @@
+DELETE FROM public.scraped_jobs WHERE title ~* '(fund management|fund operations|fund accountant)';
