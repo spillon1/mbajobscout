@@ -4,6 +4,7 @@ const corsHeaders = {
 };
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { fetchJobDescription, mapPool } from '../_shared/job-description.ts';
 
 const ALERT_KEY = 'vc-growth-secondaries';
 const ALERT_EMAIL = 'spillon@gmail.com';
@@ -53,11 +54,22 @@ const LONDON = /\blondon\b/i;
 const UK_REMOTE = /\b(remote|hybrid|united\s+kingdom|uk|england)\b/i;
 const NON_UK = /\b(usa|u\.s\.|united\s+states|canada|india|germany|france|spain|italy|australia|singapore|hong\s+kong|dubai|uae|netherlands|ireland|new\s+york|nyc|san\s+francisco|palo\s+alto|menlo\s+park|toronto|chicago|boston|seattle|austin|los\s+angeles|berlin|munich|paris|amsterdam|zurich|geneva|stockholm|madrid|milan|mumbai|bangalore|sydney|melbourne|tel\s+aviv|tokyo|shanghai|[a-z]{2},\s*(ca|ny|ma|tx|wa|il|co|ga|fl))\b/i;
 
+// Named UK cities that are clearly not London
+const UK_NON_LONDON = /\b(oxford|cambridge|manchester|birmingham|leeds|bristol|edinburgh|glasgow|cardiff|belfast|liverpool|newcastle|sheffield|nottingham|reading|brighton|southampton|aberdeen|dundee|york|norwich|exeter|bath|coventry|milton\s+keynes)\b/i;
+
 function isLondonish(location: string): boolean {
   const loc = (location || '').toLowerCase();
   if (!loc.trim()) return false;
   if (NON_UK.test(loc)) return false;
-  return LONDON.test(loc) || UK_REMOTE.test(loc);
+  if (LONDON.test(loc)) return true;
+  if (UK_NON_LONDON.test(loc)) return false;
+
+  // "Reigate, England, United Kingdom" → named UK town that isn't London
+  const city = loc.split(',')[0].trim();
+  const generic = /^(england|scotland|wales|northern\s+ireland|united\s+kingdom|uk|gb|great\s+britain|remote|hybrid|remote\s*\/?\s*hybrid|anywhere)$/;
+  if (city && !generic.test(city)) return false;
+
+  return UK_REMOTE.test(loc);
 }
 
 // ── Growth / late-stage signals ──
@@ -83,6 +95,9 @@ const SECONDARY_TERMS: RegExp[] = [
 // ── Pure PE / non-tech secondaries → belongs on the PE tab ──
 const PE_SECONDARY_MARKERS = /\b(buyout|lbo|leveraged|private\s+equity\s+secondar|pe\s+secondar|infrastructure\s+secondar|real\s+estate\s+secondar|credit\s+secondar|private\s+credit|real\s+assets?\s+secondar)\b/i;
 
+// ── Sell-side / advisory, not direct investing ──
+const ADVISORY = /\b(investment\s+bank(ing)?|placement\s+agent|secondary\s+advisory|secondaries\s+advisory|m&a\s+advisory|capital\s+markets\s+advisory|fund\s+placement|coverage\s+banker|capital\s+raising|fundrais(ing|er))\b/i;
+
 // ── Non-investment noise ──
 const NOISE: RegExp[] = [
   /\bgrowth\s+(marketing|hacker|hacking|manager|lead|strategist|analytics|product|marketer|specialist|executive)\b/i,
@@ -106,15 +121,49 @@ function isJunk(title: string, company: string, source: string, description: str
   return false;
 }
 
-function matchesGrowthAlert(job: ScrapedJob): boolean {
+/** Cheap gate: is this even an investment role in the right shape? */
+function isCandidate(job: ScrapedJob): boolean {
   const title = job.title || '';
-  const desc = job.description || '';
+  const company = job.company || '';
+  if (isJunk(title, company, job.source || '', job.description || '')) return false;
+  if (NOISE.some((p) => p.test(title))) return false;
+  if (ADVISORY.test(title) || ADVISORY.test(company)) return false;
+  // Wrong asset class for a VC/growth alert
+  if (/\b(private\s+credit|private\s+debt|direct\s+lending|infrastructure|real\s+estate|real\s+assets?|distressed|mezzanine)\b/i.test(title)) return false;
+  // Title names a non-London UK city (feeds mislabelled source locations)
+  if (UK_NON_LONDON.test(title) && !LONDON.test(title)) return false;
+  if (!ROLE_SHAPE.test(title)) return false;
+  return true;
+}
+
+// Strong, unambiguous stage phrases — used when the signal comes from the body
+// of a job description rather than the title (descriptions mention "growth" in
+// boilerplate all the time, so a single loose hit is not enough).
+const STRONG_GROWTH_TERMS: RegExp[] = [
+  /\bgrowth\s+(equity|investing|investment|investments|investor|capital)\b/i,
+  /\b(tech|technology|software)\s+growth\b/i,
+  /\blate[\s\-]?stage\b/i,
+  /\bpre[\s\-]?ipo\b/i,
+  /\bexpansion\s+capital\b/i,
+  /\bseries\s+[c-z]\b/i,
+  /\bsecondar(y|ies)\b/i,
+];
+
+function countStrongHits(text: string): number {
+  return STRONG_GROWTH_TERMS.reduce((n, p) => n + (p.test(text) ? 1 : 0), 0);
+}
+
+/**
+ * Stage match. `fromDescription` = the text includes a fetched job description,
+ * so we demand stronger evidence to avoid boilerplate false positives.
+ */
+function matchesGrowthAlert(job: ScrapedJob, description?: string, fromDescription = false): boolean {
+  const title = job.title || '';
+  const desc = description ?? job.description ?? '';
   const company = job.company || '';
   const text = `${title} ${desc} ${company}`;
 
-  if (isJunk(title, company, job.source || '', desc)) return false;
-  if (NOISE.some((p) => p.test(title))) return false;
-  if (!ROLE_SHAPE.test(title)) return false;
+  if (!isCandidate(job)) return false;
 
   const isGrowth = GROWTH_TERMS.some((p) => p.test(text));
   const mentionsSecondaries = SECONDARY_TERMS.some((p) => p.test(text));
@@ -127,13 +176,34 @@ function matchesGrowthAlert(job: ScrapedJob): boolean {
     return false;
   }
 
+  // A secondaries title explicitly badged private equity / buyout belongs on the
+  // PE tab unless the title itself carries a VC / tech / growth signal.
+  if (/\bsecondar(y|ies)\b/i.test(title) &&
+      /\b(private\s+equity|\bpe\b|buyout|lbo|infrastructure|real\s+estate|credit)\b/i.test(title) &&
+      !/\b(vc|venture|tech|technology|software|growth|startup)\b/i.test(title)) {
+    return false;
+  }
+
   if (!isGrowth && !secondariesIsTechFlavoured) return false;
 
   // Guard: a plain "private equity buyout" role that only mentions growth in passing
   if (!mentionsSecondaries && /\b(buyout|lbo|leveraged\s+finance)\b/i.test(title)) return false;
 
+  if (fromDescription) {
+    // Description-driven hit: require either an explicit stage phrase in the
+    // opening of the posting, or two distinct strong signals anywhere.
+    const head = desc.slice(0, 1200);
+    const strongHead = STRONG_GROWTH_TERMS.some((p) => p.test(head));
+    if (!strongHead && countStrongHits(desc) < 2) return false;
+    // A buyout/PE-heavy description wins over a passing growth mention.
+    const peHits = (desc.match(/\b(buyout|lbo|leveraged\s+buyout|large[\s\-]?cap\s+private\s+equity)\b/gi) ?? []).length;
+    const growthHits = (desc.match(/\b(growth\s+(equity|capital|investing|investment)|late[\s\-]?stage|pre[\s\-]?ipo|venture)\b/gi) ?? []).length;
+    if (peHits > growthHits) return false;
+  }
+
   return true;
 }
+
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -204,7 +274,9 @@ Deno.serve(async (req) => {
 
     const seen = new Set<string>();
     const matched: ScrapedJob[] = [];
+    const needsDescription: ScrapedJob[] = [];
 
+    // Pass 1 — decide from what we already have (title/company + any stored description)
     for (const job of jobs) {
       const key = titleCompanyKey(job.title, job.company);
       const nUrl = normalizeJobUrl(job.url);
@@ -213,16 +285,61 @@ Deno.serve(async (req) => {
       if (alreadySent.has(key)) continue;
       if (actionedUrls.has(nUrl) || actionedTC.has(key)) continue;
       if (!isLondonish(job.location)) continue;
-      if (!matchesGrowthAlert(job)) continue;
+      if (!isCandidate(job)) continue;
+
       seen.add(key);
       seen.add(nUrl);
       seen.add(titleKey);
-      matched.push(job);
+
+      const storedDesc = (job.description ?? '').trim();
+      // Title-only signal, or a stored description judged with the strict rules
+      if (matchesGrowthAlert({ ...job, description: '' }) ||
+          (storedDesc && matchesGrowthAlert(job, storedDesc, true))) {
+        matched.push(job);
+      } else if (!storedDesc) {
+        // Ambiguous title (e.g. plain "Investor") and no description stored —
+        // fetch the posting so stage can be judged from the full text.
+        needsDescription.push(job);
+      }
     }
+
+    // Pass 2 — fetch full descriptions for the ambiguous ones, then re-test
+    const maxEnrich = Number(url.searchParams.get('max_enrich') ?? (body?.max_enrich as number) ?? 150);
+    const toEnrich = needsDescription.slice(0, maxEnrich);
+    let enriched = 0;
+    let enrichedMatches = 0;
+
+    if (toEnrich.length > 0) {
+      const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY') ?? undefined;
+      const descriptions = await mapPool(toEnrich, 3, (job) =>
+        fetchJobDescription(job.url, { firecrawlKey }).catch(() => ''));
+
+      const updates: { id: string; description: string }[] = [];
+      toEnrich.forEach((job, i) => {
+        const desc = descriptions[i] ?? '';
+        if (desc.length > 120) {
+          enriched++;
+          updates.push({ id: job.id, description: desc });
+          if (matchesGrowthAlert(job, desc, true)) {
+            enrichedMatches++;
+            matched.push({ ...job, description: desc });
+          }
+        }
+      });
+
+      // Cache descriptions back so the app's filters improve too
+      for (const u of updates) {
+        await supabase.from('scraped_jobs').update({ description: u.description }).eq('id', u.id);
+      }
+    }
+
+    console.log(`Growth alert: scanned=${jobs.length} ambiguous=${needsDescription.length} enriched=${enriched} enrichedMatches=${enrichedMatches} matched=${matched.length}`);
+
 
     if (dryRun) {
       return new Response(JSON.stringify({
         success: true, dryRun: true, since: sinceIso, scanned: jobs.length, matched: matched.length,
+        ambiguous: needsDescription.length, enriched, enrichedMatches,
         jobs: matched.slice(0, 40).map((j) => ({ title: j.title, company: j.company, location: j.location, source: j.source, mode: j.mode, url: j.url })),
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
