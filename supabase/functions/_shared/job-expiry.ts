@@ -77,6 +77,8 @@ async function checkLinkedInStatus(url: string, timeoutMs: number): Promise<Expi
     const html = await res.text();
     if (html.trim().length < 200) return 'expired';
 
+    if (/closed-job__flavor--closed|class="[^"]*closed-job\b/i.test(html)) return 'expired';
+
     const validThrough = html.match(/"validThrough"\s*:\s*"([^"]+)"/)?.[1];
     if (validThrough) {
       const ts = Date.parse(validThrough);
