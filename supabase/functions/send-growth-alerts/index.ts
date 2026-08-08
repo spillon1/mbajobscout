@@ -102,6 +102,7 @@ const ADVISORY = /\b(investment\s+bank(ing)?|placement\s+agent|secondary\s+advis
 const NOISE: RegExp[] = [
   /\bgrowth\s+(marketing|hacker|hacking|manager|lead|strategist|analytics|product|marketer|specialist|executive)\b/i,
   /\b(marketing|sales|customer\s+success|account\s+(executive|manager)|business\s+development|bdm|recruit|talent|people|hr\b|human\s+resources|solicitor|lawyer|counsel|paralegal|accountant|auditor|engineer|developer|designer|data\s+scientist|product\s+manager|project\s+manager|teacher|nurse|clinical)\b/i,
+  /\btreasur(y|er)\b/i,
   /\bhead\s+of\s+growth\b/i,
   /\bgo[\s\-]to[\s\-]market\b/i, /\bgtm\b/i,
 ];
