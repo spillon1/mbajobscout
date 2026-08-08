@@ -80,9 +80,35 @@ export const SECONDARY_FILTERS: Partial<Record<ScrapeMode, { label: string; opti
     options: [
       { value: 'pre-seed-seed', label: 'Pre-Seed / Seed', patterns: [/\bpre[\s\-]?seed\b/i, /\bseed\s+(stage|fund|round)\b/i, /\bseed\b/i, /\bearly[\s\-]?stage\b/i] },
       { value: 'series-ab', label: 'Series A / B', patterns: [/\bseries\s+[ab]\b/i, /\bearly\s+growth\b/i] },
-      { value: 'growth-late', label: 'Growth / Late Stage', patterns: [/\bgrowth\s+(stage|equity|fund)\b/i, /\blate[\s\-]?stage\b/i, /\bseries\s+[c-z]\b/i, /\bgrowth\b/i] },
+      {
+        value: 'growth-late',
+        label: 'Growth / Late Stage',
+        patterns: [
+          /\bgrowth\s+(stage|equity|investing|investment|investor|capital|fund|funds|team|platform|portfolio|round)\b/i,
+          /\b(tech|technology|software)\s+growth\b/i,
+          /\blate[\s\-]?stage\b/i,
+          /\bpre[\s\-]?ipo\b/i,
+          /\bseries\s+[c-z]\b/i,
+          /\bexpansion\s+capital\b/i,
+          /\bscale[\s\-]?up\s+(fund|invest)/i,
+          /\bgrowth\b(?!\s*(marketing|hacker|hacking|manager|lead|gtm|strategist|analytics|product|and\s+gtm|\/\s*gtm))/i,
+          /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|coatue|tiger\s+global|dragoneer|iconiq|softbank|vision\s+fund|vitruvian|highland\s+europe|eurazeo|lightrock|sofina|bond\s+capital|g\s+squared|jmi\s+equity|kkr\s+growth|permira\s+growth)\b/i,
+        ],
+      },
+      {
+        value: 'secondaries',
+        label: 'Secondaries (VC / Growth)',
+        patterns: [
+          /\b(vc|venture|venture\s+capital|tech|technology|growth|software)\b[^.\n]{0,60}\bsecondar(y|ies)\b/i,
+          /\bsecondar(y|ies)\b[^.\n]{0,60}\b(vc|venture|venture\s+capital|tech|technology|growth|software)\b/i,
+          /\b(direct|lp|gp)[\s\-]?led\s+secondar(y|ies)\b/i,
+          /\bsecondar(y|ies)\s+(investment|investing|investor|market|transactions?|team|fund)\b/i,
+          /\b(stepstone|industry\s+ventures|kline\s+hill|w\s+capital|pinegrove|nasdaq\s+private\s+market|forge\s+global|nova\s+capital)\b/i,
+        ],
+      },
       { value: 'multi-stage', label: 'Multi-Stage', patterns: [/\bmulti[\s\-]?stage\b/i, /\bfull[\s\-]?lifecycle\b/i, /\ball[\s\-]?stage/i, /\bcross[\s\-]?stage\b/i] },
       UNCLASSIFIED_OPTION,
+
     ],
   },
   st: {
