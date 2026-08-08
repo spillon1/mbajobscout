@@ -1,0 +1,226 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://ojtredjreiajjrgcwcuy.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "mbajobscout",
+      "version": "0.1.0",
+      "title": "MBAJOBSCOUT"
+    },
+    "tools": [
+      {
+        "name": "search_jobs",
+        "title": "Search jobs",
+        "description": "Search the MBAJOBSCOUT UK job database by career mode (vc, pe, ib, mc, st, im, tech, startups), keyword and location.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "vc",
+                "pe",
+                "ib",
+                "mc",
+                "st",
+                "im",
+                "tech",
+                "startups"
+              ],
+              "default": "vc",
+              "description": "Career category to search."
+            },
+            "query": {
+              "type": "string",
+              "description": "Keyword matched against job title and company."
+            },
+            "location": {
+              "type": "string",
+              "description": "Location filter, e.g. 'London' or 'Remote'."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Maximum number of jobs to return."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_tracked_jobs",
+        "title": "List tracked jobs",
+        "description": "List jobs the signed-in user has saved, applied to, or marked as not interested.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "saved",
+                "applied",
+                "not_interested"
+              ],
+              "description": "Filter to one tracking status. Omit to return all."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "description": "Maximum rows to return."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "track_job",
+        "title": "Track a job",
+        "description": "Save a job, mark it as applied, or mark it as not interested for the signed-in user.",
+        "annotations": {
+          "readOnlyHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "job_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Canonical URL of the job listing."
+            },
+            "job_title": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Job title."
+            },
+            "job_company": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Hiring company."
+            },
+            "job_source": {
+              "type": "string",
+              "default": "MCP",
+              "description": "Where the job was found."
+            },
+            "action": {
+              "type": "string",
+              "enum": [
+                "saved",
+                "applied",
+                "not_interested"
+              ],
+              "description": "Tracking status to record for this job."
+            }
+          },
+          "required": [
+            "job_url",
+            "job_title",
+            "job_company",
+            "action"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "untrack_job",
+        "title": "Untrack a job",
+        "description": "Remove a job's saved / applied / not-interested status for the signed-in user.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "job_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Canonical URL of the job listing to untrack."
+            }
+          },
+          "required": [
+            "job_url"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "manage_job_alert",
+        "title": "Manage daily job alert",
+        "description": "View or update the signed-in user's daily job alert email settings (keywords, location, enabled).",
+        "annotations": {
+          "readOnlyHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "operation": {
+              "type": "string",
+              "enum": [
+                "get",
+                "update"
+              ],
+              "default": "get",
+              "description": "Read or update the alert config."
+            },
+            "enabled": {
+              "type": "boolean",
+              "description": "Turn the daily alert email on or off (update only)."
+            },
+            "location": {
+              "type": "string",
+              "description": "Location filter for alerts (update only)."
+            },
+            "keywords": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Keyword list for alerts (update only)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
