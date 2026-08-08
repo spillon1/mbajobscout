@@ -54,11 +54,16 @@ const LONDON = /\blondon\b/i;
 const UK_REMOTE = /\b(remote|hybrid|united\s+kingdom|uk|england)\b/i;
 const NON_UK = /\b(usa|u\.s\.|united\s+states|canada|india|germany|france|spain|italy|australia|singapore|hong\s+kong|dubai|uae|netherlands|ireland|new\s+york|nyc|san\s+francisco|palo\s+alto|menlo\s+park|toronto|chicago|boston|seattle|austin|los\s+angeles|berlin|munich|paris|amsterdam|zurich|geneva|stockholm|madrid|milan|mumbai|bangalore|sydney|melbourne|tel\s+aviv|tokyo|shanghai|[a-z]{2},\s*(ca|ny|ma|tx|wa|il|co|ga|fl))\b/i;
 
+// Named UK cities that are clearly not London
+const UK_NON_LONDON = /\b(oxford|cambridge|manchester|birmingham|leeds|bristol|edinburgh|glasgow|cardiff|belfast|liverpool|newcastle|sheffield|nottingham|reading|brighton|southampton|aberdeen|dundee|york|norwich|exeter|bath|coventry|milton\s+keynes)\b/i;
+
 function isLondonish(location: string): boolean {
   const loc = (location || '').toLowerCase();
   if (!loc.trim()) return false;
   if (NON_UK.test(loc)) return false;
-  return LONDON.test(loc) || UK_REMOTE.test(loc);
+  if (LONDON.test(loc)) return true;
+  if (UK_NON_LONDON.test(loc)) return false;
+  return UK_REMOTE.test(loc);
 }
 
 // ── Growth / late-stage signals ──
