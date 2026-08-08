@@ -53,6 +53,7 @@ export const DEFAULT_KEYWORDS = [
   'Secondary investments',
   'Private markets secondaries',
   'Direct secondaries',
+  'Tech secondaries',
   'Growth secondaries',
 ];
 
