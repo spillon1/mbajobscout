@@ -163,7 +163,10 @@ Deno.serve(async (req) => {
       .eq('alert_key', ALERT_KEY)
       .maybeSingle();
 
-    const sinceIso = checkpoint?.last_alerted_at ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const daysParam = Number(url.searchParams.get('days') ?? (body?.days as number) ?? 0);
+    const sinceIso = daysParam > 0
+      ? new Date(Date.now() - daysParam * 24 * 60 * 60 * 1000).toISOString()
+      : (checkpoint?.last_alerted_at ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
     const { data: rawJobs, error: jobsError } = await supabase
       .from('scraped_jobs')
