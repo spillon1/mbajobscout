@@ -2342,8 +2342,23 @@ function isLikelyVcRole(title: string, company: string, description: string | un
   if (vcSignals.some(p => p.test(titleLower))) return true;
   if (vcSignals.some(p => p.test(companyLower))) return true;
 
+  // ── Corporate / real-asset investing is not VC ──
+  // (checked after the strong VC signals above so genuine corporate-venture arms survive)
+  const corporateNonVcTitles = [
+    /\bstrategic\s+investments?\b/,
+    /\bcorporate\s+development\b/,
+    /\bm\s*&\s*a\b/,
+    /\breal\s+estate\b/, /\bproperty\b/, /\bland\b/,
+    /\binfrastructure\s+(investment|fund|equity)\b/,
+    /\brenewables?\b/, /\bproject\s+finance\b/,
+  ];
+  if (corporateNonVcTitles.some(p => p.test(titleLower))) return false;
+  const realAssetDesc = /\breal\s+estate\b|\bproperty\s+(investment|platform|portfolio)\b|\blogistics\s+parks?\b|\bdata\s+centres?\b|\bwarehous/.test(descLower);
+  if (realAssetDesc && !/venture\s+capital|\bvc\b|\bstartups?\b/.test(descLower)) return false;
+
   // Weak signal: VC keyword only in description → require title to have VC-compatible terms
   const hasDescVcSignal = /venture\s+capital/.test(descLower) || /\bvc\s+(fund|firm|portfolio|backed|investment)/.test(descLower);
+
   if (hasDescVcSignal) {
     const vcCompatibleTitles = [
       /\b(analyst|associate|principal|partner|director|vp|vice\s+president|managing\s+director)\b/i,
