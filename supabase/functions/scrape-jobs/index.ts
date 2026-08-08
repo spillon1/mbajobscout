@@ -2948,7 +2948,7 @@ function parseStructuredCards(
 
     let type = 'full-time';
     const typeLower = typeField.toLowerCase();
-    if (typeLower.includes('intern')) type = 'internship';
+    if (/\bintern(?:ship|s)?\b/.test(typeLower)) type = 'internship';
     else if (typeLower.includes('graduate') || typeLower.includes('grad')) type = 'graduate';
     else if (typeLower.includes('other')) type = 'full-time';
 

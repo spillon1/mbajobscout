@@ -5,7 +5,7 @@ import { ScrapeMode } from '@/data/subCategories';
 
 function inferSeniority(title: string): Seniority {
   const t = title.toLowerCase();
-  if (t.includes('intern') && !t.includes('internal') && !t.includes('international')) return 'intern';
+  if (/\bintern(?:ship|s)?\b/.test(t)) return 'intern';
   // "Senior Associate" / "Senior VC Associate" = mid, not senior
   if (/\bsenior\s+(vc\s+)?associate\b/.test(t)) return 'mid';
   if (/\b(senior|lead|head of|director|managing director|partner|principal|vp|vice president|cio|cfo|cto)\b/.test(t)) return 'senior';
