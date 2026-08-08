@@ -41,9 +41,31 @@ Deno.serve(async (req) => {
     const { data: rows, error } = await query.limit(limit);
 
     if (error) throw error;
-    if (!rows || rows.length === 0) {
-      return json({ success: true, checked: 0, expired: 0, message: 'Nothing due for re-check' });
+
+    // Age-out: LinkedIn closes posts silently (the "no longer accepting applications"
+    // banner only renders for logged-in users), so a listing that has not been re-seen
+    // by any scrape for `staleDays` is treated as gone.
+    const staleDays: number = Number(body.staleDays) || 21;
+    let staleDeleted = 0;
+    if (!dryRun) {
+      const staleCutoff = new Date(Date.now() - staleDays * 86400000).toISOString();
+      const { data: staleRows } = await supabase
+        .from('scraped_jobs')
+        .select('id')
+        .ilike('source', '%linkedin%')
+        .lt('last_seen_at', staleCutoff)
+        .limit(500);
+      const staleIds = (staleRows || []).map((r: any) => r.id);
+      for (let i = 0; i < staleIds.length; i += 100) {
+        await supabase.from('scraped_jobs').delete().in('id', staleIds.slice(i, i + 100));
+      }
+      staleDeleted = staleIds.length;
     }
+
+    if (!rows || rows.length === 0) {
+      return json({ success: true, checked: 0, expired: 0, staleDeleted, message: 'Nothing due for re-check' });
+    }
+
 
     const results = await checkListingsBatch(rows, (r: any) => r.url, 8, 8000);
 
@@ -73,6 +95,8 @@ Deno.serve(async (req) => {
     return json({
       success: true,
       checked: rows.length,
+      staleDeleted,
+
       expired: expiredIds.length,
       live: liveIds.length,
       unknown,

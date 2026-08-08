@@ -141,6 +141,7 @@ export type Database = {
           description: string | null
           expiry_checked_at: string | null
           id: string
+          last_seen_at: string
           location: string
           mode: string
           posted_date: string | null
@@ -158,6 +159,7 @@ export type Database = {
           description?: string | null
           expiry_checked_at?: string | null
           id?: string
+          last_seen_at?: string
           location?: string
           mode?: string
           posted_date?: string | null
@@ -175,6 +177,7 @@ export type Database = {
           description?: string | null
           expiry_checked_at?: string | null
           id?: string
+          last_seen_at?: string
           location?: string
           mode?: string
           posted_date?: string | null
