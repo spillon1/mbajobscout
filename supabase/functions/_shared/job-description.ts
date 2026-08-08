@@ -43,17 +43,24 @@ async function withTimeout(url: string, init: RequestInit, ms: number): Promise<
 async function fetchLinkedIn(url: string): Promise<string> {
   const id = linkedInJobId(url);
   if (!id) return '';
-  try {
-    const res = await withTimeout(
-      `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${id}`,
-      { headers: { 'User-Agent': UA, 'Accept-Language': 'en-GB,en;q=0.9' } },
-      12000,
-    );
-    if (!res.ok) return '';
-    return stripHtml(await res.text());
-  } catch {
-    return '';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await withTimeout(
+        `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${id}`,
+        { headers: { 'User-Agent': UA, 'Accept-Language': 'en-GB,en;q=0.9' } },
+        12000,
+      );
+      if (res.status === 429 || res.status === 999 || res.status >= 500) {
+        await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+        continue;
+      }
+      if (!res.ok) return '';
+      return stripHtml(await res.text());
+    } catch {
+      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+    }
   }
+  return '';
 }
 
 async function fetchDirect(url: string): Promise<string> {
