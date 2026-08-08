@@ -49,6 +49,10 @@ export const DEFAULT_KEYWORDS = [
   'Late stage venture capital',
   'Pre-IPO investing',
   'Venture capital secondaries',
+  'Secondaries',
+  'Secondary investments',
+  'Private markets secondaries',
+  'Direct secondaries',
   'Tech secondaries',
   'Growth secondaries',
 ];
