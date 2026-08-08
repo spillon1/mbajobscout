@@ -197,7 +197,15 @@ export function jobMatchesSubCategories(
 ): boolean {
   if (selectedSubCategories.length === 0) return true;
   const cats = SUB_CATEGORIES[mode] || [];
-  const text = `${job.title} ${job.description || ''}`;
+  // The title is the authoritative signal. Descriptions frequently carry site
+  // navigation boilerplate ("Deals", "VC Associate", "investments"), which used to
+  // classify obvious ops roles as Investment. Only fall back to the body text when
+  // the title matches nothing at all.
+  const titleOnly = job.title || '';
+  const titleMatches = cats.some(
+    (c) => c.value !== UNCLASSIFIED_VALUE && c.patterns.some((p) => p.test(titleOnly)),
+  );
+  const text = titleMatches ? titleOnly : `${job.title} ${job.description || ''}`;
 
   return selectedSubCategories.some((val) => {
     if (val === UNCLASSIFIED_VALUE) return isUnclassified(text, cats);
@@ -206,6 +214,7 @@ export function jobMatchesSubCategories(
     return cat.patterns.some((p) => p.test(text));
   });
 }
+
 
 export function jobMatchesSecondaryFilter(
   job: { title: string; description?: string; company?: string },
