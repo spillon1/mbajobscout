@@ -4,6 +4,7 @@ const corsHeaders = {
 };
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { fetchJobDescription, mapPool } from '../_shared/job-description.ts';
 
 const ALERT_KEY = 'vc-growth-secondaries';
 const ALERT_EMAIL = 'spillon@gmail.com';
