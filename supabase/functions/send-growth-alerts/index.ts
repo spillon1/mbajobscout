@@ -247,7 +247,9 @@ Deno.serve(async (req) => {
 
     const seen = new Set<string>();
     const matched: ScrapedJob[] = [];
+    const needsDescription: ScrapedJob[] = [];
 
+    // Pass 1 — decide from what we already have (title/company + any stored description)
     for (const job of jobs) {
       const key = titleCompanyKey(job.title, job.company);
       const nUrl = normalizeJobUrl(job.url);
@@ -256,12 +258,53 @@ Deno.serve(async (req) => {
       if (alreadySent.has(key)) continue;
       if (actionedUrls.has(nUrl) || actionedTC.has(key)) continue;
       if (!isLondonish(job.location)) continue;
-      if (!matchesGrowthAlert(job)) continue;
+      if (!isCandidate(job)) continue;
+
       seen.add(key);
       seen.add(nUrl);
       seen.add(titleKey);
-      matched.push(job);
+
+      if (matchesGrowthAlert(job)) {
+        matched.push(job);
+      } else if (!(job.description ?? '').trim()) {
+        // Ambiguous title (e.g. plain "Investor") and no description stored —
+        // fetch the posting so stage can be judged from the full text.
+        needsDescription.push(job);
+      }
     }
+
+    // Pass 2 — fetch full descriptions for the ambiguous ones, then re-test
+    const maxEnrich = Number(url.searchParams.get('max_enrich') ?? (body?.max_enrich as number) ?? 150);
+    const toEnrich = needsDescription.slice(0, maxEnrich);
+    let enriched = 0;
+    let enrichedMatches = 0;
+
+    if (toEnrich.length > 0) {
+      const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY') ?? undefined;
+      const descriptions = await mapPool(toEnrich, 6, (job) =>
+        fetchJobDescription(job.url, { firecrawlKey }).catch(() => ''));
+
+      const updates: { id: string; description: string }[] = [];
+      toEnrich.forEach((job, i) => {
+        const desc = descriptions[i] ?? '';
+        if (desc.length > 120) {
+          enriched++;
+          updates.push({ id: job.id, description: desc });
+          if (matchesGrowthAlert(job, desc, true)) {
+            enrichedMatches++;
+            matched.push({ ...job, description: desc });
+          }
+        }
+      });
+
+      // Cache descriptions back so the app's filters improve too
+      for (const u of updates) {
+        await supabase.from('scraped_jobs').update({ description: u.description }).eq('id', u.id);
+      }
+    }
+
+    console.log(`Growth alert: scanned=${jobs.length} ambiguous=${needsDescription.length} enriched=${enriched} enrichedMatches=${enrichedMatches} matched=${matched.length}`);
+
 
     if (dryRun) {
       return new Response(JSON.stringify({
