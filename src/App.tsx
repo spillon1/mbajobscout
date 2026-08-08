@@ -36,6 +36,8 @@ const App = () => (
             <Route path="/tech" element={<TechScout />} />
             <Route path="/startups" element={<StartupScout />} />
             <Route path="/out" element={<OutboundRedirect />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
