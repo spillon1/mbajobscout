@@ -96,7 +96,7 @@ const SECONDARY_TERMS: RegExp[] = [
 const PE_SECONDARY_MARKERS = /\b(buyout|lbo|leveraged|private\s+equity\s+secondar|pe\s+secondar|infrastructure\s+secondar|real\s+estate\s+secondar|credit\s+secondar|private\s+credit|real\s+assets?\s+secondar)\b/i;
 
 // ── Sell-side / advisory, not direct investing ──
-const ADVISORY = /\b(investment\s+bank(ing)?|placement\s+agent|secondary\s+advisory|secondaries\s+advisory|m&a\s+advisory|capital\s+markets\s+advisory|fund\s+placement|coverage\s+banker)\b/i;
+const ADVISORY = /\b(investment\s+bank(ing)?|placement\s+agent|secondary\s+advisory|secondaries\s+advisory|m&a\s+advisory|capital\s+markets\s+advisory|fund\s+placement|coverage\s+banker|capital\s+raising|fundrais(ing|er))\b/i;
 
 // ── Non-investment noise ──
 const NOISE: RegExp[] = [
@@ -130,6 +130,8 @@ function isCandidate(job: ScrapedJob): boolean {
   if (ADVISORY.test(title) || ADVISORY.test(company)) return false;
   // Wrong asset class for a VC/growth alert
   if (/\b(private\s+credit|private\s+debt|direct\s+lending|infrastructure|real\s+estate|real\s+assets?|distressed|mezzanine)\b/i.test(title)) return false;
+  // Title names a non-London UK city (feeds mislabelled source locations)
+  if (UK_NON_LONDON.test(title) && !LONDON.test(title)) return false;
   if (!ROLE_SHAPE.test(title)) return false;
   return true;
 }
