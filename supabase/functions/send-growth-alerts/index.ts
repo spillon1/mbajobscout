@@ -309,6 +309,7 @@ Deno.serve(async (req) => {
     if (dryRun) {
       return new Response(JSON.stringify({
         success: true, dryRun: true, since: sinceIso, scanned: jobs.length, matched: matched.length,
+        ambiguous: needsDescription.length, enriched, enrichedMatches,
         jobs: matched.slice(0, 40).map((j) => ({ title: j.title, company: j.company, location: j.location, source: j.source, mode: j.mode, url: j.url })),
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
