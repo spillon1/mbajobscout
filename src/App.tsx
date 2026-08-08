@@ -13,7 +13,9 @@ import IMScout from "./pages/IMScout";
 import TechScout from "./pages/TechScout";
 import StartupScout from "./pages/StartupScout";
 import OutboundRedirect from "./pages/OutboundRedirect";
+import OAuthConsent from "./pages/OAuthConsent";
 import NotFound from "./pages/NotFound";
+
 
 const queryClient = new QueryClient();
 
@@ -34,6 +36,8 @@ const App = () => (
             <Route path="/tech" element={<TechScout />} />
             <Route path="/startups" element={<StartupScout />} />
             <Route path="/out" element={<OutboundRedirect />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
