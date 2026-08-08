@@ -281,9 +281,12 @@ Deno.serve(async (req) => {
       seen.add(nUrl);
       seen.add(titleKey);
 
-      if (matchesGrowthAlert(job)) {
+      const storedDesc = (job.description ?? '').trim();
+      // Title-only signal, or a stored description judged with the strict rules
+      if (matchesGrowthAlert({ ...job, description: '' }) ||
+          (storedDesc && matchesGrowthAlert(job, storedDesc, true))) {
         matched.push(job);
-      } else if (!(job.description ?? '').trim()) {
+      } else if (!storedDesc) {
         // Ambiguous title (e.g. plain "Investor") and no description stored —
         // fetch the posting so stage can be judged from the full text.
         needsDescription.push(job);
