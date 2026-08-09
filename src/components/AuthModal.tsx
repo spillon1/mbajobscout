@@ -26,18 +26,40 @@ export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
       const result = await lovable.auth.signInWithOAuth('google', {
         redirect_uri: window.location.origin,
       });
+
+      // Full-page redirect flow — the browser is navigating away.
+      if ((result as { redirected?: boolean })?.redirected) return;
+
       if (result.error) {
         const msg = result.error.message?.toLowerCase() ?? '';
         // Silently ignore user-initiated cancellations
         if (msg.includes('cancel') || msg.includes('closed') || msg.includes('popup')) return;
         toast({ title: 'Google sign-in failed', description: result.error.message, variant: 'destructive' });
+        return;
       }
-    } catch {
-      // Ignore — likely a popup closure
+
+      // Confirm the session actually landed in the client before closing.
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        toast({
+          title: 'Google sign-in failed',
+          description: 'We could not establish a session. Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({ title: 'Signed in successfully' });
+      onSuccess();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message.toLowerCase() : '';
+      if (msg.includes('cancel') || msg.includes('closed') || msg.includes('popup')) return;
+      toast({ title: 'Google sign-in failed', description: 'Please try again.', variant: 'destructive' });
     } finally {
       setGoogleLoading(false);
     }
   };
+
 
   const isEmailNotConfirmedError = (err: unknown) => {
     const message = typeof err === 'object' && err && 'message' in err ? String((err as { message?: string }).message).toLowerCase() : '';
