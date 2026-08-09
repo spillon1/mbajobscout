@@ -136,7 +136,7 @@ function isCandidate(job: ScrapedJob): boolean {
   const title = job.title || '';
   const company = job.company || '';
   if (isJunk(title, company, job.source || '', job.description || '')) return false;
-  if (NOISE.some((p) => p.test(title))) return false;
+  if (NOISE.some((p) => p.test(title) || p.test(company))) return false;
   if (ADVISORY.test(title) || ADVISORY.test(company)) return false;
   // Wrong asset class for a VC/growth alert
   if (/\b(private\s+credit|private\s+debt|direct\s+lending|infrastructure|real\s+estate|real\s+assets?|distressed|mezzanine)\b/i.test(title)) return false;
