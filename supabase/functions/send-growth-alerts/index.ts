@@ -73,35 +73,44 @@ function isLondonish(location: string): boolean {
 }
 
 // ── Growth / late-stage signals ──
+// Source of truth: src/data/subCategories.ts SECONDARY_FILTERS.vc "Growth / Late Stage"
+// plus SECONDARY_FILTERS.pe "Growth Equity". Keep these in sync with the frontend aggregator.
 const GROWTH_TERMS: RegExp[] = [
-  /\bgrowth\s+(equity|investing|investment|investments|investor|capital|fund|funds|team|round|stage)\b/i,
+  /\bgrowth\s+(stage|equity|investing|investment|investor|investors|capital|fund|funds|team|platform|portfolio|round|buyout)\b/i,
   /\b(tech|technology|software)\s+growth\b/i,
-  /\bgrowth\s+(and|&)\s+(late[\s\-]?stage|venture)\b/i,
-  /\blate[\s\-]?stage\s+(vc|venture|venture\s+capital|invest|tech|technology|growth|company|companies)/i,
+  /\bgrowth[\s\-]?(?:stage\s+)?(?:tech|technology)\b/i,
   /\blate[\s\-]?stage\b/i,
   /\bpre[\s\-]?ipo\b/i,
-  /\bexpansion\s+capital\b/i,
   /\bseries\s+[c-z]\b/i,
-  /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|coatue|tiger\s+global|dragoneer|iconiq|softbank|vision\s+fund|vitruvian|highland\s+europe|eurazeo\s+growth|lightrock|sofina|bond\s+capital|g\s+squared|jmi\s+equity)\b/i,
+  /\bexpansion\s+capital\b/i,
+  /\bscale[\s\-]?up\s+(fund|invest)/i,
+  /\bcontinuation\s+(fund|vehicle)\b/i,
+  /\bcrossover\s+(fund|investor|investing)\b/i,
+  /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|coatue|tiger\s+global|dragoneer|iconiq|softbank|vision\s+fund|vitruvian|highland\s+europe|eurazeo\s+growth|lightrock|sofina|bond\s+capital|g\s+squared|jmi\s+equity|kkr\s+growth|permira\s+growth|index\s+ventures\s+growth|felix\s+capital|smash\s+capital)\b/i,
 ];
 
 // ── Secondaries signals (tech / VC / growth flavoured) ──
+// Source of truth: src/data/subCategories.ts SECONDARY_FILTERS.vc "Secondaries (VC / Growth)"
 const SECONDARY_CONTEXT = /\b(vc|venture|venture\s+capital|tech|technology|software|growth|startup|start[\s\-]up)\b/i;
 const SECONDARY_TERMS: RegExp[] = [
-  /\bsecondar(y|ies)\b/i,
-  /\b(gp|lp|direct)[\s\-]?led\s+secondar/i,
+  /\b(vc|venture|venture\s+capital|tech|technology|growth|software)\b[^.\n]{0,60}\bsecondar(y|ies)\b/i,
+  /\bsecondar(y|ies)\b[^.\n]{0,60}\b(vc|venture|venture\s+capital|tech|technology|growth|software)\b/i,
+  /\b(direct|lp|gp)[\s\-]?led\s+secondar(y|ies)\b/i,
+  /\bsecondar(y|ies)\s+(investment|investing|investor|market|transactions?|team|fund|opportunit)/i,
+  /\bcontinuation\s+(fund|vehicle)\b/i,
+  /\b(stepstone|industry\s+ventures|kline\s+hill|w\s+capital|pinegrove|nasdaq\s+private\s+market|forge\s+global|nova\s+capital|hollyport|glendower|lexington\s+partners|coller\s+capital|g\s+squared)\b/i,
 ];
 
 // ── Pure PE / non-tech secondaries → belongs on the PE tab ──
 const PE_SECONDARY_MARKERS = /\b(buyout|lbo|leveraged|private\s+equity\s+secondar|pe\s+secondar|infrastructure\s+secondar|real\s+estate\s+secondar|credit\s+secondar|private\s+credit|real\s+assets?\s+secondar)\b/i;
 
 // ── Sell-side / advisory, not direct investing ──
-const ADVISORY = /\b(investment\s+bank(ing)?|placement\s+agent|secondary\s+advisory|secondaries\s+advisory|m&a\s+advisory|capital\s+markets\s+advisory|fund\s+placement|coverage\s+banker|capital\s+raising|fundrais(ing|er))\b/i;
+const ADVISORY = /\b(investment\s+bank(ing)?|placement\s+agent|secondary\s+advisory|secondaries\s+advisory|m&a\s+advisory|capital\s+markets\s+advisory|fund\s+placement|coverage\s+banker|investor\s+coverage|capital\s+raising|fundrais(ing|er))\b/i;
 
 // ── Non-investment noise ──
 const NOISE: RegExp[] = [
   /\bgrowth\s+(marketing|hacker|hacking|manager|lead|strategist|analytics|product|marketer|specialist|executive)\b/i,
-  /\b(marketing|sales|customer\s+success|account\s+(executive|manager)|business\s+development|bdm|recruit|talent|people|hr\b|human\s+resources|solicitor|lawyer|counsel|paralegal|accountant|auditor|engineer|developer|designer|data\s+scientist|product\s+manager|project\s+manager|teacher|nurse|clinical)\b/i,
+  /\b(marketing|sales|customer\s+success|account\s+(executive|manager)|business\s+development|bdm|recruit(ment|er)?|talent|people|hr\b|human\s+resources|solicitor|lawyer|counsel|paralegal|accountant|auditor|engineer|developer|designer|data\s+scientist|product\s+manager|project\s+manager|teacher|nurse|clinical)\b/i,
   /\btreasur(y|er)\b/i,
   /\bhead\s+of\s+growth\b/i,
   /\bgo[\s\-]to[\s\-]market\b/i, /\bgtm\b/i,
@@ -127,7 +136,7 @@ function isCandidate(job: ScrapedJob): boolean {
   const title = job.title || '';
   const company = job.company || '';
   if (isJunk(title, company, job.source || '', job.description || '')) return false;
-  if (NOISE.some((p) => p.test(title))) return false;
+  if (NOISE.some((p) => p.test(title) || p.test(company))) return false;
   if (ADVISORY.test(title) || ADVISORY.test(company)) return false;
   // Wrong asset class for a VC/growth alert
   if (/\b(private\s+credit|private\s+debt|direct\s+lending|infrastructure|real\s+estate|real\s+assets?|distressed|mezzanine)\b/i.test(title)) return false;
@@ -148,6 +157,7 @@ const STRONG_GROWTH_TERMS: RegExp[] = [
   /\bexpansion\s+capital\b/i,
   /\bseries\s+[c-z]\b/i,
   /\bsecondar(y|ies)\b/i,
+  /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|coatue|tiger\s+global|dragoneer|iconiq|softbank|vision\s+fund|vitruvian|highland\s+europe|eurazeo\s+growth|lightrock|sofina|bond\s+capital|g\s+squared|jmi\s+equity|kkr\s+growth|permira\s+growth|index\s+ventures\s+growth|felix\s+capital|smash\s+capital)\b/i,
 ];
 
 function countStrongHits(text: string): number {
@@ -187,8 +197,9 @@ function matchesGrowthAlert(job: ScrapedJob, description?: string, fromDescripti
 
   if (!isGrowth && !secondariesIsTechFlavoured) return false;
 
-  // Guard: a plain "private equity buyout" role that only mentions growth in passing
-  if (!mentionsSecondaries && /\b(buyout|lbo|leveraged\s+finance)\b/i.test(title)) return false;
+  // Guard: a plain "private equity buyout" role that only mentions growth in passing.
+  // Allow titles that explicitly pair buyout with a growth/tech signal (e.g. "Tech Growth Buyout").
+  if (!mentionsSecondaries && /\b(buyout|lbo|leveraged\s+finance)\b/i.test(title) && !GROWTH_TERMS.some((p) => p.test(title))) return false;
 
   if (fromDescription) {
     // Description-driven hit: require either an explicit stage phrase in the
