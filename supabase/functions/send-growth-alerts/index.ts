@@ -73,16 +73,20 @@ function isLondonish(location: string): boolean {
 }
 
 // ── Growth / late-stage signals ──
+// Source of truth: src/data/subCategories.ts SECONDARY_FILTERS.vc "Growth / Late Stage"
+// plus SECONDARY_FILTERS.pe "Growth Equity". Keep these in sync with the frontend aggregator.
 const GROWTH_TERMS: RegExp[] = [
-  /\bgrowth\s+(equity|investing|investment|investments|investor|capital|fund|funds|team|round|stage)\b/i,
+  /\bgrowth\s+(stage|equity|investing|investment|investor|investors|capital|fund|funds|team|platform|portfolio|round|buyout)\b/i,
   /\b(tech|technology|software)\s+growth\b/i,
-  /\bgrowth\s+(and|&)\s+(late[\s\-]?stage|venture)\b/i,
-  /\blate[\s\-]?stage\s+(vc|venture|venture\s+capital|invest|tech|technology|growth|company|companies)/i,
+  /\bgrowth[\s\-]?(?:stage\s+)?(?:tech|technology)\b/i,
   /\blate[\s\-]?stage\b/i,
   /\bpre[\s\-]?ipo\b/i,
-  /\bexpansion\s+capital\b/i,
   /\bseries\s+[c-z]\b/i,
-  /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|coatue|tiger\s+global|dragoneer|iconiq|softbank|vision\s+fund|vitruvian|highland\s+europe|eurazeo\s+growth|lightrock|sofina|bond\s+capital|g\s+squared|jmi\s+equity)\b/i,
+  /\bexpansion\s+capital\b/i,
+  /\bscale[\s\-]?up\s+(fund|invest)/i,
+  /\bcontinuation\s+(fund|vehicle)\b/i,
+  /\bcrossover\s+(fund|investor|investing)\b/i,
+  /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|coatue|tiger\s+global|dragoneer|iconiq|softbank|vision\s+fund|vitruvian|highland\s+europe|eurazeo\s+growth|lightrock|sofina|bond\s+capital|g\s+squared|jmi\s+equity|kkr\s+growth|permira\s+growth|index\s+ventures\s+growth|felix\s+capital|smash\s+capital)\b/i,
 ];
 
 // ── Secondaries signals (tech / VC / growth flavoured) ──
