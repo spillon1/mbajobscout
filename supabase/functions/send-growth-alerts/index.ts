@@ -157,6 +157,7 @@ const STRONG_GROWTH_TERMS: RegExp[] = [
   /\bexpansion\s+capital\b/i,
   /\bseries\s+[c-z]\b/i,
   /\bsecondar(y|ies)\b/i,
+  /\b(general\s+atlantic|insight\s+partners|summit\s+partners|ta\s+associates|coatue|tiger\s+global|dragoneer|iconiq|softbank|vision\s+fund|vitruvian|highland\s+europe|eurazeo\s+growth|lightrock|sofina|bond\s+capital|g\s+squared|jmi\s+equity|kkr\s+growth|permira\s+growth|index\s+ventures\s+growth|felix\s+capital|smash\s+capital)\b/i,
 ];
 
 function countStrongHits(text: string): number {
