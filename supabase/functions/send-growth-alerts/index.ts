@@ -197,8 +197,9 @@ function matchesGrowthAlert(job: ScrapedJob, description?: string, fromDescripti
 
   if (!isGrowth && !secondariesIsTechFlavoured) return false;
 
-  // Guard: a plain "private equity buyout" role that only mentions growth in passing
-  if (!mentionsSecondaries && /\b(buyout|lbo|leveraged\s+finance)\b/i.test(title)) return false;
+  // Guard: a plain "private equity buyout" role that only mentions growth in passing.
+  // Allow titles that explicitly pair buyout with a growth/tech signal (e.g. "Tech Growth Buyout").
+  if (!mentionsSecondaries && /\b(buyout|lbo|leveraged\s+finance)\b/i.test(title) && !GROWTH_TERMS.some((p) => p.test(title))) return false;
 
   if (fromDescription) {
     // Description-driven hit: require either an explicit stage phrase in the
