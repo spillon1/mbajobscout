@@ -90,10 +90,15 @@ const GROWTH_TERMS: RegExp[] = [
 ];
 
 // ── Secondaries signals (tech / VC / growth flavoured) ──
+// Source of truth: src/data/subCategories.ts SECONDARY_FILTERS.vc "Secondaries (VC / Growth)"
 const SECONDARY_CONTEXT = /\b(vc|venture|venture\s+capital|tech|technology|software|growth|startup|start[\s\-]up)\b/i;
 const SECONDARY_TERMS: RegExp[] = [
-  /\bsecondar(y|ies)\b/i,
-  /\b(gp|lp|direct)[\s\-]?led\s+secondar/i,
+  /\b(vc|venture|venture\s+capital|tech|technology|growth|software)\b[^.\n]{0,60}\bsecondar(y|ies)\b/i,
+  /\bsecondar(y|ies)\b[^.\n]{0,60}\b(vc|venture|venture\s+capital|tech|technology|growth|software)\b/i,
+  /\b(direct|lp|gp)[\s\-]?led\s+secondar(y|ies)\b/i,
+  /\bsecondar(y|ies)\s+(investment|investing|investor|market|transactions?|team|fund|opportunit)/i,
+  /\bcontinuation\s+(fund|vehicle)\b/i,
+  /\b(stepstone|industry\s+ventures|kline\s+hill|w\s+capital|pinegrove|nasdaq\s+private\s+market|forge\s+global|nova\s+capital|hollyport|glendower|lexington\s+partners|coller\s+capital|g\s+squared)\b/i,
 ];
 
 // ── Pure PE / non-tech secondaries → belongs on the PE tab ──
