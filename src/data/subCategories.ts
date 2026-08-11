@@ -216,6 +216,30 @@ export function jobMatchesSubCategories(
 }
 
 
+/** Explicit early-stage focus signals that should veto a "growth / late stage" label. */
+const EARLY_STAGE_SIGNALS =
+  /\b(early[\s\-]?stage|pre[\s\-]?seed|seed[\s\-]?stage|first[\s\-]?cheque|pre[\s\-]?product|idea[\s\-]?stage|multi[\s\-]?stage|multistage)\b/i;
+
+/**
+ * Boilerplate where "growth equity" only appears in a background/experience wishlist,
+ * e.g. "investment banking, management consulting or venture capital, growth equity or private equity".
+ */
+const GROWTH_BOILERPLATE =
+  /\b(experience|background)\b[^.\n]{0,160}\bgrowth\s+equity\b|\bgrowth\s+equity\b[^.\n]{0,40}\bor\s+private\s+equity\b/i;
+
+/** Values that describe a growth / late-stage bucket and therefore need the early-stage veto. */
+const GROWTH_BUCKET_VALUES = new Set(['growth-late', 'growth-equity', 'growth-equity-fund']);
+
+function passesGrowthGuards(title: string, text: string, opt: SubCategory): boolean {
+  const inTitle = opt.patterns.some((p) => p.test(title));
+  if (inTitle) return true;
+  // Description-only signal: reject when the posting is explicitly early stage,
+  // or when the only "growth equity" mention is background/experience boilerplate.
+  if (EARLY_STAGE_SIGNALS.test(text)) return false;
+  if (GROWTH_BOILERPLATE.test(text)) return false;
+  return true;
+}
+
 export function jobMatchesSecondaryFilter(
   job: { title: string; description?: string; company?: string },
   mode: ScrapeMode,
@@ -224,15 +248,19 @@ export function jobMatchesSecondaryFilter(
   if (selectedValues.length === 0) return true;
   const filter = SECONDARY_FILTERS[mode];
   if (!filter) return true;
+  const title = job.title || '';
   const text = `${job.title} ${job.description || ''} ${(job as any).company || ''}`;
 
   return selectedValues.some((val) => {
     if (val === UNCLASSIFIED_VALUE) return isUnclassified(text, filter.options);
     const opt = filter.options.find((c) => c.value === val);
     if (!opt) return false;
-    return opt.patterns.some((p) => p.test(text));
+    if (!opt.patterns.some((p) => p.test(text))) return false;
+    if (GROWTH_BUCKET_VALUES.has(val)) return passesGrowthGuards(title, text, opt);
+    return true;
   });
 }
+
 
 export function jobMatchesTertiaryFilter(
   job: { title: string; description?: string; company?: string },
