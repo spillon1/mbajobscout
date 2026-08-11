@@ -186,8 +186,9 @@ function matchesGrowthAlert(job: ScrapedJob, description?: string, fromDescripti
     /\b(early[\s\-]?stage|pre[\s\-]?seed|seed[\s\-]?stage|first[\s\-]?cheque|multi[\s\-]?stage|multistage)\b/i;
   const GROWTH_BOILERPLATE =
     /\b(experience|background)\b[^.\n]{0,160}\bgrowth\s+equity\b|\bgrowth\s+equity\b[^.\n]{0,40}\bor\s+private\s+equity\b/i;
-  // A title that says early stage / pre-seed / multistage is never a growth role.
-  if (EARLY_STAGE_SIGNALS.test(title)) return false;
+  // A title that says early stage / pre-seed / seed stage is never a growth role.
+  // "Multistage" in a title is allowed.
+  if (/\b(early[\s\-]?stage|pre[\s\-]?seed|seed[\s\-]?stage)\b/i.test(title)) return false;
   const secondariesInTitle = SECONDARY_TERMS.some((p) => p.test(title));
   if (!growthInTitle && !secondariesInTitle) {
     if (EARLY_STAGE_SIGNALS.test(text)) return false;
