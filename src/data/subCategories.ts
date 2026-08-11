@@ -232,7 +232,7 @@ const GROWTH_BUCKET_VALUES = new Set(['growth-late', 'growth-equity', 'growth-eq
 
 /** An explicit early-stage phrase in the TITLE always vetoes a growth / late-stage label. */
 const EARLY_STAGE_TITLE_VETO =
-  /\b(early[\s\-]?stage|pre[\s\-]?seed|seed[\s\-]?stage|multi[\s\-]?stage|multistage)\b/i;
+  /\b(early[\s\-]?stage|pre[\s\-]?seed|seed[\s\-]?stage)\b/i;
 
 function passesGrowthGuards(title: string, text: string, opt: SubCategory): boolean {
   if (EARLY_STAGE_TITLE_VETO.test(title)) return false;
