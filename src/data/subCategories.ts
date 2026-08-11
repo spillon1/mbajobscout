@@ -270,12 +270,15 @@ export function jobMatchesTertiaryFilter(
   if (selectedValues.length === 0) return true;
   const filter = TERTIARY_FILTERS[mode];
   if (!filter) return true;
+  const title = job.title || '';
   const text = `${job.title} ${job.description || ''} ${(job as any).company || ''}`;
 
   return selectedValues.some((val) => {
     if (val === UNCLASSIFIED_VALUE) return isUnclassified(text, filter.options);
     const opt = filter.options.find((c) => c.value === val);
     if (!opt) return false;
-    return opt.patterns.some((p) => p.test(text));
+    if (!opt.patterns.some((p) => p.test(text))) return false;
+    if (GROWTH_BUCKET_VALUES.has(val)) return passesGrowthGuards(title, text, opt);
+    return true;
   });
 }
