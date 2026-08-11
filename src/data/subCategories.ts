@@ -230,7 +230,12 @@ const GROWTH_BOILERPLATE =
 /** Values that describe a growth / late-stage bucket and therefore need the early-stage veto. */
 const GROWTH_BUCKET_VALUES = new Set(['growth-late', 'growth-equity', 'growth-equity-fund']);
 
+/** An explicit early-stage phrase in the TITLE always vetoes a growth / late-stage label. */
+const EARLY_STAGE_TITLE_VETO =
+  /\b(early[\s\-]?stage|pre[\s\-]?seed|seed[\s\-]?stage|multi[\s\-]?stage|multistage)\b/i;
+
 function passesGrowthGuards(title: string, text: string, opt: SubCategory): boolean {
+  if (EARLY_STAGE_TITLE_VETO.test(title)) return false;
   const inTitle = opt.patterns.some((p) => p.test(title));
   if (inTitle) return true;
   // Description-only signal: reject when the posting is explicitly early stage,
