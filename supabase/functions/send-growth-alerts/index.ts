@@ -177,6 +177,21 @@ function matchesGrowthAlert(job: ScrapedJob, description?: string, fromDescripti
   if (!isCandidate(job)) return false;
 
   const isGrowth = GROWTH_TERMS.some((p) => p.test(text));
+  const growthInTitle = GROWTH_TERMS.some((p) => p.test(title));
+
+  // Early-stage veto: postings that state an early / seed / multistage focus are not
+  // growth or late-stage roles, even if the body mentions "growth equity" in passing
+  // (typically inside an experience wishlist).
+  const EARLY_STAGE_SIGNALS =
+    /\b(early[\s\-]?stage|pre[\s\-]?seed|seed[\s\-]?stage|first[\s\-]?cheque|multi[\s\-]?stage|multistage)\b/i;
+  const GROWTH_BOILERPLATE =
+    /\b(experience|background)\b[^.\n]{0,160}\bgrowth\s+equity\b|\bgrowth\s+equity\b[^.\n]{0,40}\bor\s+private\s+equity\b/i;
+  const secondariesInTitle = SECONDARY_TERMS.some((p) => p.test(title));
+  if (!growthInTitle && !secondariesInTitle) {
+    if (EARLY_STAGE_SIGNALS.test(text)) return false;
+    if (GROWTH_BOILERPLATE.test(text)) return false;
+  }
+
   const mentionsSecondaries = SECONDARY_TERMS.some((p) => p.test(text));
   const secondariesIsTechFlavoured =
     mentionsSecondaries &&
