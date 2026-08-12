@@ -101,6 +101,10 @@ const SECONDARY_TERMS: RegExp[] = [
   /\b(stepstone|industry\s+ventures|kline\s+hill|w\s+capital|pinegrove|nasdaq\s+private\s+market|forge\s+global|nova\s+capital|hollyport|glendower|lexington\s+partners|coller\s+capital|g\s+squared)\b/i,
 ];
 
+// ── Family office signals ──
+// Source of truth: src/data/subCategories.ts SECONDARY_FILTERS company type "Family Office"
+const FAMILY_OFFICE_TERMS: RegExp[] = [/\bfamily\s+office\b/i, /\bsfo\b/i, /\bmfo\b/i];
+
 // ── Pure PE / non-tech secondaries → belongs on the PE tab ──
 const PE_SECONDARY_MARKERS = /\b(buyout|lbo|leveraged|private\s+equity\s+secondar|pe\s+secondar|infrastructure\s+secondar|real\s+estate\s+secondar|credit\s+secondar|private\s+credit|real\s+assets?\s+secondar)\b/i;
 
@@ -175,6 +179,15 @@ function matchesGrowthAlert(job: ScrapedJob, description?: string, fromDescripti
   const text = `${title} ${desc} ${company}`;
 
   if (!isCandidate(job)) return false;
+
+  // Family office investment roles qualify on their own (separate stream in this alert).
+  const foInTitleOrCompany = FAMILY_OFFICE_TERMS.some((p) => p.test(title) || p.test(company));
+  // Description-only: "family office" is common boilerplate (investor lists, LP types),
+  // so demand repeated mentions before treating it as the employer type.
+  const foMentions = (desc.match(/\bfamily\s+office(s)?\b/gi) ?? []).length;
+  if (foInTitleOrCompany || foMentions >= 3) return true;
+
+
 
   const isGrowth = GROWTH_TERMS.some((p) => p.test(text));
   const growthInTitle = GROWTH_TERMS.some((p) => p.test(title));
@@ -275,7 +288,7 @@ Deno.serve(async (req) => {
       const { data, error: jobsError } = await supabase
         .from('scraped_jobs')
         .select('*')
-        .in('mode', ['vc', 'pe'])
+        .in('mode', ['vc', 'pe', 'im'])
         .gt('scraped_at', sinceIso)
         .order('scraped_at', { ascending: false })
         .range(page * PAGE, page * PAGE + PAGE - 1);
@@ -315,6 +328,14 @@ Deno.serve(async (req) => {
       if (alreadySent.has(key)) continue;
       if (actionedUrls.has(nUrl) || actionedTC.has(key)) continue;
       if (!isLondonish(job.location)) continue;
+      // IM rows are only in scope when the title/company itself signals family office,
+      // growth/late-stage or secondaries — otherwise generic asset management noise leaks in
+      if (job.mode === 'im') {
+        const t = `${job.title || ''} ${job.company || ''}`;
+        const inScope = FAMILY_OFFICE_TERMS.some((p) => p.test(t)) ||
+          GROWTH_TERMS.some((p) => p.test(t)) || SECONDARY_TERMS.some((p) => p.test(t));
+        if (!inScope) continue;
+      }
       if (!isCandidate(job)) continue;
 
       seen.add(key);
@@ -401,8 +422,8 @@ Deno.serve(async (req) => {
     const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
       <div style="max-width:600px;margin:0 auto;padding:24px;">
         <div style="text-align:center;margin-bottom:24px;">
-          <h1 style="font-size:20px;color:#111827;margin:0;">⚡ MBA<span style="color:#2660CC;">JOBSCOUT</span> · Tech Growth &amp; Secondaries</h1>
-          <p style="color:#6b7280;font-size:14px;margin:4px 0 0;">${matched.length} new growth equity / late-stage VC / tech secondaries role${matched.length === 1 ? '' : 's'} in London</p>
+          <h1 style="font-size:20px;color:#111827;margin:0;">⚡ MBA<span style="color:#2660CC;">JOBSCOUT</span> · Tech Growth, Secondaries &amp; Family Office</h1>
+          <p style="color:#6b7280;font-size:14px;margin:4px 0 0;">${matched.length} new growth equity / late-stage VC / tech secondaries / family office role${matched.length === 1 ? '' : 's'} in London</p>
         </div>
         <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">${rows}</table>
         <p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:24px;">Sent by MBAJOBSCOUT</p>
@@ -414,7 +435,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: 'MBAJobScout <onboarding@resend.dev>',
         to: [ALERT_EMAIL],
-        subject: `⚡ ${matched.length} new tech growth / secondaries role${matched.length === 1 ? '' : 's'} in London`,
+        subject: `⚡ ${matched.length} new tech growth / secondaries / family office role${matched.length === 1 ? '' : 's'} in London`,
         html,
       }),
     });
