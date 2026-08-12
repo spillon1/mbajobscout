@@ -328,6 +328,9 @@ Deno.serve(async (req) => {
       if (alreadySent.has(key)) continue;
       if (actionedUrls.has(nUrl) || actionedTC.has(key)) continue;
       if (!isLondonish(job.location)) continue;
+      // IM rows are only in scope for the family office stream
+      if (job.mode === 'im' &&
+          !FAMILY_OFFICE_TERMS.some((p) => p.test(job.title || '') || p.test(job.company || ''))) continue;
       if (!isCandidate(job)) continue;
 
       seen.add(key);
