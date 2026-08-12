@@ -180,6 +180,13 @@ function matchesGrowthAlert(job: ScrapedJob, description?: string, fromDescripti
 
   if (!isCandidate(job)) return false;
 
+  // Family office investment roles qualify on their own (separate stream in this alert).
+  const foInTitleOrCompany = FAMILY_OFFICE_TERMS.some((p) => p.test(title) || p.test(company));
+  const foInHead = FAMILY_OFFICE_TERMS.some((p) => p.test(desc.slice(0, 1200)));
+  if (foInTitleOrCompany || foInHead) return true;
+
+
+
   const isGrowth = GROWTH_TERMS.some((p) => p.test(text));
   const growthInTitle = GROWTH_TERMS.some((p) => p.test(title));
 
