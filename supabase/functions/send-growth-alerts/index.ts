@@ -286,7 +286,7 @@ Deno.serve(async (req) => {
       const { data, error: jobsError } = await supabase
         .from('scraped_jobs')
         .select('*')
-        .in('mode', ['vc', 'pe'])
+        .in('mode', ['vc', 'pe', 'im'])
         .gt('scraped_at', sinceIso)
         .order('scraped_at', { ascending: false })
         .range(page * PAGE, page * PAGE + PAGE - 1);
