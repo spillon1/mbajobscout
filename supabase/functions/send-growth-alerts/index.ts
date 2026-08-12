@@ -182,8 +182,10 @@ function matchesGrowthAlert(job: ScrapedJob, description?: string, fromDescripti
 
   // Family office investment roles qualify on their own (separate stream in this alert).
   const foInTitleOrCompany = FAMILY_OFFICE_TERMS.some((p) => p.test(title) || p.test(company));
-  const foInHead = FAMILY_OFFICE_TERMS.some((p) => p.test(desc.slice(0, 1200)));
-  if (foInTitleOrCompany || foInHead) return true;
+  // Description-only: "family office" is common boilerplate (investor lists, LP types),
+  // so demand repeated mentions before treating it as the employer type.
+  const foMentions = (desc.match(/\bfamily\s+office(s)?\b/gi) ?? []).length;
+  if (foInTitleOrCompany || foMentions >= 3) return true;
 
 
 
