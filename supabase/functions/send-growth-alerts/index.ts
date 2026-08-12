@@ -412,8 +412,8 @@ Deno.serve(async (req) => {
     const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
       <div style="max-width:600px;margin:0 auto;padding:24px;">
         <div style="text-align:center;margin-bottom:24px;">
-          <h1 style="font-size:20px;color:#111827;margin:0;">⚡ MBA<span style="color:#2660CC;">JOBSCOUT</span> · Tech Growth &amp; Secondaries</h1>
-          <p style="color:#6b7280;font-size:14px;margin:4px 0 0;">${matched.length} new growth equity / late-stage VC / tech secondaries role${matched.length === 1 ? '' : 's'} in London</p>
+          <h1 style="font-size:20px;color:#111827;margin:0;">⚡ MBA<span style="color:#2660CC;">JOBSCOUT</span> · Tech Growth, Secondaries &amp; Family Office</h1>
+          <p style="color:#6b7280;font-size:14px;margin:4px 0 0;">${matched.length} new growth equity / late-stage VC / tech secondaries / family office role${matched.length === 1 ? '' : 's'} in London</p>
         </div>
         <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">${rows}</table>
         <p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:24px;">Sent by MBAJOBSCOUT</p>
