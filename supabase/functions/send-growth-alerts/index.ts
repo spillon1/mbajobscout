@@ -425,7 +425,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: 'MBAJobScout <onboarding@resend.dev>',
         to: [ALERT_EMAIL],
-        subject: `⚡ ${matched.length} new tech growth / secondaries role${matched.length === 1 ? '' : 's'} in London`,
+        subject: `⚡ ${matched.length} new tech growth / secondaries / family office role${matched.length === 1 ? '' : 's'} in London`,
         html,
       }),
     });
