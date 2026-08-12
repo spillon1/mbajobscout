@@ -328,9 +328,14 @@ Deno.serve(async (req) => {
       if (alreadySent.has(key)) continue;
       if (actionedUrls.has(nUrl) || actionedTC.has(key)) continue;
       if (!isLondonish(job.location)) continue;
-      // IM rows are only in scope for the family office stream
-      if (job.mode === 'im' &&
-          !FAMILY_OFFICE_TERMS.some((p) => p.test(job.title || '') || p.test(job.company || ''))) continue;
+      // IM rows are only in scope when the title/company itself signals family office,
+      // growth/late-stage or secondaries — otherwise generic asset management noise leaks in
+      if (job.mode === 'im') {
+        const t = `${job.title || ''} ${job.company || ''}`;
+        const inScope = FAMILY_OFFICE_TERMS.some((p) => p.test(t)) ||
+          GROWTH_TERMS.some((p) => p.test(t)) || SECONDARY_TERMS.some((p) => p.test(t));
+        if (!inScope) continue;
+      }
       if (!isCandidate(job)) continue;
 
       seen.add(key);
