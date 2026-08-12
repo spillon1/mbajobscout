@@ -101,6 +101,10 @@ const SECONDARY_TERMS: RegExp[] = [
   /\b(stepstone|industry\s+ventures|kline\s+hill|w\s+capital|pinegrove|nasdaq\s+private\s+market|forge\s+global|nova\s+capital|hollyport|glendower|lexington\s+partners|coller\s+capital|g\s+squared)\b/i,
 ];
 
+// ── Family office signals ──
+// Source of truth: src/data/subCategories.ts SECONDARY_FILTERS company type "Family Office"
+const FAMILY_OFFICE_TERMS: RegExp[] = [/\bfamily\s+office\b/i, /\bsfo\b/i, /\bmfo\b/i];
+
 // ── Pure PE / non-tech secondaries → belongs on the PE tab ──
 const PE_SECONDARY_MARKERS = /\b(buyout|lbo|leveraged|private\s+equity\s+secondar|pe\s+secondar|infrastructure\s+secondar|real\s+estate\s+secondar|credit\s+secondar|private\s+credit|real\s+assets?\s+secondar)\b/i;
 
