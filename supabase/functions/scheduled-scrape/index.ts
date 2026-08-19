@@ -30,6 +30,7 @@ const MODES: ModeConfig[] = [
       { name: 'Startup & VC', url: 'https://www.startupandvc.com/venture-capital-jobs' },
       { name: 'VC Careers', url: 'https://venturecapitalcareers.com/jobs/' },
       { name: 'Venture5', url: 'https://venture5.com/jobs/' },
+      { name: 'SecondaryLink', url: 'https://secondarylink.com/seclink/jobs/board' },
     ],
     keywords: [
       'Venture capital', 'Venture capital internship', 'Venture capital intern',
@@ -46,6 +47,7 @@ const MODES: ModeConfig[] = [
       { name: 'Google Jobs', url: 'https://www.google.com/search?udm=8&q=private+equity+jobs' },
       { name: 'Indeed UK', url: 'https://uk.indeed.com/jobs?q=%22private+equity%22' },
       { name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/search/?keywords=%22private+equity%22&location=London' },
+      { name: 'SecondaryLink', url: 'https://secondarylink.com/seclink/jobs/board' },
     ],
     keywords: [
       'Private equity', 'Private equity internship', 'Private equity intern',
@@ -106,6 +108,7 @@ const MODES: ModeConfig[] = [
       { name: 'Google Jobs', url: 'https://www.google.com/search?udm=8&q=investment+management+jobs' },
       { name: 'Indeed UK', url: 'https://uk.indeed.com/jobs?q=%22investment+management%22' },
       { name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/search/?keywords=%22investment+management%22&location=London' },
+      { name: 'SecondaryLink', url: 'https://secondarylink.com/seclink/jobs/board' },
     ],
     keywords: [
       'Investment management', 'Asset management', 'Hedge fund', 'Family office',
