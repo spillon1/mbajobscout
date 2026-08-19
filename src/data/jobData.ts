@@ -30,6 +30,7 @@ export const DEFAULT_SOURCES = getDefaultSources('London');
 export const MANUAL_SOURCES: JobSource[] = [
   { id: 'm1', name: 'MBA Exchange', url: 'https://www.mba-exchange.com/candidates/jobSearch_p.php', enabled: false, manualOnly: true },
   { id: 'm3', name: 'OCC (Cambridge)', url: 'https://cjbs-careers.12twenty.com/jobPostings#/jobPostings/index?tab=all&quickSearch=venture', enabled: false, manualOnly: true },
+  { id: 'm4', name: 'SecondaryLink', url: 'https://secondarylink.com/seclink/jobs/board', enabled: false, manualOnly: true },
 ];
 
 export const DEFAULT_KEYWORDS = [

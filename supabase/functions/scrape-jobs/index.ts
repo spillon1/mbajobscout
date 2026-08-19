@@ -220,6 +220,16 @@ Deno.serve(async (req) => {
           return { source: source.name, jobs: occJobs, status: 'connected' as const };
         }
 
+        // SecondaryLink (authenticated job board for secondaries / growth / PE)
+        if (source.url.includes('secondarylink.com')) {
+          const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
+          const secondaryLinkJobs = await scrapeSecondaryLink(source, keywords, location);
+          const locFiltered = secondaryLinkJobs.filter((j: any) => jobLocationMatches(j.location, searchCity));
+          const filtered = locFiltered.filter((j: any) => roleFilter(j.title, j.company, j.description));
+          console.log(`Found ${filtered.length} relevant jobs from SecondaryLink (raw: ${secondaryLinkJobs.length}, loc-filtered: ${locFiltered.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
+        }
+
         // Indeed UK
         if (source.url.includes('indeed.com')) {
           const indeedJobs = await scrapeIndeed(apiKey, source, keywords, location);
@@ -1703,6 +1713,253 @@ function parseOcc12TwentyJobs(
         url: `${source.url}#job-${Math.abs(hash)}`,
         postedDate: 'Scraped just now',
       });
+    }
+  }
+
+  return jobs;
+}
+
+async function scrapeSecondaryLink(
+  source: { name: string; url: string },
+  keywords: string[],
+  location: string
+): Promise<any[]> {
+  const email = Deno.env.get('SECONDARYLINK_EMAIL');
+  const password = Deno.env.get('SECONDARYLINK_PASSWORD');
+  const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
+
+  if (!email || !password) {
+    console.error('SecondaryLink credentials not configured (SECONDARYLINK_EMAIL / SECONDARYLINK_PASSWORD)');
+    throw new Error('SecondaryLink credentials not configured');
+  }
+
+  if (!firecrawlKey) {
+    console.error('FIRECRAWL_API_KEY not configured for SecondaryLink scraping');
+    throw new Error('Firecrawl API key not configured');
+  }
+
+  const urlObj = new URL(source.url);
+  const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
+  const loginUrl = `${baseUrl}/login`;
+  const jobsBoardUrl = `${baseUrl}/seclink/jobs/board`;
+
+  console.log(`SecondaryLink: Using Firecrawl actions to login at ${loginUrl}`);
+
+  const actions: any[] = [
+    { type: 'wait', milliseconds: 3000 },
+    { type: 'click', selector: 'input[type="email"]' },
+    { type: 'write', text: email },
+    { type: 'click', selector: 'input[type="password"]' },
+    { type: 'write', text: password },
+    { type: 'click', selector: 'button[type="submit"]' },
+    { type: 'wait', milliseconds: 8000 },
+    // Dismiss any post-login modal/interstitial
+    { type: 'executeJavascript', script: `
+      document.querySelectorAll('button, a, input[type=submit]').forEach(function(el) {
+        var t = (el.textContent || el.value || '').toLowerCase().trim();
+        if (t === 'save & continue' || t === 'save and continue' || t === 'skip' || t === 'continue' || t === 'close' || t === 'no' || t === 'dismiss' || t === 'maybe later') {
+          el.click();
+        }
+      });
+    ` },
+    { type: 'wait', milliseconds: 3000 },
+    // Navigate to the jobs board
+    { type: 'executeJavascript', script: `window.location.href = '${jobsBoardUrl}';` },
+    { type: 'wait', milliseconds: 15000 },
+    // Attempt to expand any "Load more" or pagination (synchronous clicks; waits handled by Firecrawl)
+    { type: 'executeJavascript', script: `
+      for (let i = 0; i < 5; i++) {
+        const loadMore = Array.from(document.querySelectorAll('button, a')).find(el => {
+          const t = (el.textContent || '').toLowerCase();
+          return t.includes('load more') || t.includes('show more') || t.includes('view more') || t.includes('next');
+        });
+        if (loadMore && !loadMore.disabled) {
+          loadMore.click();
+        }
+      }
+    ` },
+    { type: 'wait', milliseconds: 8000 },
+    { type: 'scrape' },
+  ];
+
+  const firecrawlRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${firecrawlKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url: loginUrl,
+      formats: ['markdown', 'html'],
+      waitFor: 3000,
+      actions,
+      timeout: 120000,
+    }),
+  });
+
+  const firecrawlData = await firecrawlRes.json();
+  if (!firecrawlRes.ok) {
+    console.error('SecondaryLink: Firecrawl scrape failed:', JSON.stringify(firecrawlData));
+    throw new Error(firecrawlData.error || `Firecrawl HTTP ${firecrawlRes.status}`);
+  }
+
+  let markdown = firecrawlData.data?.markdown || firecrawlData.markdown || '';
+  let html = firecrawlData.data?.html || firecrawlData.html || '';
+  console.log(`SecondaryLink: Firecrawl returned ${markdown.length} chars markdown, ${html.length} chars HTML`);
+  console.log(`SecondaryLink markdown preview: ${markdown.substring(0, 2500)}`);
+
+  const isLoginPage = markdown.includes('Login to continue') || markdown.includes('Sign in to continue') || markdown.includes('You must be logged in');
+  if (isLoginPage) {
+    console.error('SecondaryLink: Still on login page - credentials may be wrong or login blocked');
+    throw new Error('SecondaryLink login failed - check credentials');
+  }
+
+  const jobs = parseSecondaryLinkJobs(markdown, html, source, baseUrl);
+  console.log(`SecondaryLink: Parsed ${jobs.length} jobs from rendered page`);
+
+  if (jobs.length === 0) {
+    console.log('SecondaryLink: No jobs parsed. Full markdown sample:');
+    console.log(markdown.substring(0, 4000));
+  }
+
+  return jobs;
+}
+
+function parseSecondaryLinkJobs(
+  markdown: string,
+  html: string,
+  source: { name: string; url: string },
+  baseUrl: string
+): any[] {
+  const jobs: any[] = [];
+
+  // The SecondaryLink jobs board renders a list where each entry looks like:
+  //   Associate
+  //   BlackRock, Inc. open_in_new
+  //   Hybrid
+  //   New York, United States  USD $135,000 - $180,000
+  //   buyer  Global Infrastructure Partners
+  //   Posted 1 day ago
+  const lines = markdown.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  // Common job-title words that appear at the start of an entry
+  const titlePattern = /^(Associate|Analyst|Vice President|Director|Manager|Investment Analyst|Portfolio Analyst|Principal|Partner|Senior Associate|Junior Associate|Intern|Investment Manager|Portfolio Manager|Business Development|Operations Associate|Fund Accountant|Trader|Research Analyst|Assistant|Controller|CFO|CEO|Managing Director)(|[\s/])/i;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Skip UI / filter / header lines
+    if (/job board|view full screen|create a post|my job posts|from publish date|to publish date|currencies|positions|search|clear|firm types|firms|cities|countries|live|sort by|per page|posted|buyer|open_in_new|navigation|menu|profile|log out/i.test(line)) continue;
+    if (line.length < 4 || line.length > 120) continue;
+
+    // A title line is short, starts with a capital letter, and is followed by a company-ish line
+    const isTitleLike = /^[A-Z][a-zA-Z\s/&-]{2,60}$/.test(line) && !line.includes('$') && !line.includes('United') && !line.includes('Hybrid') && !line.includes('In-Office') && !line.includes('Remote');
+    if (!isTitleLike) continue;
+
+    // Look ahead for company and location
+    let company = 'Unknown';
+    let jobLocation = 'Unknown';
+    let postedDate = '';
+    let workType = '';
+
+    for (let j = i + 1; j < Math.min(i + 8, lines.length); j++) {
+      const next = lines[j];
+
+      // Company line: contains "open_in_new" or looks like a firm name
+      if (company === 'Unknown' && next.length > 2 && next.length < 100) {
+        const cleaned = next.replace(/open_in_new/g, '').replace(/\s+/g, ' ').trim();
+        if (cleaned && !/^(Hybrid|In-Office|Remote|Posted|buyer|Live|Sort By|Per Page|All)/i.test(cleaned)) {
+          company = cleaned;
+          continue;
+        }
+      }
+
+      // Work arrangement
+      if (!workType && /^(Hybrid|In-Office|Remote)$/i.test(next)) {
+        workType = next;
+        continue;
+      }
+
+      // Location line: contains a city/country or salary
+      if (jobLocation === 'Unknown' && /[A-Z][a-z]+/.test(next) && (next.includes(',') || next.includes('United') || next.includes('Remote'))) {
+        jobLocation = next.replace(/USD\s*\$[\d,]+\s*-\s*\$?[\d,]+/i, '').replace(/\s+/g, ' ').trim();
+        if (!jobLocation) jobLocation = 'Unknown';
+        continue;
+      }
+
+      // Posted date
+      if (!postedDate && /^posted\s+\d+\s+(day|days|week|weeks|hour|hours|month|months)\s+ago/i.test(next)) {
+        postedDate = next.replace(/^posted\s+/i, '').trim();
+      }
+    }
+
+    if (company === 'Unknown') continue; // Need at least a company to consider it a job
+
+    let type = 'full-time';
+    const titleLower = line.toLowerCase();
+    if (/\bintern(?:ship|s)?\b/.test(titleLower)) type = 'internship';
+    else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
+
+    // Generate a stable URL fragment from title + company
+    const hashInput = `${line}|${company}`;
+    const hash = Array.from(new TextEncoder().encode(hashInput)).reduce((a, b) => ((a << 5) - a + b) | 0, 0);
+
+    if (!jobs.some(j => j.title === line && j.company === company)) {
+      jobs.push({
+        id: crypto.randomUUID(),
+        title: line.slice(0, 200),
+        company,
+        location: jobLocation,
+        type,
+        source: source.name,
+        sourceUrl: source.url,
+        url: `${baseUrl}/seclink/jobs/board#job-${Math.abs(hash)}`,
+        postedDate: postedDate || 'Scraped just now',
+      });
+    }
+  }
+
+  // Fallback: if the structured parser found nothing, try HTML card links
+  if (jobs.length === 0 && html) {
+    console.log('SecondaryLink: Structured markdown parser found nothing, trying HTML card links');
+
+    const cardRegex = /<a[^>]*href="([^"]*\/seclink\/jobs\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    let cardMatch;
+    while ((cardMatch = cardRegex.exec(html)) !== null) {
+      const cardHtml = cardMatch[2];
+      const text = cardHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const textLines = text.split(/\s{2,}|\n/).map(l => l.trim()).filter(l => l.length > 2 && l.length < 200);
+
+      if (textLines.length === 0) continue;
+      const title = textLines[0];
+      if (/sign in|log in|menu|filter|search|cookie|navigation/i.test(title)) continue;
+
+      let company = textLines[1] || 'Unknown';
+      let jobLocation = textLines[2] || 'Unknown';
+      if (company.length > 100) company = 'Unknown';
+      if (jobLocation.length > 100) jobLocation = 'Unknown';
+
+      let url = cardMatch[1];
+      if (url.startsWith('/')) url = `${baseUrl}${url}`;
+
+      let type = 'full-time';
+      const titleLower = title.toLowerCase();
+      if (/\bintern(?:ship|s)?\b/.test(titleLower)) type = 'internship';
+      else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
+
+      if (!jobs.some(j => j.title === title && j.company === company)) {
+        jobs.push({
+          id: crypto.randomUUID(),
+          title: title.slice(0, 200),
+          company,
+          location: jobLocation,
+          type,
+          source: source.name,
+          sourceUrl: source.url,
+          url,
+          postedDate: 'Scraped just now',
+        });
+      }
     }
   }
 
