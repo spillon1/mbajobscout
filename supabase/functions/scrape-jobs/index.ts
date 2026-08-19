@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
           // Curated secondaries / private-capital board: every listing is an investment-side role,
           // so we only gate on UK location + obvious non-roles rather than the strict keyword gate.
           const locFiltered = secondaryLinkJobs.filter((j: any) => jobLocationMatches(j.location, searchCity));
-          const filtered = locFiltered.filter((j: any) => isNotExcludedRole(j.title, j.company));
+          const filtered = locFiltered.filter((j: any) => isNotExcludedRole(j.title));
           console.log(`Found ${filtered.length} relevant jobs from SecondaryLink (raw: ${secondaryLinkJobs.length}, loc-filtered: ${locFiltered.length})`);
           return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
