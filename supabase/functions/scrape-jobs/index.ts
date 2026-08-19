@@ -224,11 +224,14 @@ Deno.serve(async (req) => {
         if (source.url.includes('secondarylink.com')) {
           const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
           const secondaryLinkJobs = await scrapeSecondaryLink(source, keywords, location);
+          // Curated secondaries / private-capital board: every listing is an investment-side role,
+          // so we only gate on UK location + obvious non-roles rather than the strict keyword gate.
           const locFiltered = secondaryLinkJobs.filter((j: any) => jobLocationMatches(j.location, searchCity));
-          const filtered = locFiltered.filter((j: any) => roleFilter(j.title, j.company, j.description));
+          const filtered = locFiltered.filter((j: any) => isNotExcludedRole(j.title));
           console.log(`Found ${filtered.length} relevant jobs from SecondaryLink (raw: ${secondaryLinkJobs.length}, loc-filtered: ${locFiltered.length})`);
           return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
+
 
         // Indeed UK
         if (source.url.includes('indeed.com')) {
@@ -1779,6 +1782,15 @@ async function scrapeSecondaryLink(
       }
     ` },
     { type: 'wait', milliseconds: 8000 },
+    // Expand page size so all listings render (board defaults to 30 per page)
+    { type: 'executeJavascript', script: `
+      document.querySelectorAll('select').forEach(function (sel) {
+        var opt = Array.from(sel.options || []).find(function (o) { return parseInt(o.value || o.textContent, 10) >= 100; });
+        if (opt) { sel.value = opt.value; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+      });
+    ` },
+    { type: 'wait', milliseconds: 6000 },
+
     { type: 'scrape' },
   ];
 
@@ -1793,7 +1805,7 @@ async function scrapeSecondaryLink(
       formats: ['markdown', 'html'],
       waitFor: 3000,
       actions,
-      timeout: 120000,
+      timeout: 180000,
     }),
   });
 
@@ -1806,7 +1818,6 @@ async function scrapeSecondaryLink(
   let markdown = firecrawlData.data?.markdown || firecrawlData.markdown || '';
   let html = firecrawlData.data?.html || firecrawlData.html || '';
   console.log(`SecondaryLink: Firecrawl returned ${markdown.length} chars markdown, ${html.length} chars HTML`);
-  console.log(`SecondaryLink markdown preview: ${markdown.substring(0, 2500)}`);
 
   const isLoginPage = markdown.includes('Login to continue') || markdown.includes('Sign in to continue') || markdown.includes('You must be logged in');
   if (isLoginPage) {
@@ -1814,16 +1825,110 @@ async function scrapeSecondaryLink(
     throw new Error('SecondaryLink login failed - check credentials');
   }
 
-  const jobs = parseSecondaryLinkJobs(markdown, html, source, baseUrl);
-  console.log(`SecondaryLink: Parsed ${jobs.length} jobs from rendered page`);
+  let jobs = buildSecondaryLinkJobs(markdown, source, baseUrl);
+  if (jobs.length === 0) {
+    jobs = parseSecondaryLinkJobs(markdown, html, source, baseUrl);
+  }
+  console.log(`SecondaryLink: Parsed ${jobs.length} jobs total`);
 
   if (jobs.length === 0) {
-    console.log('SecondaryLink: No jobs parsed. Full markdown sample:');
+    console.log('SecondaryLink: No jobs parsed. Markdown sample:');
     console.log(markdown.substring(0, 4000));
   }
 
   return jobs;
 }
+
+/**
+ * Block parser for the SecondaryLink board markdown. Each listing renders as:
+ *   Vice President
+ *   Pearse Partners open_in_new
+ *   In-Office
+ *   London, United Kingdom  [USD $x - $y]
+ *   Executive Recruiter  Private Capital Advisory
+ *   Posted 1 day ago
+ */
+function buildSecondaryLinkJobs(
+  markdown: string,
+  source: { name: string; url: string },
+  baseUrl: string
+): any[] {
+  const jobs: any[] = [];
+  const lines = markdown.split('\n').map(l => l.replace(/\\_/g, '_').replace(/\s+/g, ' ').trim()).filter(Boolean);
+
+  const POSTED = /^Posted\s+(\d+\s+(?:day|days|hour|hours|week|weeks|month|months)\s+ago)$/i;
+  const WORK = /^(Hybrid|In-Office|Remote)$/i;
+  const LOCATION = /^([A-Z][A-Za-z .'()-]+(?:,\s*[A-Za-z .'()-]+)+?)(?:\s{1,}(?:[A-Z]{3}\s*)?[$€£][\d,]+.*)?$/;
+  const NOISE = /^(Job Board|View Full Screen|Create a Post|My Job Posts|From Publish Date|To Publish Date|Currencies|All Currencies|Positions|All Positions|Search|Clear|Firm Types|All Firm Types|Firms|All Firms|Cities|All Cities|Countries|All Countries|Live|All|Sort By.*|Per Page|\d+|\d+-\d+ of \d+|-|more_vert|Log Out|My User Profile|My Buyer Profile|Email Preferences|My Pricing Access|News Categories|an .*affiliate\.)$/i;
+
+  for (let i = 0; i < lines.length; i++) {
+    const postedMatch = lines[i].match(POSTED);
+    if (!postedMatch) continue;
+
+    // Walk backwards to gather the block for this listing (stops at previous "Posted ... ago")
+    const block: string[] = [];
+    for (let j = i - 1; j >= 0 && block.length < 8; j--) {
+      if (POSTED.test(lines[j])) break;
+      block.unshift(lines[j]);
+    }
+    if (block.length < 3) continue;
+
+    // Strip UI noise and images/links markup
+    const clean = block
+      .filter(l => !NOISE.test(l) && !l.startsWith('![') && !l.startsWith('[!['))
+      .map(l => l.replace(/open[_\s]?in[_\s]?new/gi, '').trim())
+      .filter(Boolean);
+    if (clean.length < 3) continue;
+
+    const workIdx = clean.findIndex(l => WORK.test(l));
+    if (workIdx < 1) continue;
+
+    const title = clean[workIdx - 2] !== undefined ? clean[workIdx - 2] : clean[0];
+    const company = clean[workIdx - 1] || 'Unknown';
+    const workType = clean[workIdx];
+
+    const after = clean.slice(workIdx + 1);
+    let jobLocation = 'Unknown';
+    const tags: string[] = [];
+    for (const l of after) {
+      const locMatch = l.match(LOCATION);
+      if (jobLocation === 'Unknown' && locMatch) {
+        jobLocation = locMatch[1].trim();
+        continue;
+      }
+      tags.push(l.replace(/^buyer\s+/i, '').trim());
+    }
+
+    if (!title || title.length < 3 || title.length > 120) continue;
+    if (NOISE.test(title) || /^https?:/i.test(title)) continue;
+
+    const description = [tags.filter(Boolean).join(' · '), workType].filter(Boolean).join(' — ');
+
+    let type = 'full-time';
+    const titleLower = title.toLowerCase();
+    if (/\bintern(?:ship|s)?\b/.test(titleLower)) type = 'internship';
+    else if (titleLower.includes('graduate') || titleLower.includes('entry level')) type = 'graduate';
+
+    if (jobs.some(j => j.title === title && j.company === company && j.location === jobLocation)) continue;
+
+    jobs.push({
+      id: crypto.randomUUID(),
+      title: title.slice(0, 200),
+      company: company.slice(0, 200),
+      location: jobLocation,
+      type,
+      source: source.name,
+      sourceUrl: source.url,
+      url: `${baseUrl}/seclink/jobs/board`,
+      postedDate: postedMatch[1],
+      description,
+    });
+  }
+
+  return jobs;
+}
+
+
 
 function parseSecondaryLinkJobs(
   markdown: string,
