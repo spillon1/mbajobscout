@@ -1926,6 +1926,7 @@ function parseSecondaryLinkJobs(
         sourceUrl: source.url,
         url: `${baseUrl}/seclink/jobs/board#job-${Math.abs(hash)}`,
         postedDate: postedDate || 'Scraped just now',
+        description,
       });
     }
   }
