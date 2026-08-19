@@ -1868,7 +1868,7 @@ function parseSecondaryLinkJobs(
 
       // Company line: contains "open_in_new" or looks like a firm name
       if (company === 'Unknown' && next.length > 2 && next.length < 100) {
-        const cleaned = next.replace(/open_in_new/g, '').replace(/\\_/g, '_').replace(/\s+/g, ' ').trim();
+        const cleaned = next.replace(/open[_\s]?in[_\s]?new/gi, '').replace(/\\_/g, '_').replace(/\s+/g, ' ').trim();
         if (cleaned && !/^(Hybrid|In-Office|Remote|Posted|buyer|Live|Sort By|Per Page|All)/i.test(cleaned)) {
           company = cleaned;
           continue;
