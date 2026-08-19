@@ -1856,18 +1856,19 @@ function parseSecondaryLinkJobs(
     const isTitleLike = /^[A-Z][a-zA-Z\s/&-]{2,60}$/.test(line) && !line.includes('$') && !line.includes('United') && !line.includes('Hybrid') && !line.includes('In-Office') && !line.includes('Remote');
     if (!isTitleLike) continue;
 
-    // Look ahead for company and location
+    // Look ahead for company, location, team and posted date
     let company = 'Unknown';
     let jobLocation = 'Unknown';
     let postedDate = '';
     let workType = '';
+    let team = '';
 
-    for (let j = i + 1; j < Math.min(i + 8, lines.length); j++) {
+    for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
       const next = lines[j];
 
       // Company line: contains "open_in_new" or looks like a firm name
       if (company === 'Unknown' && next.length > 2 && next.length < 100) {
-        const cleaned = next.replace(/open_in_new/g, '').replace(/\s+/g, ' ').trim();
+        const cleaned = next.replace(/open_in_new/g, '').replace(/\\_/g, '_').replace(/\s+/g, ' ').trim();
         if (cleaned && !/^(Hybrid|In-Office|Remote|Posted|buyer|Live|Sort By|Per Page|All)/i.test(cleaned)) {
           company = cleaned;
           continue;
@@ -1887,6 +1888,12 @@ function parseSecondaryLinkJobs(
         continue;
       }
 
+      // Team / buyer line (e.g. "buyer  Global Infrastructure Partners")
+      if (!team && /^buyer\s+/i.test(next)) {
+        team = next.replace(/^buyer\s+/i, '').replace(/\\_/g, '_').trim();
+        continue;
+      }
+
       // Posted date
       if (!postedDate && /^posted\s+\d+\s+(day|days|week|weeks|hour|hours|month|months)\s+ago/i.test(next)) {
         postedDate = next.replace(/^posted\s+/i, '').trim();
@@ -1894,6 +1901,10 @@ function parseSecondaryLinkJobs(
     }
 
     if (company === 'Unknown') continue; // Need at least a company to consider it a job
+
+    // Build a short description from team + work type so role filters can see secondaries/growth signals
+    const descriptionParts = [team, workType].filter(Boolean);
+    const description = descriptionParts.join(' · ');
 
     let type = 'full-time';
     const titleLower = line.toLowerCase();
