@@ -2,22 +2,32 @@ import { useState, useEffect } from 'react';
 import { Bell, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 export function AlertConfig() {
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const [enabled, setEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [alertId, setAlertId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    loadAlert();
-  }, []);
+    if (authLoading) return;
+    if (!user) {
+      setEnabled(false);
+      setAlertId(null);
+      setLoaded(true);
+      return;
+    }
+    loadAlert(user.id);
+  }, [user, authLoading]);
 
-  const loadAlert = async () => {
+  const loadAlert = async (userId: string) => {
     const { data } = await supabase
       .from('job_alerts')
       .select('*')
+      .eq('user_id', userId)
       .limit(1)
       .maybeSingle();
 
@@ -29,6 +39,10 @@ export function AlertConfig() {
   };
 
   const handleToggle = async () => {
+    if (!user) {
+      toast({ title: 'Sign in to manage daily alerts', variant: 'destructive' });
+      return;
+    }
     const newEnabled = !enabled;
     setEnabled(newEnabled);
     setSaving(true);
@@ -38,12 +52,14 @@ export function AlertConfig() {
         await supabase
           .from('job_alerts')
           .update({ enabled: newEnabled, updated_at: new Date().toISOString() })
-          .eq('id', alertId);
+          .eq('id', alertId)
+          .eq('user_id', user.id);
       } else {
         const { data } = await supabase
           .from('job_alerts')
           .insert({
-            email: 'spillon@gmail.com',
+            user_id: user.id,
+            email: user.email ?? '',
             enabled: newEnabled,
             keywords: [],
             location: '',
@@ -63,6 +79,7 @@ export function AlertConfig() {
   };
 
   if (!loaded) return null;
+
 
   return (
     <div className="border border-border rounded-md bg-card p-4 space-y-3">
