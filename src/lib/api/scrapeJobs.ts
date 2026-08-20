@@ -125,30 +125,9 @@ export async function scrapeJobs(
   console.log(`[DEBUG] Dedup: ${allJobs.length} → ${jobs.length}. Dropped by source:`, Object.fromEntries(dedupBySource));
   console.log(`[DEBUG] Kept by source:`, Object.fromEntries(keptBySource));
 
-  // Upsert fresh rows (preserves alerted flag for existing URLs via onConflict)
-  if (jobs.length > 0) {
-    const rows = jobs.map((j) => ({
-      title: j.title,
-      company: j.company,
-      location: j.location,
-      type: j.type,
-      source: j.source,
-      source_url: j.sourceUrl || j.jobUrl || '',
-      url: j.jobUrl || j.sourceUrl,
-      posted_date: j.postedDate || null,
-      description: j.description || null,
-      salary: j.salary || null,
-      mode,
-    }));
+  // Persistence is handled server-side by the scrape-jobs edge function
+  // (writes to scraped_jobs are restricted to the backend service role).
 
-    const { error: insertError } = await supabase
-      .from('scraped_jobs')
-      .upsert(rows, { onConflict: 'url', ignoreDuplicates: false });
-
-    if (insertError) {
-      console.error('Failed to save jobs:', insertError);
-    }
-  }
 
   return {
     success: true,
