@@ -355,7 +355,7 @@ Deno.serve(async (req) => {
       if (needsDesc.length > 0) {
         const deadline = Date.now() + 60_000;
         let got = 0;
-        await mapPool(needsDesc, 10, async (job: any) => {
+        await mapPool(needsDesc, 4, async (job: any) => {
           if (Date.now() > deadline) return;
           const text = await fetchJobDescription(job.url || job.sourceUrl || '', { firecrawlKey: apiKey });
           if (text && text.length > 120) {
