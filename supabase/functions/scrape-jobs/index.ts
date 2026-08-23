@@ -267,19 +267,12 @@ Deno.serve(async (req) => {
         }
 
         // Otherwise use Firecrawl
-        const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            url: source.url,
-            formats: ['markdown', 'links'],
-            onlyMainContent: true,
-            waitFor: 5000,
-          }),
-        });
+        const response = await fetchFirecrawlThrottled(apiKey, {
+          url: source.url,
+          formats: ['markdown', 'links'],
+          onlyMainContent: true,
+          waitFor: 5000,
+        }, 60000);
 
         const data = await response.json();
         if (!response.ok) {
