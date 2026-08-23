@@ -123,7 +123,7 @@ function resolveJobLocation(job: { location?: string; url?: string; sourceUrl?: 
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkListingsBatch, hasExpiredMarker } from '../_shared/job-expiry.ts';
-import { fetchJobDescription, mapPool } from '../_shared/job-description.ts';
+import { fetchJobDescription, mapPool, fetchFirecrawlThrottled } from '../_shared/job-description.ts';
 
 
 interface ScrapeRequest {
