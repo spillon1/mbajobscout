@@ -216,7 +216,7 @@ const Index = () => {
     // US state full names
     /\b(massachusetts|california|new york|texas|florida|illinois|pennsylvania|ohio|georgia|michigan|connecticut|new jersey|virginia|maryland|colorado|washington state|minnesota|north carolina)\b/i,
     // Non-UK countries
-    /\b(united states|usa|\bUS\b|canada|australia|germany|france|india|singapore|hong kong|japan|china|brazil|israel|netherlands|switzerland|ireland|spain|italy|sweden|denmark|norway|finland|austria|belgium|portugal|south korea|taiwan|thailand|vietnam|mexico|argentina|chile|south africa|nigeria|kenya|uae|dubai|saudi|qatar)\b/i];
+    /\b(united states|usa|\bUS\b|canada|australia|germany|france|india|singapore|hong kong|japan|china|brazil|israel|netherlands|switzerland|(?<!northern )ireland|spain|italy|sweden|denmark|norway|finland|austria|belgium|portugal|south korea|taiwan|thailand|vietnam|mexico|argentina|chile|south africa|nigeria|kenya|uae|dubai|saudi|qatar)\b/i];
 
 
     // Always filter out non-UK jobs regardless of city selection

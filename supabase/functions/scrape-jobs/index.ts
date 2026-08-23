@@ -123,7 +123,7 @@ function resolveJobLocation(job: { location?: string; url?: string; sourceUrl?: 
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkListingsBatch, hasExpiredMarker } from '../_shared/job-expiry.ts';
-import { fetchJobDescription, mapPool } from '../_shared/job-description.ts';
+import { fetchJobDescription, mapPool, fetchFirecrawlThrottled } from '../_shared/job-description.ts';
 
 
 interface ScrapeRequest {
@@ -267,19 +267,12 @@ Deno.serve(async (req) => {
         }
 
         // Otherwise use Firecrawl
-        const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            url: source.url,
-            formats: ['markdown', 'links'],
-            onlyMainContent: true,
-            waitFor: 5000,
-          }),
-        });
+        const response = await fetchFirecrawlThrottled(apiKey, {
+          url: source.url,
+          formats: ['markdown', 'links'],
+          onlyMainContent: true,
+          waitFor: 5000,
+        }, 60000);
 
         const data = await response.json();
         if (!response.ok) {
@@ -298,7 +291,11 @@ Deno.serve(async (req) => {
       }
     };
 
-    const sourceResults = await Promise.allSettled(sources.map(scrapeSource));
+    // Firecrawl calls are globally throttled (~18/min); we still bound source
+    // concurrency so slow sources don't stack up and push the function past its
+    // execution time limit.
+    const sourceResults = await mapPool(sources, 3, scrapeSource)
+      .then((arr) => arr.map((v) => ({ status: 'fulfilled' as const, value: v })));
 
     for (const result of sourceResults) {
       if (result.status === 'fulfilled') {
@@ -358,7 +355,7 @@ Deno.serve(async (req) => {
       if (needsDesc.length > 0) {
         const deadline = Date.now() + 60_000;
         let got = 0;
-        await mapPool(needsDesc, 10, async (job: any) => {
+        await mapPool(needsDesc, 4, async (job: any) => {
           if (Date.now() > deadline) return;
           const text = await fetchJobDescription(job.url || job.sourceUrl || '', { firecrawlKey: apiKey });
           if (text && text.length > 120) {
@@ -531,23 +528,21 @@ async function scrapeGoogleJobsPages(
     console.log(`Google Jobs page ${page + 1}: ${scrapeUrl}`);
 
     try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: scrapeUrl,
-          formats: ['markdown', 'links'],
-          onlyMainContent: true,
-          waitFor: 5000,
-        }),
-      });
+      const response = await fetchFirecrawlThrottled(apiKey, {
+        url: scrapeUrl,
+        formats: ['markdown', 'links'],
+        onlyMainContent: true,
+        waitFor: 5000,
+      }, 60000);
 
       const data = await response.json();
       if (!response.ok) {
         console.error(`Google Jobs page ${page + 1} failed:`, data);
+        // Rate limit / server errors are worth one retry after the throttle gap
+        if (response.status === 429 || response.status >= 500) {
+          await new Promise((r) => setTimeout(r, 5000));
+          continue;
+        }
         break;
       }
 
@@ -604,21 +599,14 @@ async function scrapeVenture5(
       actions.push({ type: 'scrape' });
 
       console.log(`Venture5: actions scrape attempt ${attempt}/${MAX_RETRIES} (24 clicks)`);
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: filteredUrl,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          waitFor: 5000,
-          timeout: 120000,
-          actions,
-        }),
-      });
+      const response = await fetchFirecrawlThrottled(apiKey, {
+        url: filteredUrl,
+        formats: ['markdown'],
+        onlyMainContent: true,
+        waitFor: 5000,
+        timeout: 120000,
+        actions,
+      }, 150000);
 
       const data = await response.json();
       if (response.ok) {
@@ -647,19 +635,12 @@ async function scrapeVenture5(
   if (!markdown) {
     console.log('Venture5: all action scrape attempts failed, trying simple scrape fallback');
     try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: filteredUrl,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          waitFor: 5000,
-        }),
-      });
+      const response = await fetchFirecrawlThrottled(apiKey, {
+        url: filteredUrl,
+        formats: ['markdown'],
+        onlyMainContent: true,
+        waitFor: 5000,
+      }, 60000);
       const data = await response.json();
       if (response.ok) {
         markdown = data.data?.markdown || data.markdown || '';
@@ -956,26 +937,13 @@ async function scrapeIndeed(
   let html = '';
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: searchUrl,
-        formats: ['extract'],
-        extract: { schema: jsonSchema },
-        waitFor: 3000,
-        timeout: 30000,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
+    const response = await fetchFirecrawlThrottled(apiKey, {
+      url: searchUrl,
+      formats: ['extract'],
+      extract: { schema: jsonSchema },
+      waitFor: 3000,
+      timeout: 30000,
+    }, 45000);
 
     const data = await response.json();
     if (response.ok) {
@@ -1025,25 +993,13 @@ async function scrapeIndeed(
   // Fallback: try markdown scrape (faster, no LLM extraction)
   console.log('Indeed: JSON extraction failed or empty, trying markdown fallback');
   try {
-    const fallbackController = new AbortController();
-    const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 20000);
+    const fallbackResp = await fetchFirecrawlThrottled(apiKey, {
+      url: searchUrl,
+      formats: ['markdown', 'html'],
+      waitFor: 3000,
+      timeout: 15000,
+    }, 30000);
 
-    const fallbackResp = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: searchUrl,
-        formats: ['markdown', 'html'],
-        waitFor: 3000,
-        timeout: 15000,
-      }),
-      signal: fallbackController.signal,
-    });
-
-    clearTimeout(fallbackTimeoutId);
     const fallbackData = await fallbackResp.json();
     if (fallbackResp.ok) {
       html = fallbackData.data?.html || fallbackData.html || '';
@@ -1304,20 +1260,13 @@ async function scrapeGlassdoor(
 
   console.log(`Glassdoor: scraping URL: ${glassdoorSearchUrl}`);
 
-  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      url: glassdoorSearchUrl,
-      formats: ['markdown'],
-      onlyMainContent: false,
-      waitFor: 10000,
-      timeout: 120000,
-    }),
-  });
+  const response = await fetchFirecrawlThrottled(apiKey, {
+    url: glassdoorSearchUrl,
+    formats: ['markdown'],
+    onlyMainContent: false,
+    waitFor: 10000,
+    timeout: 120000,
+  }, 150000);
 
   const data = await response.json();
   if (!response.ok) {
@@ -1517,20 +1466,13 @@ async function scrapeOcc12Twenty(
     { type: 'scrape' },
   ];
 
-  const firecrawlRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${firecrawlKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      url: loginUrl,
-      formats: ['markdown', 'html'],
-      waitFor: 3000,
-      actions,
-      timeout: 120000,
-    }),
-  });
+  const firecrawlRes = await fetchFirecrawlThrottled(firecrawlKey, {
+    url: loginUrl,
+    formats: ['markdown', 'html'],
+    waitFor: 3000,
+    actions,
+    timeout: 120000,
+  }, 150000);
 
   const firecrawlData = await firecrawlRes.json();
   if (!firecrawlRes.ok) {
@@ -1794,20 +1736,13 @@ async function scrapeSecondaryLink(
     { type: 'scrape' },
   ];
 
-  const firecrawlRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${firecrawlKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      url: loginUrl,
-      formats: ['markdown', 'html'],
-      waitFor: 3000,
-      actions,
-      timeout: 180000,
-    }),
-  });
+  const firecrawlRes = await fetchFirecrawlThrottled(firecrawlKey, {
+    url: loginUrl,
+    formats: ['markdown', 'html'],
+    waitFor: 3000,
+    actions,
+    timeout: 180000,
+  }, 200000);
 
   const firecrawlData = await firecrawlRes.json();
   if (!firecrawlRes.ok) {
@@ -2845,19 +2780,12 @@ async function fetchEfcPageJobs(
   pageUrl: string,
   source: { name: string; url: string }
 ): Promise<{ jobs: any[]; markdown: string }> {
-  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      url: pageUrl,
-      formats: ['markdown'],
-      onlyMainContent: true,
-      waitFor: 5000,
-    }),
-  });
+  const response = await fetchFirecrawlThrottled(apiKey, {
+    url: pageUrl,
+    formats: ['markdown'],
+    onlyMainContent: true,
+    waitFor: 5000,
+  }, 60000);
 
   const data = await response.json();
   if (!response.ok) {
@@ -3621,19 +3549,12 @@ async function scrapeInnovatorsRoom(
   for (const archiveUrl of archiveUrls) {
     try {
       console.log(`InnovatorsRoom: fetching archive: ${archiveUrl}`);
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: archiveUrl,
-          formats: ['markdown', 'links'],
-          onlyMainContent: true,
-          waitFor: 3000,
-        }),
-      });
+      const response = await fetchFirecrawlThrottled(apiKey, {
+        url: archiveUrl,
+        formats: ['markdown', 'links'],
+        onlyMainContent: true,
+        waitFor: 3000,
+      }, 60000);
 
       const data = await response.json();
       if (!response.ok) {
@@ -3679,19 +3600,12 @@ async function scrapeInnovatorsRoom(
   for (const dropUrl of uniqueDropUrls) {
     try {
       console.log(`InnovatorsRoom: scraping JobDrop: ${dropUrl}`);
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: dropUrl,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          waitFor: 3000,
-        }),
-      });
+      const response = await fetchFirecrawlThrottled(apiKey, {
+        url: dropUrl,
+        formats: ['markdown'],
+        onlyMainContent: true,
+        waitFor: 3000,
+      }, 60000);
 
       const data = await response.json();
       if (!response.ok) {

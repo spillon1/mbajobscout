@@ -88,9 +88,35 @@ async function fetchDirect(url: string): Promise<string> {
   }
 }
 
+/**
+ * Global throttle for Firecrawl API calls.
+ * Firecrawl's plan limit is 20 requests/minute; the scrape fan-out (sources,
+ * pagination, description enrichment) can easily burst past that. Serialising
+ * calls through this queue with a minimum gap keeps us under the cap.
+ */
+let firecrawlChain: Promise<unknown> = Promise.resolve();
+let firecrawlNextAt = 0;
+
+const FIRECRAWL_MIN_INTERVAL_MS = 3200; // ~18 req/min, safely under the 20/min cap
+
+function throttledFirecrawlFetch(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const task = firecrawlChain.then(async () => {
+    const wait = Math.max(0, firecrawlNextAt - Date.now());
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    firecrawlNextAt = Date.now() + FIRECRAWL_MIN_INTERVAL_MS;
+    try {
+      return await withTimeout(url, init, timeoutMs);
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), { status: 599 });
+    }
+  });
+  firecrawlChain = task.catch(() => {});
+  return task;
+}
+
 async function fetchFirecrawl(url: string, apiKey: string): Promise<string> {
   try {
-    const res = await withTimeout('https://api.firecrawl.dev/v1/scrape', {
+    const res = await throttledFirecrawlFetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ url, formats: ['markdown'], onlyMainContent: true, timeout: 20000 }),
@@ -135,4 +161,20 @@ export async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => 
   });
   await Promise.all(workers);
   return results;
+}
+
+/**
+ * Firecrawl request wrapper with global pacing.
+ * All edge-function Firecrawl calls should go through this so the 20 req/min
+ * plan limit is never exceeded regardless of how many sources run in parallel.
+ */
+export async function fetchFirecrawlThrottled(apiKey: string, body: Record<string, unknown>, timeoutMs = 30000): Promise<Response> {
+  return throttledFirecrawlFetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }, timeoutMs);
 }

@@ -83,6 +83,7 @@ const CITY_ALIASES: Record<string, string[]> = {
   southampton: ['hampshire'],
   bath: ['somerset', 'bath and north east somerset'],
   aberdeen: ['aberdeenshire'],
+  belfast: ['northern ireland', 'antrim', 'county down', 'derry', 'londonderry', 'armagh'],
 };
 
 /** Returns true if the job's location text indicates a remote role */
