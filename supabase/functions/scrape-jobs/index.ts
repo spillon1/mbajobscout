@@ -298,7 +298,11 @@ Deno.serve(async (req) => {
       }
     };
 
-    const sourceResults = await Promise.allSettled(sources.map(scrapeSource));
+    // Firecrawl calls are globally throttled (~18/min); we still bound source
+    // concurrency so slow sources don't stack up and push the function past its
+    // execution time limit.
+    const sourceResults = await mapPool(sources, 3, scrapeSource)
+      .then((arr) => arr.map((v) => ({ status: 'fulfilled' as const, value: v })));
 
     for (const result of sourceResults) {
       if (result.status === 'fulfilled') {
