@@ -599,21 +599,14 @@ async function scrapeVenture5(
       actions.push({ type: 'scrape' });
 
       console.log(`Venture5: actions scrape attempt ${attempt}/${MAX_RETRIES} (24 clicks)`);
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: filteredUrl,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          waitFor: 5000,
-          timeout: 120000,
-          actions,
-        }),
-      });
+      const response = await fetchFirecrawlThrottled(apiKey, {
+        url: filteredUrl,
+        formats: ['markdown'],
+        onlyMainContent: true,
+        waitFor: 5000,
+        timeout: 120000,
+        actions,
+      }, 150000);
 
       const data = await response.json();
       if (response.ok) {
