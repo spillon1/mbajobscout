@@ -162,3 +162,19 @@ export async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => 
   await Promise.all(workers);
   return results;
 }
+
+/**
+ * Firecrawl request wrapper with global pacing.
+ * All edge-function Firecrawl calls should go through this so the 20 req/min
+ * plan limit is never exceeded regardless of how many sources run in parallel.
+ */
+export async function fetchFirecrawlThrottled(apiKey: string, body: Record<string, unknown>, timeoutMs = 30000): Promise<Response> {
+  return throttledFirecrawlFetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }, timeoutMs);
+}
