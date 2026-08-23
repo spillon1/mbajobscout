@@ -528,23 +528,21 @@ async function scrapeGoogleJobsPages(
     console.log(`Google Jobs page ${page + 1}: ${scrapeUrl}`);
 
     try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: scrapeUrl,
-          formats: ['markdown', 'links'],
-          onlyMainContent: true,
-          waitFor: 5000,
-        }),
-      });
+      const response = await fetchFirecrawlThrottled(apiKey, {
+        url: scrapeUrl,
+        formats: ['markdown', 'links'],
+        onlyMainContent: true,
+        waitFor: 5000,
+      }, 60000);
 
       const data = await response.json();
       if (!response.ok) {
         console.error(`Google Jobs page ${page + 1} failed:`, data);
+        // Rate limit / server errors are worth one retry after the throttle gap
+        if (response.status === 429 || response.status >= 500) {
+          await new Promise((r) => setTimeout(r, 5000));
+          continue;
+        }
         break;
       }
 
