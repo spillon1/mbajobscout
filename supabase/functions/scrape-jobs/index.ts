@@ -937,9 +937,6 @@ async function scrapeIndeed(
   let html = '';
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
     const response = await fetchFirecrawlThrottled(apiKey, {
       url: searchUrl,
       formats: ['extract'],
@@ -947,8 +944,6 @@ async function scrapeIndeed(
       waitFor: 3000,
       timeout: 30000,
     }, 45000);
-
-    clearTimeout(timeoutId);
 
     const data = await response.json();
     if (response.ok) {
@@ -998,9 +993,6 @@ async function scrapeIndeed(
   // Fallback: try markdown scrape (faster, no LLM extraction)
   console.log('Indeed: JSON extraction failed or empty, trying markdown fallback');
   try {
-    const fallbackController = new AbortController();
-    const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 20000);
-
     const fallbackResp = await fetchFirecrawlThrottled(apiKey, {
       url: searchUrl,
       formats: ['markdown', 'html'],
@@ -1008,7 +1000,6 @@ async function scrapeIndeed(
       timeout: 15000,
     }, 30000);
 
-    clearTimeout(fallbackTimeoutId);
     const fallbackData = await fallbackResp.json();
     if (fallbackResp.ok) {
       html = fallbackData.data?.html || fallbackData.html || '';
