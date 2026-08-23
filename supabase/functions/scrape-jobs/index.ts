@@ -635,19 +635,12 @@ async function scrapeVenture5(
   if (!markdown) {
     console.log('Venture5: all action scrape attempts failed, trying simple scrape fallback');
     try {
-      const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: filteredUrl,
-          formats: ['markdown'],
-          onlyMainContent: true,
-          waitFor: 5000,
-        }),
-      });
+      const response = await fetchFirecrawlThrottled(apiKey, {
+        url: filteredUrl,
+        formats: ['markdown'],
+        onlyMainContent: true,
+        waitFor: 5000,
+      }, 60000);
       const data = await response.json();
       if (response.ok) {
         markdown = data.data?.markdown || data.markdown || '';
