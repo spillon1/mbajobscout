@@ -291,10 +291,10 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Firecrawl calls are globally throttled (~18/min); we still bound source
-    // concurrency so slow sources don't stack up and push the function past its
-    // execution time limit.
-    const sourceResults = await mapPool(sources, 3, scrapeSource)
+    // Firecrawl calls are globally rate-limited by start time (~18/min) and no
+    // longer wait on each other's completion, so run more sources concurrently
+    // while still bounding the fan-out to stay inside the execution budget.
+    const sourceResults = await mapPool(sources, 5, scrapeSource)
       .then((arr) => arr.map((v) => ({ status: 'fulfilled' as const, value: v })));
 
     for (const result of sourceResults) {
