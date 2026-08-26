@@ -232,6 +232,18 @@ Deno.serve(async (req) => {
           return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
 
+        // Growth Equity Interview Guide (curated VC / growth equity board)
+        if (source.url.includes('growthequityinterviewguide.com')) {
+          const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
+          const geigJobs = await scrapeGrowthEquityGuide(source, location);
+          // Board is pre-filtered to venture/growth strategies, so gate on UK
+          // location + obvious non-roles rather than the strict keyword gate.
+          const locFiltered = geigJobs.filter((j: any) => jobLocationMatches(j.location, searchCity));
+          const filtered = locFiltered.filter((j: any) => isNotExcludedRole(j.title));
+          console.log(`Found ${filtered.length} relevant jobs from Growth Equity Guide (raw: ${geigJobs.length}, loc-filtered: ${locFiltered.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
+        }
+
 
         // Indeed UK
         if (source.url.includes('indeed.com')) {
