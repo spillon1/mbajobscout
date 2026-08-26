@@ -2063,6 +2063,8 @@ function decodeGeigText(str: string): string {
     .replace(/<[^>]+>/g, ' ')
     .replace(/&#0?39;|&rsquo;|&lsquo;/g, "'")
     .replace(/&quot;|&ldquo;|&rdquo;/g, '"')
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
     .replace(/&amp;/g, '&')
     .replace(/&nbsp;/g, ' ')
     .replace(/&lt;/g, '<')
