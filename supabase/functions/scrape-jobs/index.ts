@@ -346,6 +346,24 @@ Deno.serve(async (req) => {
       return true;
     });
 
+    // Cross-source dedup: the same role is often listed on multiple boards
+    // (e.g. Growth Equity Guide + LinkedIn + Venture5). Key on normalized
+    // title+company and keep the first occurrence — source order in the
+    // request decides which listing wins.
+    const seenRole = new Set<string>();
+    const roleDeduped = dedupedResults.filter(job => {
+      const key = `${job.title}||${job.company}`.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      if (key.length < 6) return true;
+      if (seenRole.has(key)) return false;
+      seenRole.add(key);
+      return true;
+    });
+    if (roleDeduped.length !== dedupedResults.length) {
+      console.log(`Cross-source dedup dropped ${dedupedResults.length - roleDeduped.length} duplicate roles (same title+company)`);
+      dedupedResults.length = 0;
+      dedupedResults.push(...roleDeduped);
+    }
+
     // Update per-source counts based on final filtered result set
     const finalSourceCounts: Record<string, number> = {};
     for (const job of dedupedResults) {
