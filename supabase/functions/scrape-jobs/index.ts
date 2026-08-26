@@ -232,6 +232,18 @@ Deno.serve(async (req) => {
           return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
 
+        // Growth Equity Interview Guide (curated VC / growth equity board)
+        if (source.url.includes('growthequityinterviewguide.com')) {
+          const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
+          const geigJobs = await scrapeGrowthEquityGuide(source, location);
+          // Board is pre-filtered to venture/growth strategies, so gate on UK
+          // location + obvious non-roles rather than the strict keyword gate.
+          const locFiltered = geigJobs.filter((j: any) => jobLocationMatches(j.location, searchCity));
+          const filtered = locFiltered.filter((j: any) => isNotExcludedRole(j.title));
+          console.log(`Found ${filtered.length} relevant jobs from Growth Equity Guide (raw: ${geigJobs.length}, loc-filtered: ${locFiltered.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
+        }
+
 
         // Indeed UK
         if (source.url.includes('indeed.com')) {
@@ -333,6 +345,24 @@ Deno.serve(async (req) => {
       seen.add(job.url);
       return true;
     });
+
+    // Cross-source dedup: the same role is often listed on multiple boards
+    // (e.g. Growth Equity Guide + LinkedIn + Venture5). Key on normalized
+    // title+company and keep the first occurrence — source order in the
+    // request decides which listing wins.
+    const seenRole = new Set<string>();
+    const roleDeduped = dedupedResults.filter(job => {
+      const key = `${job.title}||${job.company}`.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      if (key.length < 6) return true;
+      if (seenRole.has(key)) return false;
+      seenRole.add(key);
+      return true;
+    });
+    if (roleDeduped.length !== dedupedResults.length) {
+      console.log(`Cross-source dedup dropped ${dedupedResults.length - roleDeduped.length} duplicate roles (same title+company)`);
+      dedupedResults.length = 0;
+      dedupedResults.push(...roleDeduped);
+    }
 
     // Update per-source counts based on final filtered result set
     const finalSourceCounts: Record<string, number> = {};
@@ -2015,6 +2045,145 @@ function parseSecondaryLinkJobs(
     }
   }
 
+  return jobs;
+}
+
+// ---- Growth Equity Interview Guide (WP Job Manager board) ----
+// The board URL arrives pre-filtered via FacetWP params (venture/growth strategy +
+// London). List pages link to /job/<slug> detail pages that carry full JobPosting
+// JSON-LD, so we fetch them directly (no Firecrawl spend) and parse structured data.
+
+const GEIG_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
+function decodeGeigText(str: string): string {
+  return (str || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&#0?39;|&rsquo;|&lsquo;/g, "'")
+    .replace(/&quot;|&ldquo;|&rdquo;/g, '"')
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&amp;/g, '&')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function findJobPostingNode(parsed: any): any | null {
+  if (!parsed || typeof parsed !== 'object') return null;
+  if (parsed['@type'] === 'JobPosting') return parsed;
+  for (const key of ['@graph', 'graph']) {
+    if (Array.isArray(parsed[key])) {
+      for (const node of parsed[key]) {
+        const found = findJobPostingNode(node);
+        if (found) return found;
+      }
+    }
+  }
+  if (Array.isArray(parsed)) {
+    for (const node of parsed) {
+      const found = findJobPostingNode(node);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+async function scrapeGrowthEquityGuide(
+  source: { name: string; url: string },
+  location: string,
+): Promise<any[]> {
+  // Collect /job/<slug> detail links across FacetWP pages; stop when a page adds nothing new
+  const jobUrls: string[] = [];
+  const seenUrl = new Set<string>();
+  for (let page = 1; page <= 5; page++) {
+    const sep = source.url.includes('?') ? '&' : '?';
+    const pageUrl = page === 1 ? source.url : `${source.url}${sep}fwp_paged=${page}`;
+    try {
+      const res = await fetch(pageUrl, {
+        headers: { 'User-Agent': GEIG_UA, 'Accept': 'text/html' },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) break;
+      const html = await res.text();
+      const links = [...html.matchAll(/href="(https:\/\/growthequityinterviewguide\.com\/job\/[^"?#]+)"/g)]
+        .map((m) => m[1]);
+      let added = 0;
+      for (const link of links) {
+        if (!seenUrl.has(link)) {
+          seenUrl.add(link);
+          jobUrls.push(link);
+          added++;
+        }
+      }
+      if (page > 1 && added === 0) break;
+    } catch (err) {
+      console.error(`GEIG: list page ${page} fetch failed:`, err);
+      break;
+    }
+  }
+  console.log(`GEIG: ${jobUrls.length} listing URLs found`);
+
+  const now = Date.now();
+  const parsed = await mapPool(jobUrls, 4, async (url) => {
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': GEIG_UA, 'Accept': 'text/html' },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) return null;
+      const html = await res.text();
+
+      let posting: any = null;
+      for (const m of html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+        try {
+          posting = findJobPostingNode(JSON.parse(m[1]));
+        } catch { /* malformed ld+json */ }
+        if (posting) break;
+      }
+      if (!posting || !posting.title) return null;
+
+      // validThrough is the board's own expiry signal — drop closed listings here
+      if (posting.validThrough && Date.parse(posting.validThrough) < now) return null;
+
+      const address = posting.jobLocation?.address || {};
+      const locality = address.addressLocality || '';
+      const countryRaw = address.addressCountry || '';
+      const country = countryRaw === 'GB' ? 'UK' : countryRaw;
+      const jobLocation = [locality, country].filter(Boolean).join(', ') || 'United Kingdom';
+
+      const title = decodeGeigText(String(posting.title));
+      const company = decodeGeigText(String(posting.hiringOrganization?.name || 'Unknown'));
+      const description = decodeGeigText(String(posting.description || '')).slice(0, 12000);
+
+      const tl = title.toLowerCase();
+      let type = 'full-time';
+      if (/\bintern(?:ship|s)?\b/.test(tl)) type = 'internship';
+      else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
+
+      return {
+        id: crypto.randomUUID(),
+        title: title.slice(0, 200),
+        company,
+        location: jobLocation,
+        type,
+        source: source.name,
+        sourceUrl: source.url,
+        url,
+        postedDate: posting.datePosted ? String(posting.datePosted).slice(0, 10) : 'Scraped just now',
+        description: description || undefined,
+      };
+    } catch {
+      return null;
+    }
+  });
+
+  const jobs = parsed.filter((j): j is NonNullable<typeof j> => !!j);
+  console.log(`GEIG: parsed ${jobs.length}/${jobUrls.length} detail pages`);
   return jobs;
 }
 

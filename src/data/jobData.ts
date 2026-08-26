@@ -12,6 +12,7 @@ const SOURCE_TEMPLATES: { id: string; name: string; defaultUrl: string; enabled:
   { id: '5', name: 'Startup & VC', defaultUrl: 'https://www.startupandvc.com/venture-capital-jobs', enabled: true, status: 'unknown' },
   { id: '12', name: 'VC Careers', defaultUrl: 'https://venturecapitalcareers.com/jobs/', enabled: true, status: 'unknown' },
   { id: '7', name: 'Venture5', defaultUrl: 'https://venture5.com/jobs/', enabled: true, status: 'unknown' },
+  { id: '13', name: 'Growth Equity Guide', defaultUrl: 'https://growthequityinterviewguide.com/jobs?_job_strategy=venture%2Cgrowth&_job_location_category=london', enabled: true, status: 'unknown' },
 ];
 
 export function getDefaultSources(city: string): (JobSource & { status?: 'connected' | 'error' | 'checking' | 'unknown' })[] {
