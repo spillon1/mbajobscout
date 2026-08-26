@@ -31,6 +31,8 @@ const MODES: ModeConfig[] = [
       { name: 'VC Careers', url: 'https://venturecapitalcareers.com/jobs/' },
       { name: 'Venture5', url: 'https://venture5.com/jobs/' },
       { name: 'SecondaryLink', url: 'https://secondarylink.com/seclink/jobs/board' },
+      // Curated VC/growth board; appended last so other sources win cross-source dedup
+      { name: 'Growth Equity Guide', url: 'https://growthequityinterviewguide.com/jobs?_job_strategy=venture%2Cgrowth&_job_location_category=london' },
     ],
     keywords: [
       'Venture capital', 'Venture capital internship', 'Venture capital intern',
