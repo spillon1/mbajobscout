@@ -150,6 +150,17 @@ interface ScrapeRequest {
   mode?: 'vc' | 'pe' | 'ib' | 'st' | 'mc'; // Which job vertical to filter for
 }
 
+/**
+ * Startups-board operator gate: on mixed boards like Startup & VC, keep only
+ * non-investor (operator) roles — chief of staff, founder associate, ops,
+ * growth, strategy, product, GTM — and drop VC investor roles.
+ */
+function isStartupOperatorRole(title: string): boolean {
+  const t = title.toLowerCase();
+  if (/\b(investor|investment|investments|venture\s+capital|\bvc\b|principal|partner)\b/.test(t)) return false;
+  return /\b(chief\s+of\s+staff|founder'?s?\s+associate|operations|\bops\b|business\s+operations|growth|strategy|product\s+(manager|lead|owner|designer)|go[\s-]to[\s-]market|\bgtm\b|marketing|partnerships|talent|people\s+ops|special\s+assistant|chief\s+of\s+staff)\b/.test(t);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
