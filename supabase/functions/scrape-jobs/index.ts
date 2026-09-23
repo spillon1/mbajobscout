@@ -2358,10 +2358,11 @@ async function scrapeDartmouthPartners(
           if (posting) break;
         }
         if (posting?.validThrough && Date.parse(posting.validThrough) < now) return null;
-        if (posting?.description) description = stripHtml(String(posting.description)).slice(0, 12000);
-        if (posting?.hiringOrganization?.name) company = decodeHtmlEntities(String(posting.hiringOrganization.name));
+        if (posting?.description) description = decodeGeigText(stripHtml(String(posting.description))).slice(0, 12000);
+        if (posting?.hiringOrganization?.name) company = decodeGeigText(String(posting.hiringOrganization.name)).trim();
         const detailLoc = html.match(/<h3>Location<\/h3>\s*([^<]{2,80})/)?.[1]?.trim();
-        if (detailLoc) location = decodeHtmlEntities(detailLoc);
+        if (detailLoc) location = decodeGeigText(detailLoc).trim();
+
         if (hasExpiredMarker(html)) return null;
       }
     } catch { /* detail fetch is best effort */ }
