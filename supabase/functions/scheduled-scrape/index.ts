@@ -121,8 +121,8 @@ const MODES: ModeConfig[] = [
       { name: 'SecondaryLink', url: 'https://secondarylink.com/seclink/jobs/board' },
       { name: 'Dartmouth Partners', url: 'https://www.dartmouthpartners.com/jobs' },
     ],
-
     keywords: [
+
       'Investment management', 'Asset management', 'Hedge fund', 'Family office',
       'Portfolio manager', 'Fund manager', 'Equity research',
       'Investment analyst', 'Wealth management', 'Private wealth',
