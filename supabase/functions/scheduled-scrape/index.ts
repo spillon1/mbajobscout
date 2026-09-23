@@ -54,7 +54,9 @@ const MODES: ModeConfig[] = [
       { name: 'Indeed UK', url: 'https://uk.indeed.com/jobs?q=%22private+equity%22' },
       { name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/search/?keywords=%22private+equity%22&location=London' },
       { name: 'SecondaryLink', url: 'https://secondarylink.com/seclink/jobs/board' },
+      { name: 'Dartmouth Partners', url: 'https://www.dartmouthpartners.com/jobs' },
     ],
+
     keywords: [
       'Private equity', 'Private equity internship', 'Private equity intern',
       'Private equity graduate', 'Private equity analyst',
