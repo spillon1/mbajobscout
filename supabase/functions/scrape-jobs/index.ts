@@ -2323,9 +2323,10 @@ async function scrapeDartmouthPartners(
       const url = m[1];
       const block = m[2];
       if (seen.has(url)) continue;
-      const title = decodeHtmlEntities((block.match(/<h3>([\s\S]*?)<\/h3>/)?.[1] || '').replace(/<[^>]+>/g, '').trim());
+      const title = decodeGeigText((block.match(/<h3>([\s\S]*?)<\/h3>/)?.[1] || '')).trim();
       if (!title) continue;
-      const loc = decodeHtmlEntities((block.match(/<div class="location">([\s\S]*?)<\/div>/)?.[1] || '').replace(/<[^>]+>/g, '').trim());
+      const loc = decodeGeigText((block.match(/<div class="location">([\s\S]*?)<\/div>/)?.[1] || '')).trim();
+
       const jt = (block.match(/<li class="job-type[^"]*">([\s\S]*?)<\/li>/)?.[1] || '').toLowerCase();
       const posted = block.match(/datetime="(\d{4}-\d{2}-\d{2})"/)?.[1];
       seen.add(url);
