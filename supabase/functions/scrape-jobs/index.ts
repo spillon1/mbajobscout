@@ -51,7 +51,23 @@ function isNonUkLocation(jobLocation: string | undefined): boolean {
  * - Otherwise, requires the city name to appear in the job's location.
  * - Always rejects locations that explicitly reference a non-UK country/state/city.
  */
+/**
+ * Strict UK test for global sources (newsletters) where an unqualified
+ * "Remote" is far more likely to mean US-remote than UK-remote.
+ */
+const UK_LOCATION_SIGNAL =
+  /\b(uk|u\.k\.|gb|united\s+kingdom|great\s+britain|england|scotland|wales|northern\s+ireland|london|manchester|birmingham|leeds|bristol|edinburgh|glasgow|cambridge|oxford|reading|brighton|belfast|cardiff|nottingham|sheffield|newcastle|liverpool|milton\s+keynes)\b/i;
+
+function hasExplicitUkLocation(jobLocation: string | undefined): boolean {
+  const loc = (jobLocation || '').trim();
+  if (!loc) return false;
+  if (isNonUkLocation(loc)) return false;
+  if (/\bcambridge,?\s*(ma|mass)/i.test(loc) || /\bnew\s+england\b/i.test(loc)) return false;
+  return UK_LOCATION_SIGNAL.test(loc);
+}
+
 function jobLocationMatches(jobLocation: string | undefined, searchCity: string): boolean {
+
   const city = (searchCity || '').trim().toLowerCase();
   const loc = (jobLocation || '').trim().toLowerCase();
 
