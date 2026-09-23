@@ -356,6 +356,9 @@ Deno.serve(async (req) => {
 
         const markdown = data.data?.markdown || data.markdown || '';
         const links = data.data?.links || data.links || [];
+        if (/startupandvc\.com/.test(source.url)) {
+          console.log(`[Startup & VC] markdown length: ${markdown.length}. Preview:\n${markdown.slice(0, 3000)}`);
+        }
         let jobs = parseJobsFromMarkdown(markdown, links, source, expandedKeywords, location);
         // On the Startups board, Startup & VC is a mixed VC-investor/operator
         // board — keep only operator roles there.
