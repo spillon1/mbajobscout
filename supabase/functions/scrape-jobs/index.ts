@@ -266,10 +266,19 @@ Deno.serve(async (req) => {
           const dpJobs = await scrapeDartmouthPartners(source, location);
           const locFiltered = dpJobs.filter((j: any) => jobLocationMatches(resolveJobLocation(j), searchCity));
           // Mode gate splits these across the VC / PE / IB / IM boards
-          const filtered = locFiltered.filter((j: any) => roleFilter(j.title, j.company, j.description));
+          let filtered = locFiltered.filter((j: any) => roleFilter(j.title, j.company, j.description));
+          if (jobMode === 'vc') {
+            // Recruiter board: most mandates are PE / public markets. Only keep
+            // roles with a genuine venture / growth signal on the VC board.
+            filtered = filtered.filter((j: any) => {
+              const text = `${j.title} ${j.company} ${j.description || ''}`;
+              return /\b(venture\s+capital|venture\s+fund|\bvc\b|growth\s+equity|early[-\s]stage|seed\s+stage|pre[-\s]seed)\b/i.test(text);
+            });
+          }
           console.log(`Found ${filtered.length} relevant jobs from Dartmouth Partners (raw: ${dpJobs.length}, loc-filtered: ${locFiltered.length})`);
           return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
+
 
         // Substack job newsletters (Venture Capital Jobs, Learning VC)
         if (source.url.includes('substack.com')) {
