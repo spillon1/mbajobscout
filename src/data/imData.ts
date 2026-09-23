@@ -18,7 +18,9 @@ const IM_SOURCE_TEMPLATES: { id: string; name: string; defaultUrl: string; enabl
   { id: 'im-m0', name: 'Google Jobs', defaultUrl: 'https://www.google.com/search?udm=8&q=investment+management+jobs', enabled: true, status: 'unknown' },
   { id: 'im-9', name: 'Indeed UK', defaultUrl: 'https://uk.indeed.com/jobs?q=%22investment+management%22', enabled: true, status: 'unknown' },
   { id: 'im-2', name: 'LinkedIn Jobs', defaultUrl: 'https://www.linkedin.com/jobs/search/?keywords=%22investment+management%22', enabled: true, status: 'unknown' },
+  { id: 'im-14', name: 'Dartmouth Partners', defaultUrl: 'https://www.dartmouthpartners.com/jobs', enabled: true, status: 'unknown' },
 ];
+
 
 export function getIMDefaultSources(city: string): (JobSource & { status?: 'connected' | 'error' | 'checking' | 'unknown' })[] {
   return IM_SOURCE_TEMPLATES.map((t) => ({

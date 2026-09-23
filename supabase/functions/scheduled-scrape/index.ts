@@ -31,9 +31,13 @@ const MODES: ModeConfig[] = [
       { name: 'VC Careers', url: 'https://venturecapitalcareers.com/jobs/' },
       { name: 'Venture5', url: 'https://venture5.com/jobs/' },
       { name: 'SecondaryLink', url: 'https://secondarylink.com/seclink/jobs/board' },
-      // Curated VC/growth board; appended last so other sources win cross-source dedup
+      // Curated / aggregator boards; appended last so direct sources win cross-source dedup
       { name: 'Growth Equity Guide', url: 'https://growthequityinterviewguide.com/jobs?_job_strategy=venture%2Cgrowth&_job_location_category=london' },
+      { name: 'Dartmouth Partners', url: 'https://www.dartmouthpartners.com/jobs' },
+      { name: 'VC Jobs Newsletter', url: 'https://substack.com/@venturecapitaljobs' },
+      { name: 'Learning VC', url: 'https://luisllorens.substack.com/' },
     ],
+
     keywords: [
       'Venture capital', 'Venture capital internship', 'Venture capital intern',
       'Venture capital graduate', 'Venture capital investor relations',
@@ -50,7 +54,9 @@ const MODES: ModeConfig[] = [
       { name: 'Indeed UK', url: 'https://uk.indeed.com/jobs?q=%22private+equity%22' },
       { name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/search/?keywords=%22private+equity%22&location=London' },
       { name: 'SecondaryLink', url: 'https://secondarylink.com/seclink/jobs/board' },
+      { name: 'Dartmouth Partners', url: 'https://www.dartmouthpartners.com/jobs' },
     ],
+
     keywords: [
       'Private equity', 'Private equity internship', 'Private equity intern',
       'Private equity graduate', 'Private equity analyst',
@@ -66,7 +72,9 @@ const MODES: ModeConfig[] = [
       { name: 'Google Jobs', url: 'https://www.google.com/search?udm=8&q=investment+banking+jobs' },
       { name: 'Indeed UK', url: 'https://uk.indeed.com/jobs?q=%22investment+banking%22' },
       { name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/search/?keywords=%22investment+banking%22&location=London' },
+      { name: 'Dartmouth Partners', url: 'https://www.dartmouthpartners.com/jobs' },
     ],
+
     keywords: [
       'Investment banking', 'Investment banking internship',
       'Investment banking intern', 'Investment banking graduate',
@@ -111,8 +119,10 @@ const MODES: ModeConfig[] = [
       { name: 'Indeed UK', url: 'https://uk.indeed.com/jobs?q=%22investment+management%22' },
       { name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/search/?keywords=%22investment+management%22&location=London' },
       { name: 'SecondaryLink', url: 'https://secondarylink.com/seclink/jobs/board' },
+      { name: 'Dartmouth Partners', url: 'https://www.dartmouthpartners.com/jobs' },
     ],
     keywords: [
+
       'Investment management', 'Asset management', 'Hedge fund', 'Family office',
       'Portfolio manager', 'Fund manager', 'Equity research',
       'Investment analyst', 'Wealth management', 'Private wealth',
