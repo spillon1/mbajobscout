@@ -137,9 +137,12 @@ const MODES: ModeConfig[] = [
       { name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/search/?keywords=%22product+manager%22+OR+%22strategy+operations%22&location=London' },
     ],
     keywords: [
-      'Product manager', 'Strategy and operations', 'BizOps',
-      'Corporate development', 'Go to market', 'Growth manager',
-      'Product operations', 'Tech strategy',
+      'Product manager', 'Senior product manager', 'Group product manager',
+      'Strategy and operations', 'Business operations', 'BizOps',
+      'Corporate development', 'Corporate strategy', 'Go to market',
+      'Growth manager', 'Head of growth', 'Growth lead', 'Growth marketing',
+      'Growth product manager', 'Product operations', 'Tech strategy',
+      'Commercial strategy', 'Revenue operations',
     ],
   },
   {
@@ -153,10 +156,30 @@ const MODES: ModeConfig[] = [
     ],
     keywords: [
       'Chief of staff startup', 'Founder associate', 'Startup operations',
-      'Startup growth', 'Startup strategy', 'Startup product manager', 'GTM startup',
+      'Startup growth', 'Head of growth', 'Growth lead', 'Startup strategy',
+      'Startup product manager', 'GTM startup', 'Business operations startup',
+      'Revenue operations startup',
     ],
   },
 ];
+
+/**
+ * Several scrapers only use keywords[0] as the search query. To cover a board's
+ * full range of role types we run multiple passes, each rotated so a different
+ * (well-spaced) keyword leads the search. Capped to limit scraping credits.
+ */
+const MAX_PASSES = 4;
+function buildKeywordPasses(keywords: string[]): string[][] {
+  if (keywords.length <= 1) return [keywords];
+  const passCount = Math.min(MAX_PASSES, keywords.length);
+  const step = Math.max(1, Math.floor(keywords.length / passCount));
+  const passes: string[][] = [];
+  for (let p = 0; p < passCount; p++) {
+    const lead = p * step;
+    passes.push([...keywords.slice(lead), ...keywords.slice(0, lead)]);
+  }
+  return passes;
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -169,55 +192,94 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const scrapeUrl = `${supabaseUrl}/functions/v1/scrape-jobs`;
 
-    console.log(`[Scheduled Scrape] Starting daily scrape for ${MODES.length} modes at ${new Date().toISOString()}`);
+    // Each mode gets its own cron invocation so a slow board (vc) can never
+    // starve the others. POST {"mode":"tech"} runs a single board; no mode runs all.
+    let requestedMode: string | null = null;
+    let requestedPass: number | null = null;
+    try {
+      const body = await req.json();
+      if (body && typeof body.mode === 'string') requestedMode = body.mode;
+      if (body && typeof body.pass === 'number') requestedPass = body.pass;
+    } catch { /* no body */ }
+
+    const modesToRun = requestedMode
+      ? MODES.filter((m) => m.mode === requestedMode)
+      : MODES;
+
+    if (requestedMode && modesToRun.length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: `Unknown mode: ${requestedMode}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[Scheduled Scrape] Starting scrape for ${modesToRun.map(m => m.mode).join(', ')} at ${new Date().toISOString()}`);
 
     const results: Record<string, { status: string; jobCount?: number; error?: string }> = {};
 
     // Run modes in batches of 2 to avoid overloading Firecrawl API rate limits
     const BATCH_SIZE = 2;
-    for (let i = 0; i < MODES.length; i += BATCH_SIZE) {
-      const batch = MODES.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < modesToRun.length; i += BATCH_SIZE) {
+      const batch = modesToRun.slice(i, i + BATCH_SIZE);
       const batchPromises = batch.map(async (config) => {
-        const startTime = Date.now();
-        try {
-          console.log(`[${config.mode}] Starting scrape...`);
-          const response = await fetch(scrapeUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${serviceKey}`,
-            },
-            body: JSON.stringify({
-              sources: config.sources,
-              keywords: config.keywords,
-              location: 'United Kingdom',
-              persist: true,
-              mode: config.mode,
-            }),
-          });
+        // The big job boards only ever search keywords[0], so one pass per mode
+        // covered a single search term (e.g. "Product manager") and missed whole
+        // role types. Run several passes, each leading with a different term.
+        const allPasses = buildKeywordPasses(config.keywords);
+        // Cron runs one pass per invocation (each scrape takes ~2.5 min, close to
+        // the function time limit). Omitting `pass` runs every pass sequentially.
+        const passes = requestedPass !== null
+          ? [allPasses[requestedPass % allPasses.length]]
+          : allPasses;
+        let modeTotal = 0;
+        const errors: string[] = [];
 
-          const data = await response.json();
-          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        for (const passKeywords of passes) {
+          const startTime = Date.now();
+          try {
+            console.log(`[${config.mode}] Starting scrape (lead term: ${passKeywords[0]})...`);
+            const response = await fetch(scrapeUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${serviceKey}`,
+              },
+              body: JSON.stringify({
+                sources: config.sources,
+                keywords: passKeywords,
+                location: 'United Kingdom',
+                persist: true,
+                mode: config.mode,
+              }),
+            });
 
-          if (data.success) {
-            const jobCount = data.jobs?.length || 0;
-            console.log(`[${config.mode}] ✓ ${jobCount} jobs in ${elapsed}s`);
-            results[config.mode] = { status: 'success', jobCount };
-          } else {
-            console.error(`[${config.mode}] ✗ Failed: ${data.error}`);
-            results[config.mode] = { status: 'error', error: data.error };
+            const data = await response.json();
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+            if (data.success) {
+              const jobCount = data.jobs?.length || 0;
+              modeTotal += jobCount;
+              console.log(`[${config.mode}] ✓ ${jobCount} jobs in ${elapsed}s (${passKeywords[0]})`);
+            } else {
+              console.error(`[${config.mode}] ✗ Failed (${passKeywords[0]}): ${data.error}`);
+              errors.push(`${passKeywords[0]}: ${data.error}`);
+            }
+          } catch (err) {
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            console.error(`[${config.mode}] ✗ Exception after ${elapsed}s (${passKeywords[0]}):`, err);
+            errors.push(`${passKeywords[0]}: ${err instanceof Error ? err.message : 'Unknown error'}`);
           }
-        } catch (err) {
-          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-          console.error(`[${config.mode}] ✗ Exception after ${elapsed}s:`, err);
-          results[config.mode] = { status: 'error', error: err instanceof Error ? err.message : 'Unknown error' };
         }
+
+        results[config.mode] = errors.length === passes.length
+          ? { status: 'error', error: errors.join(' | ') }
+          : { status: 'success', jobCount: modeTotal };
       });
 
       await Promise.allSettled(batchPromises);
 
       // Brief pause between batches to let Firecrawl rate limits recover
-      if (i + BATCH_SIZE < MODES.length) {
+      if (i + BATCH_SIZE < modesToRun.length) {
         await new Promise(r => setTimeout(r, 5000));
       }
     }
@@ -226,7 +288,7 @@ Deno.serve(async (req) => {
       .filter(r => r.status === 'success')
       .reduce((sum, r) => sum + (r.jobCount || 0), 0);
 
-    console.log(`[Scheduled Scrape] Complete. ${totalJobs} total jobs across ${MODES.length} modes.`);
+    console.log(`[Scheduled Scrape] Complete. ${totalJobs} total jobs across ${modesToRun.length} modes.`);
     console.log(`[Scheduled Scrape] Results:`, JSON.stringify(results));
 
     return new Response(

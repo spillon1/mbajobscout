@@ -147,7 +147,7 @@ interface ScrapeRequest {
   keywords: string[];
   location: string;
   persist?: boolean; // When true, save results directly to DB (used by cron)
-  mode?: 'vc' | 'pe' | 'ib' | 'st' | 'mc'; // Which job vertical to filter for
+  mode?: 'vc' | 'pe' | 'ib' | 'st' | 'mc' | 'im' | 'tech' | 'startups'; // Which job vertical to filter for
 }
 
 /**
@@ -526,6 +526,9 @@ Deno.serve(async (req) => {
           const resolvedLocation = resolveJobLocation(j);
           return {
             title: j.title,
+            // Without this the column falls back to its 'vc' default, which
+            // silently filed every non-VC board's jobs under VC.
+            mode: jobMode,
             company: j.company || 'Unknown',
             location: resolvedLocation,
             type: j.type || 'full-time',
