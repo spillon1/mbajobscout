@@ -244,6 +244,28 @@ Deno.serve(async (req) => {
           return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
 
+        // Dartmouth Partners (recruiter board: mixed VC / PE / IB / AM roles)
+        if (source.url.includes('dartmouthpartners.com')) {
+          const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
+          const dpJobs = await scrapeDartmouthPartners(source, location);
+          const locFiltered = dpJobs.filter((j: any) => jobLocationMatches(resolveJobLocation(j), searchCity));
+          // Mode gate splits these across the VC / PE / IB / IM boards
+          const filtered = locFiltered.filter((j: any) => roleFilter(j.title, j.company, j.description));
+          console.log(`Found ${filtered.length} relevant jobs from Dartmouth Partners (raw: ${dpJobs.length}, loc-filtered: ${locFiltered.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
+        }
+
+        // Substack job newsletters (Venture Capital Jobs, Learning VC)
+        if (source.url.includes('substack.com')) {
+          const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
+          const subJobs = await scrapeSubstackJobBoard(source, location);
+          const locFiltered = subJobs.filter((j: any) => jobLocationMatches(resolveJobLocation(j), searchCity));
+          const filtered = locFiltered.filter((j: any) =>
+            isNotExcludedRole(j.title) && roleFilter(j.title, j.company, j.description));
+          console.log(`Found ${filtered.length} relevant jobs from ${source.name} (raw: ${subJobs.length}, loc-filtered: ${locFiltered.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
+        }
+
 
         // Indeed UK
         if (source.url.includes('indeed.com')) {
