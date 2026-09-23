@@ -149,6 +149,7 @@ const MODES: ModeConfig[] = [
       { name: 'Google Jobs', url: 'https://www.google.com/search?udm=8&q=startup+chief+of+staff+OR+founder+associate+OR+growth+jobs' },
       { name: 'Indeed UK', url: 'https://uk.indeed.com/jobs?q=%22startup%22+%22chief+of+staff%22+OR+%22founder+associate%22' },
       { name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/search/?keywords=%22startup%22+%22chief+of+staff%22&location=London' },
+      { name: 'Startup & VC', url: 'https://www.startupandvc.com/venture-capital-jobs' },
     ],
     keywords: [
       'Chief of staff startup', 'Founder associate', 'Startup operations',

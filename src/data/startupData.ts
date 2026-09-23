@@ -2,6 +2,8 @@ import { JobSource } from '@/types/jobs';
 import { getSourceUrlForLocation } from './ukLocations';
 
 function getStartupSourceUrl(sourceName: string, city: string): string | undefined {
+  // Startup & VC's own board URL is shared across cities — never rewrite it
+  if (/startup\s*&?\s*vc/i.test(sourceName)) return undefined;
   const vcUrl = getSourceUrlForLocation(sourceName, city);
   if (!vcUrl) return undefined;
   return vcUrl
@@ -19,6 +21,7 @@ const STARTUP_SOURCE_TEMPLATES: { id: string; name: string; defaultUrl: string; 
   { id: 'su-2', name: 'LinkedIn Jobs', defaultUrl: 'https://www.linkedin.com/jobs/search/?keywords=%22startup%22+%22chief+of+staff%22', enabled: true, status: 'unknown' },
   { id: 'su-otta', name: 'Otta', defaultUrl: 'https://otta.com/jobs', enabled: true, status: 'unknown' },
   { id: 'su-wf', name: 'Wellfound', defaultUrl: 'https://wellfound.com/jobs', enabled: true, status: 'unknown' },
+  { id: 'su-svc', name: 'Startup & VC', defaultUrl: 'https://www.startupandvc.com/venture-capital-jobs', enabled: true, status: 'unknown' },
 ];
 
 export function getStartupDefaultSources(city: string): (JobSource & { status?: 'connected' | 'error' | 'checking' | 'unknown' })[] {

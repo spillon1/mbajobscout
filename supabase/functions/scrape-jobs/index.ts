@@ -150,6 +150,17 @@ interface ScrapeRequest {
   mode?: 'vc' | 'pe' | 'ib' | 'st' | 'mc'; // Which job vertical to filter for
 }
 
+/**
+ * Startups-board operator gate: on mixed boards like Startup & VC, keep only
+ * non-investor (operator) roles — chief of staff, founder associate, ops,
+ * growth, strategy, product, GTM — and drop VC investor roles.
+ */
+function isStartupOperatorRole(title: string): boolean {
+  const t = title.toLowerCase();
+  if (/\b(investor|investment|investments|venture\s+capital|\bvc\b|principal|partner)\b/.test(t)) return false;
+  return /\b(chief\s+of\s+staff|founder'?s?\s+associate|operations|\bops\b|business\s+operations|growth|strategy|product\s+(manager|lead|owner|designer)|go[\s-]to[\s-]market|\bgtm\b|marketing|partnerships|talent|people\s+ops|special\s+assistant|chief\s+of\s+staff)\b/.test(t);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -345,7 +356,14 @@ Deno.serve(async (req) => {
 
         const markdown = data.data?.markdown || data.markdown || '';
         const links = data.data?.links || data.links || [];
-        const jobs = parseJobsFromMarkdown(markdown, links, source, expandedKeywords, location);
+        let jobs = parseJobsFromMarkdown(markdown, links, source, expandedKeywords, location);
+        // On the Startups board, Startup & VC is a mixed VC-investor/operator
+        // board — keep only operator roles there.
+        if (jobMode === 'startups' && /startupandvc\.com/.test(source.url)) {
+          const rawCount = jobs.length;
+          jobs = jobs.filter((j: any) => isStartupOperatorRole(j.title));
+          console.log(`Startup & VC: kept ${jobs.length} operator roles (filtered from ${rawCount})`);
+        }
         console.log(`Found ${jobs.length} potential jobs from ${source.name}`);
         return { source: source.name, jobs, status: 'connected' as const };
       } catch (err) {
@@ -3751,18 +3769,30 @@ function parseStructuredCards(
     if (fields.length < 2) continue;
 
     const title = fields[0];
-    const company = fields[1];
 
-    // Startup & VC cards always include location as the 3rd field; use that directly.
-    // For other sources, keep heuristic detection.
-    const isStartupVcSource = /startup\s*&?\s*vc/i.test(source.name) || source.url.includes('startupandvc.com');
-    const rawLocation = isStartupVcSource
-      ? (fields[2] || '')
-      : (fields.find(f => {
-          const fl = f.toLowerCase();
-          return /^(london|new york|san francisco|boston|berlin|paris|amsterdam|singapore|hong kong|dubai|remote|cambridge|oxford|los angeles|chicago|mumbai|toronto|sydney|tokyo)/i.test(fl)
-            || /,\s*[A-Z]{2}\b/.test(f);
-        }) || '');
+    // Company: prefer the card logo's alt text, else the first non-meta field
+    // (type / posted / date / location-like fields live in the same slot).
+    const altCompany = (match[0].match(/^\[!\[([^\]]*)\]/)?.[1] || '').trim();
+    const looksLikeMeta = (f: string) =>
+      /^(full.time|part.time|internship|other|graduate|posted)$/i.test(f.trim()) ||
+      /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(f) ||
+      /^(london|new york|san francisco|boston|berlin|paris|amsterdam|singapore|hong kong|dubai|remote|cambridge|oxford|los angeles|chicago|mumbai|toronto|sydney|tokyo)/i.test(f.trim());
+    const company = altCompany ||
+      (fields.slice(1).find(f => !looksLikeMeta(f) && !f.includes('http')) || '');
+
+    // Startup & VC cards no longer carry a dedicated location slot — use the
+    // same location-detection heuristic as other sources (a field that reads
+    // like a city/country), then fall back to UK city hints in the title/slug.
+    let rawLocation = fields.find(f => {
+      const fl = f.toLowerCase();
+      return /^(london|new york|san francisco|boston|berlin|paris|amsterdam|singapore|hong kong|dubai|remote|cambridge|oxford|los angeles|chicago|mumbai|toronto|sydney|tokyo)/i.test(fl)
+        || /,\s*[A-Z]{2}\b/.test(f);
+    }) || '';
+    if (!rawLocation) {
+      const hint = `${title} ${url}`.toLowerCase().replace(/-/g, ' ');
+      const ukCityHint = hint.match(/\b(london|cambridge|oxford|manchester|bristol|edinburgh|glasgow|leeds|birmingham|reading|uk)\b(?!\s*(ma|mass))/);
+      if (ukCityHint) rawLocation = ukCityHint[1] === 'uk' ? 'United Kingdom' : ukCityHint[1].replace(/^\w/, c => c.toUpperCase());
+    }
 
     const jobLocation = rawLocation.replace(/,$/, '').trim();
 
