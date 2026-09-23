@@ -3773,12 +3773,20 @@ function parseStructuredCards(
     if (fields.length < 2) continue;
 
     const title = fields[0];
-    const company = fields[1];
+
+    // Company: prefer the card logo's alt text, else the first non-meta field
+    // (type / posted / date / location-like fields live in the same slot).
+    const altCompany = (match[0].match(/^\[!\[([^\]]*)\]/)?.[1] || '').trim();
+    const looksLikeMeta = (f: string) =>
+      /^(full.time|part.time|internship|other|graduate|posted)$/i.test(f.trim()) ||
+      /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(f) ||
+      /^(london|new york|san francisco|boston|berlin|paris|amsterdam|singapore|hong kong|dubai|remote|cambridge|oxford|los angeles|chicago|mumbai|toronto|sydney|tokyo)/i.test(f.trim());
+    const company = altCompany ||
+      (fields.slice(1).find(f => !looksLikeMeta(f) && !f.includes('http')) || '');
 
     // Startup & VC cards no longer carry a dedicated location slot — use the
     // same location-detection heuristic as other sources (a field that reads
     // like a city/country), then fall back to UK city hints in the title/slug.
-    const isStartupVcSource = /startup\s*&?\s*vc/i.test(source.name) || source.url.includes('startupandvc.com');
     let rawLocation = fields.find(f => {
       const fl = f.toLowerCase();
       return /^(london|new york|san francisco|boston|berlin|paris|amsterdam|singapore|hong kong|dubai|remote|cambridge|oxford|los angeles|chicago|mumbai|toronto|sydney|tokyo)/i.test(fl)
