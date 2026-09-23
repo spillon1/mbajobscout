@@ -3775,16 +3775,20 @@ function parseStructuredCards(
     const title = fields[0];
     const company = fields[1];
 
-    // Startup & VC cards always include location as the 3rd field; use that directly.
-    // For other sources, keep heuristic detection.
+    // Startup & VC cards no longer carry a dedicated location slot — use the
+    // same location-detection heuristic as other sources (a field that reads
+    // like a city/country), then fall back to UK city hints in the title/slug.
     const isStartupVcSource = /startup\s*&?\s*vc/i.test(source.name) || source.url.includes('startupandvc.com');
-    const rawLocation = isStartupVcSource
-      ? (fields[2] || '')
-      : (fields.find(f => {
-          const fl = f.toLowerCase();
-          return /^(london|new york|san francisco|boston|berlin|paris|amsterdam|singapore|hong kong|dubai|remote|cambridge|oxford|los angeles|chicago|mumbai|toronto|sydney|tokyo)/i.test(fl)
-            || /,\s*[A-Z]{2}\b/.test(f);
-        }) || '');
+    let rawLocation = fields.find(f => {
+      const fl = f.toLowerCase();
+      return /^(london|new york|san francisco|boston|berlin|paris|amsterdam|singapore|hong kong|dubai|remote|cambridge|oxford|los angeles|chicago|mumbai|toronto|sydney|tokyo)/i.test(fl)
+        || /,\s*[A-Z]{2}\b/.test(f);
+    }) || '';
+    if (!rawLocation) {
+      const hint = `${title} ${url}`.toLowerCase().replace(/-/g, ' ');
+      const ukCityHint = hint.match(/\b(london|cambridge|oxford|manchester|bristol|edinburgh|glasgow|leeds|birmingham|reading|uk)\b(?!\s*(ma|mass))/);
+      if (ukCityHint) rawLocation = ukCityHint[1] === 'uk' ? 'United Kingdom' : ukCityHint[1].replace(/^\w/, c => c.toUpperCase());
+    }
 
     const jobLocation = rawLocation.replace(/,$/, '').trim();
 
