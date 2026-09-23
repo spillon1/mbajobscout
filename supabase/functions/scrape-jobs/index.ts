@@ -356,7 +356,14 @@ Deno.serve(async (req) => {
 
         const markdown = data.data?.markdown || data.markdown || '';
         const links = data.data?.links || data.links || [];
-        const jobs = parseJobsFromMarkdown(markdown, links, source, expandedKeywords, location);
+        let jobs = parseJobsFromMarkdown(markdown, links, source, expandedKeywords, location);
+        // On the Startups board, Startup & VC is a mixed VC-investor/operator
+        // board — keep only operator roles there.
+        if (jobMode === 'startups' && /startupandvc\.com/.test(source.url)) {
+          const rawCount = jobs.length;
+          jobs = jobs.filter((j: any) => isStartupOperatorRole(j.title));
+          console.log(`Startup & VC: kept ${jobs.length} operator roles (filtered from ${rawCount})`);
+        }
         console.log(`Found ${jobs.length} potential jobs from ${source.name}`);
         return { source: source.name, jobs, status: 'connected' as const };
       } catch (err) {
