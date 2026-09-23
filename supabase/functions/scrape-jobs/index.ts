@@ -356,10 +356,6 @@ Deno.serve(async (req) => {
 
         const markdown = data.data?.markdown || data.markdown || '';
         const links = data.data?.links || data.links || [];
-        if (/startupandvc\.com/.test(source.url)) {
-          const dbg = parseStructuredCards(markdown, source, [], '');
-          console.log(`[Startup & VC] raw cards: ${dbg.length}\n` + dbg.map((j: any) => `- ${j.title} | ${j.location} | ${j.url}`).join('\n'));
-        }
         let jobs = parseJobsFromMarkdown(markdown, links, source, expandedKeywords, location);
         // On the Startups board, Startup & VC is a mixed VC-investor/operator
         // board — keep only operator roles there.
