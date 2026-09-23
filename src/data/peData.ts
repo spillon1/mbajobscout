@@ -20,7 +20,9 @@ const PE_SOURCE_TEMPLATES: { id: string; name: string; defaultUrl: string; enabl
   { id: 'pe-9', name: 'Indeed UK', defaultUrl: 'https://uk.indeed.com/jobs?q=%22private+equity%22', enabled: true, status: 'unknown' },
   
   { id: 'pe-2', name: 'LinkedIn Jobs', defaultUrl: 'https://www.linkedin.com/jobs/search/?keywords=%22private+equity%22', enabled: true, status: 'unknown' },
+  { id: 'pe-14', name: 'Dartmouth Partners', defaultUrl: 'https://www.dartmouthpartners.com/jobs', enabled: true, status: 'unknown' },
 ];
+
 
 export function getPEDefaultSources(city: string): (JobSource & { status?: 'connected' | 'error' | 'checking' | 'unknown' })[] {
   return PE_SOURCE_TEMPLATES.map((t) => ({

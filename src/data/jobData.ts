@@ -13,7 +13,11 @@ const SOURCE_TEMPLATES: { id: string; name: string; defaultUrl: string; enabled:
   { id: '12', name: 'VC Careers', defaultUrl: 'https://venturecapitalcareers.com/jobs/', enabled: true, status: 'unknown' },
   { id: '7', name: 'Venture5', defaultUrl: 'https://venture5.com/jobs/', enabled: true, status: 'unknown' },
   { id: '13', name: 'Growth Equity Guide', defaultUrl: 'https://growthequityinterviewguide.com/jobs?_job_strategy=venture%2Cgrowth&_job_location_category=london', enabled: true, status: 'unknown' },
+  { id: '14', name: 'Dartmouth Partners', defaultUrl: 'https://www.dartmouthpartners.com/jobs', enabled: true, status: 'unknown' },
+  { id: '15', name: 'VC Jobs Newsletter', defaultUrl: 'https://substack.com/@venturecapitaljobs', enabled: true, status: 'unknown' },
+  { id: '16', name: 'Learning VC', defaultUrl: 'https://luisllorens.substack.com/', enabled: true, status: 'unknown' },
 ];
+
 
 export function getDefaultSources(city: string): (JobSource & { status?: 'connected' | 'error' | 'checking' | 'unknown' })[] {
   return SOURCE_TEMPLATES.map((t) => ({

@@ -19,7 +19,9 @@ const IB_SOURCE_TEMPLATES: { id: string; name: string; defaultUrl: string; enabl
   { id: 'ib-m0', name: 'Google Jobs', defaultUrl: 'https://www.google.com/search?udm=8&q=investment+banking+jobs', enabled: true, status: 'unknown' },
   { id: 'ib-9', name: 'Indeed UK', defaultUrl: 'https://uk.indeed.com/jobs?q=%22investment+banking%22', enabled: true, status: 'unknown' },
   { id: 'ib-2', name: 'LinkedIn Jobs', defaultUrl: 'https://www.linkedin.com/jobs/search/?keywords=%22investment+banking%22', enabled: true, status: 'unknown' },
+  { id: 'ib-14', name: 'Dartmouth Partners', defaultUrl: 'https://www.dartmouthpartners.com/jobs', enabled: true, status: 'unknown' },
 ];
+
 
 export function getIBDefaultSources(city: string): (JobSource & { status?: 'connected' | 'error' | 'checking' | 'unknown' })[] {
   return IB_SOURCE_TEMPLATES.map((t) => ({
