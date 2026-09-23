@@ -360,24 +360,32 @@ Deno.serve(async (req) => {
       return parsed >= sixMonthsAgo;
     });
 
-    // Deduplicate by url
+    // Deduplicate by normalized url. Aggregators (newsletters, recruiter
+    // boards) link straight to the original posting, so normalizing strips
+    // tracking params and makes those point at the same key as the direct
+    // LinkedIn / Greenhouse listing.
     const seen = new Set<string>();
     const dedupedResults = filteredResults.filter(job => {
-      if (seen.has(job.url)) return false;
-      seen.add(job.url);
+      const key = normalizeListingUrl(job.url);
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
 
     // Cross-source dedup: the same role is often listed on multiple boards
     // (e.g. Growth Equity Guide + LinkedIn + Venture5). Key on normalized
     // title+company and keep the first occurrence — source order in the
-    // request decides which listing wins.
-    const seenRole = new Set<string>();
+    // request decides which listing wins. Only applied across *different*
+    // sources: one board can legitimately list two distinct roles with the
+    // same title (common on recruiter boards where the company is the agency).
+    const seenRole = new Map<string, string>();
     const roleDeduped = dedupedResults.filter(job => {
       const key = `${job.title}||${job.company}`.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
       if (key.length < 6) return true;
-      if (seenRole.has(key)) return false;
-      seenRole.add(key);
+      const owner = seenRole.get(key);
+      if (owner && owner !== job.source) return false;
+      if (!owner) seenRole.set(key, job.source);
       return true;
     });
     if (roleDeduped.length !== dedupedResults.length) {
@@ -385,6 +393,7 @@ Deno.serve(async (req) => {
       dedupedResults.length = 0;
       dedupedResults.push(...roleDeduped);
     }
+
 
     // Update per-source counts based on final filtered result set
     const finalSourceCounts: Record<string, number> = {};
