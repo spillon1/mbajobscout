@@ -2187,6 +2187,253 @@ async function scrapeGrowthEquityGuide(
   return jobs;
 }
 
+// ───────────────────────── Dartmouth Partners ─────────────────────────
+// WP Job Manager board (recruiter). Mixed VC / PE / IB / AM roles, so the
+// caller applies the mode-specific relevance gate to split them by board.
+const DP_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
+function stripHtml(html: string): string {
+  return decodeHtmlEntities(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<li[^>]*>/gi, '\n• ')
+      .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, ' '),
+  ).replace(/[ \t\u00a0]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+async function scrapeDartmouthPartners(
+  source: { name: string; url: string },
+  _location: string,
+): Promise<any[]> {
+  const base = source.url.replace(/\/+$/, '');
+  type Card = { url: string; title: string; location: string; type: string; postedDate?: string };
+  const cards: Card[] = [];
+  const seen = new Set<string>();
+
+  for (let page = 1; page <= 6; page++) {
+    const pageUrl = page === 1 ? base : `${base}/page/${page}/`;
+    let html = '';
+    try {
+      const res = await fetch(pageUrl, {
+        headers: { 'User-Agent': DP_UA, 'Accept': 'text/html' },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!res.ok) break;
+      html = await res.text();
+    } catch (err) {
+      console.error(`Dartmouth: list page ${page} failed:`, err);
+      break;
+    }
+
+    let added = 0;
+    for (const m of html.matchAll(
+      /<li class="[^"]*job_listing[^"]*"[\s\S]*?<a href="(https:\/\/www\.dartmouthpartners\.com\/job\/[^"?#]+)"([\s\S]*?)<\/a>/g,
+    )) {
+      const url = m[1];
+      const block = m[2];
+      if (seen.has(url)) continue;
+      const title = decodeHtmlEntities((block.match(/<h3>([\s\S]*?)<\/h3>/)?.[1] || '').replace(/<[^>]+>/g, '').trim());
+      if (!title) continue;
+      const loc = decodeHtmlEntities((block.match(/<div class="location">([\s\S]*?)<\/div>/)?.[1] || '').replace(/<[^>]+>/g, '').trim());
+      const jt = (block.match(/<li class="job-type[^"]*">([\s\S]*?)<\/li>/)?.[1] || '').toLowerCase();
+      const posted = block.match(/datetime="(\d{4}-\d{2}-\d{2})"/)?.[1];
+      seen.add(url);
+      cards.push({ url, title, location: loc, type: jt, postedDate: posted });
+      added++;
+    }
+    if (added === 0) break;
+  }
+
+  console.log(`Dartmouth: ${cards.length} listings found`);
+
+  const now = Date.now();
+  const parsed = await mapPool(cards, 4, async (card) => {
+    let description: string | undefined;
+    let company = 'Dartmouth Partners';
+    let location = card.location;
+    try {
+      const res = await fetch(card.url, {
+        headers: { 'User-Agent': DP_UA, 'Accept': 'text/html' },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (res.ok) {
+        const html = await res.text();
+        let posting: any = null;
+        for (const m of html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+          try {
+            posting = findJobPostingNode(JSON.parse(m[1]));
+          } catch { /* malformed ld+json */ }
+          if (posting) break;
+        }
+        if (posting?.validThrough && Date.parse(posting.validThrough) < now) return null;
+        if (posting?.description) description = stripHtml(String(posting.description)).slice(0, 12000);
+        if (posting?.hiringOrganization?.name) company = decodeHtmlEntities(String(posting.hiringOrganization.name));
+        const detailLoc = html.match(/<h3>Location<\/h3>\s*([^<]{2,80})/)?.[1]?.trim();
+        if (detailLoc) location = decodeHtmlEntities(detailLoc);
+        if (hasExpiredMarker(html)) return null;
+      }
+    } catch { /* detail fetch is best effort */ }
+
+    const tl = card.title.toLowerCase();
+    let type = 'full-time';
+    if (/\bintern(?:ship|s)?\b/.test(tl) || card.type.includes('intern')) type = 'internship';
+    else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
+
+    return {
+      id: crypto.randomUUID(),
+      title: card.title.slice(0, 200),
+      company,
+      location: location || 'United Kingdom',
+      type,
+      source: source.name,
+      sourceUrl: source.url,
+      url: card.url,
+      postedDate: card.postedDate || 'Scraped just now',
+      description,
+    };
+  });
+
+  const jobs = parsed.filter((j): j is NonNullable<typeof j> => !!j);
+  console.log(`Dartmouth: ${jobs.length}/${cards.length} listings kept after detail check`);
+  return jobs;
+}
+
+// ───────────────────────── Substack job newsletters ─────────────────────────
+// Weekly/monthly VC job round-ups. Posts list roles as either
+//   <p><a href="link">Role</a>, Company, Location</p>            (Venture Capital Jobs)
+//   <p><strong><a>FIRM</a></strong> 🎯Role: X 📍Location: Y 🪝Link: <a>Here</a></p>  (Learning VC)
+// Only publicly visible content is parsed; paywalled sections are skipped.
+const SUBSTACK_MAX_POSTS = 10;
+const SUBSTACK_MAX_AGE_DAYS = 60;
+
+async function resolveSubstackHost(url: string): Promise<string | null> {
+  const direct = url.match(/https?:\/\/([a-z0-9-]+)\.substack\.com/i);
+  if (direct) return `https://${direct[1]}.substack.com`;
+  const handle = url.match(/substack\.com\/@([a-z0-9_-]+)/i)?.[1];
+  if (!handle) return null;
+  try {
+    const res = await fetch(`https://substack.com/api/v1/user/${handle}/public_profile`, {
+      headers: { 'User-Agent': DP_UA, 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const pub = (data.publicationUsers || []).map((p: any) => p.publication).find((p: any) => p?.subdomain);
+      if (pub?.custom_domain) return `https://${pub.custom_domain}`;
+      if (pub?.subdomain) return `https://${pub.subdomain}.substack.com`;
+    }
+  } catch { /* fall through */ }
+  return `https://${handle}.substack.com`;
+}
+
+function parseSubstackJobParagraph(
+  pHtml: string,
+): { title: string; company: string; location: string; url?: string } | null {
+  // Format B: emoji-labelled block
+  if (/Role\s*:/i.test(pHtml) && /Location\s*:/i.test(pHtml)) {
+    const text = stripHtml(pHtml.replace(/<br\s*\/?>/gi, '\n'));
+    const role = text.match(/Role\s*:\s*([^\n]+)/i)?.[1]?.trim();
+    const loc = text.match(/Location\s*:\s*([^\n]+)/i)?.[1]?.trim();
+    const firm = stripHtml(pHtml.match(/<strong>\s*<a[^>]*>([\s\S]*?)<\/a>/)?.[1] || text.split('\n')[0] || '').trim();
+    if (!role || !loc || !firm) return null;
+    const links = [...pHtml.matchAll(/<a[^>]+href="([^"]+)"/g)].map((m) => decodeHtmlEntities(m[1]));
+    const applyLink = links.find((l) => !/substack\.com/i.test(l) && !/^https?:\/\/[^/]*$/i.test(l)) || links[0];
+    return { title: role.slice(0, 200), company: firm.slice(0, 120), location: loc, url: applyLink };
+  }
+
+  // Format A: "<a>Role</a>, Company, Location"
+  const lead = pHtml.match(/^\s*<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>([\s\S]*)$/);
+  if (!lead) return null;
+  const url = decodeHtmlEntities(lead[1]);
+  if (/substack\.com\/(subscribe|p\/)/i.test(url)) return null;
+  const role = stripHtml(lead[2]).trim();
+  const rest = stripHtml(lead[3].replace(/<strong>[\s\S]*?<\/strong>/g, ' ')).trim().replace(/^,\s*/, '');
+  if (!role || !rest) return null;
+  const parts = rest.split(',').map((s) => s.trim()).filter(Boolean);
+  if (parts.length < 2) return null;
+  return {
+    title: role.slice(0, 200),
+    company: parts[0].slice(0, 120),
+    location: parts.slice(1).join(', '),
+    url,
+  };
+}
+
+async function scrapeSubstackJobBoard(
+  source: { name: string; url: string },
+  _location: string,
+): Promise<any[]> {
+  const host = await resolveSubstackHost(source.url);
+  if (!host) return [];
+
+  let archive: any[] = [];
+  try {
+    const res = await fetch(`${host}/api/v1/archive?sort=new&limit=${SUBSTACK_MAX_POSTS}`, {
+      headers: { 'User-Agent': DP_UA, 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    archive = await res.json();
+  } catch (err) {
+    console.error(`Substack (${source.name}): archive fetch failed:`, err);
+    return [];
+  }
+
+  const cutoff = Date.now() - SUBSTACK_MAX_AGE_DAYS * 86400_000;
+  const recent = archive.filter((p: any) => p?.slug && Date.parse(p.post_date || '') >= cutoff);
+  console.log(`Substack (${source.name}): ${recent.length}/${archive.length} posts within ${SUBSTACK_MAX_AGE_DAYS} days`);
+
+  const perPost = await mapPool(recent, 3, async (post: any) => {
+    try {
+      const res = await fetch(`${host}/api/v1/posts/${post.slug}`, {
+        headers: { 'User-Agent': DP_UA, 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      const body: string = data.body_html || '';
+      if (!body) return [];
+      const postedDate = String(post.post_date || '').slice(0, 10);
+      const postUrl = data.canonical_url || `${host}/p/${post.slug}`;
+
+      const out: any[] = [];
+      for (const m of body.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/g)) {
+        const parsedRow = parseSubstackJobParagraph(m[1]);
+        if (!parsedRow) continue;
+        const tl = parsedRow.title.toLowerCase();
+        if (tl.length < 3 || tl.length > 120) continue;
+        let type = 'full-time';
+        if (/\bintern(?:ship|s)?\b/.test(tl) || /\bfellow(ship)?\b/.test(tl)) type = 'internship';
+        else if (tl.includes('graduate') || tl.includes('entry level')) type = 'graduate';
+        out.push({
+          id: crypto.randomUUID(),
+          title: parsedRow.title,
+          company: parsedRow.company,
+          location: parsedRow.location,
+          type,
+          source: source.name,
+          sourceUrl: source.url,
+          url: parsedRow.url || postUrl,
+          postedDate: postedDate || 'Scraped just now',
+        });
+      }
+      return out;
+    } catch {
+      return [];
+    }
+  });
+
+  const jobs = perPost.flat();
+  console.log(`Substack (${source.name}): parsed ${jobs.length} listings`);
+  return jobs;
+}
+
+
+
 /** PE-equivalent of isLikelyVcRole: allows PE titles, requires PE/investment signals */
 function isLikelyPeRole(title: string, company: string, description: string | undefined): boolean {
   const titleLower = title.toLowerCase();
