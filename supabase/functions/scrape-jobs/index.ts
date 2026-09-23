@@ -257,14 +257,18 @@ Deno.serve(async (req) => {
 
         // Substack job newsletters (Venture Capital Jobs, Learning VC)
         if (source.url.includes('substack.com')) {
-          const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
           const subJobs = await scrapeSubstackJobBoard(source, location);
-          const locFiltered = subJobs.filter((j: any) => jobLocationMatches(resolveJobLocation(j), searchCity));
+          // These newsletters are global, and a bare "Remote" on them almost
+          // always means US-remote — require an explicit UK signal.
+          const locFiltered = subJobs.filter((j: any) => hasExplicitUkLocation(j.location));
           const filtered = locFiltered.filter((j: any) =>
-            isNotExcludedRole(j.title) && roleFilter(j.title, j.company, j.description));
+            isNotExcludedRole(j.title) &&
+            !/^(venture\s+)?scout\b/i.test(j.title.trim()) &&
+            roleFilter(j.title, j.company, j.description));
           console.log(`Found ${filtered.length} relevant jobs from ${source.name} (raw: ${subJobs.length}, loc-filtered: ${locFiltered.length})`);
           return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
+
 
 
         // Indeed UK
