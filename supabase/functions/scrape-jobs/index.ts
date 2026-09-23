@@ -523,7 +523,34 @@ Deno.serve(async (req) => {
 
 // ---- Keyword Expansion ----
 
+/**
+ * Canonical key for a listing URL, used for dedup. Drops tracking params and
+ * collapses LinkedIn job links (which arrive with wildly different query
+ * strings from LinkedIn, newsletters and aggregators) to /jobs/view/<id>.
+ */
+function normalizeListingUrl(raw: string | undefined): string {
+  if (!raw) return '';
+  let url = decodeHtmlEntities(String(raw)).trim();
+  const li = url.match(/linkedin\.com\/jobs\/view\/(?:[^/?#]*-)?(\d{6,})/i);
+  if (li) return `linkedin.com/jobs/view/${li[1]}`;
+  url = url.split('#')[0];
+  try {
+    const u = new URL(url);
+    const keep = new URLSearchParams();
+    for (const [k, v] of u.searchParams) {
+      if (/^(utm_|ref|refid|trk|trackingid|ebp|src|source|gh_src|lever-source)/i.test(k)) continue;
+      keep.append(k, v);
+    }
+    const qs = keep.toString();
+    const path = u.pathname.replace(/\/+$/, '');
+    return `${u.hostname.replace(/^www\./, '')}${path}${qs ? `?${qs}` : ''}`.toLowerCase();
+  } catch {
+    return url.toLowerCase();
+  }
+}
+
 function expandKeywords(keywords: string[]): string[] {
+
   const expanded = new Set(keywords.map(k => k.toLowerCase()));
   // Add common abbreviations
   for (const kw of keywords) {
