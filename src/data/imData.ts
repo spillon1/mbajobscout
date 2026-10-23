@@ -23,6 +23,7 @@ const IM_SOURCE_TEMPLATES: { id: string; name: string; defaultUrl: string; enabl
   { id: 'im-16', name: 'Greenwich Partners', defaultUrl: 'https://www.greenwichpartners.co.uk/asset-management-roles/', enabled: true, status: 'unknown' },
   { id: 'im-17', name: 'Meredith Brown', defaultUrl: 'https://www.meredithbrown.com/opportunities', enabled: true, status: 'unknown' },
   { id: 'im-18', name: 'Asset Manager Careers', defaultUrl: 'https://www.myworkdayjobs.com/?am-careers', enabled: true, status: 'unknown' },
+  { id: 'im-19', name: 'Paragon Alpha', defaultUrl: 'https://www.paragonalpha.com/jobs', enabled: true, status: 'unknown' },
 ];
 
 
