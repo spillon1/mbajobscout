@@ -291,6 +291,15 @@ Deno.serve(async (req) => {
         }
 
 
+        // Asset managers' own careers sites (Workday)
+        if (source.url.includes('myworkdayjobs.com/?am-careers')) {
+          const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
+          const wdJobs = await scrapeAssetManagerWorkday(source);
+          const filtered = wdJobs.filter((j: any) => jobLocationMatches(j.location, searchCity));
+          console.log(`Found ${filtered.length} relevant jobs from ${source.name} (raw: ${wdJobs.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
+        }
+
         // Asset-management recruiters (Walker Hamill, Greenwich Partners, Meredith Brown)
         if (/walkerhamill\.com|greenwichpartners\.co\.uk|meredithbrown\.com/.test(source.url)) {
           const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
@@ -2323,11 +2332,95 @@ function isAssetMgmtRecruiterRole(title: string, description = ''): boolean {
   const text = `${t} ${description.toLowerCase()}`;
   // General corporate finance / accountancy / bank advisory roles belong elsewhere
   if (/\b(fp&a|f p and a|accountant|accounts|auditor|payroll|financial controller|group financial|commercial finance|head of finance|finance (manager|director)|credit control|tax)\b/.test(t) && !/\bfund\b/.test(t)) return false;
+  if (/\b(engineer|developer|counsel|lawyer|solicitor|paralegal|designer|recruiter)\b/.test(t)) return false;
   if (/\b(m&a|corporate strategy|strategy analyst|vp strategy|director corporate strategy|investment banking|debt advisory|executive search|recruit)/.test(t)) return false;
   if (/\b(investment|portfolio|fund|asset|wealth|investor relations|client (services|relations|reporting)|distribution|sales|equity (research|analyst)|credit (research|analyst)|research analyst|buy side|hedge|trading|trade operations|middle office|private (markets|credit|capital))\b/.test(t)) {
     return /\b(asset manage|investment manage|fund|hedge|wealth|family office|investor|portfolio|aum|private markets|alternatives?|buy[- ]side|long[- ]only|equit(y|ies)|credit|outsourced investment)\b/.test(text);
   }
   return false;
+}
+
+// Asset managers' Workday career sites: [host, tenant, site, display name]
+const AM_WORKDAY_BOARDS: [string, string, string, string][] = [
+  ['blackrock.wd1', 'blackrock', 'BlackRock_Professional', 'BlackRock'],
+  ['invesco.wd1', 'invesco', 'IVZ', 'Invesco'],
+  ['pimco.wd1', 'pimco', 'pimco-careers', 'PIMCO'],
+  ['mgpru.wd3', 'mgpru', 'mandgprudential', 'M&G'],
+  ['fil.wd3', 'fil', '001', 'Fidelity International'],
+  ['abrdn.wd3', 'abrdn', 'abrdn', 'Aberdeen'],
+  ['nb.wd1', 'nb', 'NBCareers', 'Neuberger Berman'],
+  ['ntrs.wd1', 'ntrs', 'northerntrust', 'Northern Trust'],
+  ['ameriprise.wd5', 'ameriprise', 'Ameriprise', 'Columbia Threadneedle'],
+  ['franklintempleton.wd5', 'franklintempleton', 'Primary-External-1', 'Franklin Templeton'],
+  ['tiaa.wd1', 'tiaa', 'Search', 'Nuveen'],
+];
+const UK_PLACE_RE = /\b(london|edinburgh|glasgow|manchester|birmingham|leeds|bristol|united kingdom|\buk\b|england|scotland|belfast|cardiff|bournemouth|tunbridge wells|kingswood|chester|liverpool)\b/i;
+
+async function scrapeAssetManagerWorkday(source: { name: string; url: string }): Promise<any[]> {
+  const jobs: any[] = [];
+  await Promise.all(AM_WORKDAY_BOARDS.map(async ([host, tenant, site, firm]) => {
+    const base = `https://${host}.myworkdayjobs.com/wday/cxs/${tenant}/${site}`;
+    const candidates: { title: string; path: string; loc: string; posted: string }[] = [];
+    try {
+      let total = 0; // Workday only reports the total on the first page
+      for (let offset = 0; offset < 1000; offset += 20) {
+        const r = await fetch(`${base}/jobs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'User-Agent': REC_UA },
+          body: JSON.stringify({ limit: 20, offset, searchText: '', appliedFacets: {} }),
+        });
+        if (!r.ok) break;
+        const d = await r.json();
+        const posts = d.jobPostings || [];
+        if (offset === 0) total = d.total || 0;
+        for (const p of posts) {
+          const loc = String(p.locationsText || '');
+          const multi = /^\d+\s+locations?$/i.test(loc);
+          if (!multi && !UK_PLACE_RE.test(loc)) continue;
+          // Title-only first pass; employer is an asset manager, so add that context
+          if (!isAssetMgmtRecruiterRole(p.title || '', 'asset management')) continue;
+          candidates.push({ title: p.title, path: p.externalPath, loc, posted: String(p.postedOn || '') });
+        }
+        if (posts.length < 20 || offset + 20 >= total) break;
+      }
+    } catch (e) { console.error(`Workday ${firm} list failed:`, e); }
+
+    // Detail pass: real location(s) + description
+    for (let i = 0; i < candidates.length; i += 5) {
+      await Promise.all(candidates.slice(i, i + 5).map(async (c) => {
+        try {
+          const r = await fetch(`${base}${c.path}`, { headers: { 'Accept': 'application/json', 'User-Agent': REC_UA } });
+          if (!r.ok) return;
+          const info = (await r.json()).jobPostingInfo || {};
+          const locs = [info.location, ...(info.additionalLocations || [])].filter(Boolean).map(String);
+          const ukLoc = locs.find((l) => UK_PLACE_RE.test(l));
+          if (!ukLoc) return;
+          const description = stripHtml(String(info.jobDescription || '')).slice(0, 12000);
+          const days = c.posted.match(/(\d+)\+?\s+days?/i);
+          const postedDate = info.startDate
+            ? String(info.startDate).slice(0, 10)
+            : /today/i.test(c.posted) ? new Date().toISOString().slice(0, 10)
+            : days ? new Date(Date.now() - Number(days[1]) * 86400000).toISOString().slice(0, 10)
+            : 'Scraped just now';
+          const tl = String(info.title || c.title).toLowerCase();
+          jobs.push({
+            id: crypto.randomUUID(),
+            title: String(info.title || c.title).slice(0, 200),
+            company: firm,
+            location: /london/i.test(ukLoc) ? 'London, UK' : ukLoc,
+            type: /\bintern(?:ship|s)?\b/.test(tl) ? 'internship' : /\b(graduate|trainee|analyst programme)\b/.test(tl) ? 'graduate' : 'full-time',
+            source: source.name,
+            sourceUrl: source.url,
+            url: String(info.externalUrl || `https://${host}.myworkdayjobs.com/en-US/${site}${c.path}`),
+            description,
+            postedDate,
+          });
+        } catch { /* skip */ }
+      }));
+    }
+    console.log(`Workday ${firm}: ${candidates.length} candidates`);
+  }));
+  return jobs;
 }
 
 /** WP Job Manager RSS (?feed=job_feed) — includes company, location and full description. */
