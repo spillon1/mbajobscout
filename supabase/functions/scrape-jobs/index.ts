@@ -2336,7 +2336,7 @@ async function scrapeWpJobFeed(source: { name: string; url: string }): Promise<a
   const xml = await res.text();
   const tag = (block: string, name: string) => {
     const m = block.match(new RegExp(`<${name}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</${name}>`));
-    return m ? decodeHtmlEntities(m[1].trim()) : '';
+    return m ? decodeGeigText(decodeHtmlEntities(m[1].trim())) : '';
   };
   const jobs: any[] = [];
   for (const block of xml.split('<item>').slice(1)) {
@@ -2353,7 +2353,8 @@ async function scrapeWpJobFeed(source: { name: string; url: string }): Promise<a
     jobs.push({
       id: crypto.randomUUID(),
       title: title.slice(0, 200),
-      company: tag(block, 'job_listing:company') || source.name,
+      // The feed's company field is a client sector (e.g. "Media & Music"), not a firm name
+      company: source.name,
       location: tag(block, 'job_listing:location'),
       type,
       source: source.name,
