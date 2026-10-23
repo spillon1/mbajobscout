@@ -291,6 +291,23 @@ Deno.serve(async (req) => {
         }
 
 
+        // Asset-management recruiters (Walker Hamill, Greenwich Partners, Meredith Brown)
+        if (/walkerhamill\.com|greenwichpartners\.co\.uk|meredithbrown\.com/.test(source.url)) {
+          const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
+          const recJobs = source.url.includes('meredithbrown.com')
+            ? await scrapeMeredithBrown(source)
+            : await scrapeWpJobFeed(source);
+          const locFiltered = recJobs.filter((j: any) => jobLocationMatches(resolveJobLocation(j), searchCity));
+          // Generalist finance recruiters: keep only investment-management roles on IM,
+          // and otherwise defer to the board's own relevance gate.
+          const filtered = locFiltered.filter((j: any) =>
+            isNotExcludedRole(j.title) &&
+            (jobMode === 'im' ? isAssetMgmtRecruiterRole(j.title, j.description) : roleFilter(j.title, j.company, j.description))
+          );
+          console.log(`Found ${filtered.length} relevant jobs from ${source.name} (raw: ${recJobs.length}, loc-filtered: ${locFiltered.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
+        }
+
         // Substack job newsletters (Venture Capital Jobs, Learning VC)
         if (source.url.includes('substack.com')) {
           const subJobs = await scrapeSubstackJobBoard(source, location);
@@ -2292,6 +2309,118 @@ async function scrapeGrowthEquityGuide(
 
   const jobs = parsed.filter((j): j is NonNullable<typeof j> => !!j);
   console.log(`GEIG: parsed ${jobs.length}/${jobUrls.length} detail pages`);
+  return jobs;
+}
+
+// ───────────────────── Asset-management recruiters ─────────────────────
+const REC_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
+/** IM gate for generalist finance recruiters: investment / IR / distribution / fund roles, not general accountancy or bank advisory. */
+function isAssetMgmtRecruiterRole(title: string, description = ''): boolean {
+  const t = title.toLowerCase();
+  const text = `${t} ${description.toLowerCase()}`;
+  // General corporate finance / accountancy / bank advisory roles belong elsewhere
+  if (/\b(fp&a|f p and a|accountant|accounts|auditor|payroll|financial controller|group financial|commercial finance|head of finance|finance (manager|director)|credit control|tax)\b/.test(t) && !/\bfund\b/.test(t)) return false;
+  if (/\b(m&a|corporate strategy|strategy analyst|vp strategy|director corporate strategy|investment banking|debt advisory|executive search|recruit)/.test(t)) return false;
+  if (/\b(investment|portfolio|fund|asset|wealth|investor relations|client (services|relations|reporting)|distribution|sales|equity research|credit research|research analyst|analyst|hedge|trading|trade operations|middle office|private (markets|credit|capital))\b/.test(t)) {
+    return /\b(asset manage|investment manage|fund|hedge|wealth|family office|investor|portfolio|aum|private markets|alternatives?|buy[- ]side|long[- ]only|equit(y|ies)|credit|outsourced investment)\b/.test(text);
+  }
+  return false;
+}
+
+/** WP Job Manager RSS (?feed=job_feed) — includes company, location and full description. */
+async function scrapeWpJobFeed(source: { name: string; url: string }): Promise<any[]> {
+  const origin = new URL(source.url).origin;
+  const res = await fetch(`${origin}/?feed=job_feed&posts_per_page=200`, { headers: { 'User-Agent': REC_UA } });
+  if (!res.ok) throw new Error(`${source.name} feed HTTP ${res.status}`);
+  const xml = await res.text();
+  const tag = (block: string, name: string) => {
+    const m = block.match(new RegExp(`<${name}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</${name}>`));
+    return m ? decodeHtmlEntities(m[1].trim()) : '';
+  };
+  const jobs: any[] = [];
+  for (const block of xml.split('<item>').slice(1)) {
+    const title = tag(block, 'title');
+    const url = tag(block, 'link');
+    if (!title || !url) continue;
+    const html = tag(block, 'content:encoded') || tag(block, 'description');
+    const description = stripHtml(html).slice(0, 12000);
+    const fullText = `${title} ${description}`.toLowerCase();
+    let type = 'full-time';
+    if (/\bintern(?:ship|s)?\b/.test(title.toLowerCase())) type = 'internship';
+    else if (/\b(graduate|entry[- ]level)\b/.test(title.toLowerCase())) type = 'graduate';
+    else if (/\b(temporary|interim|contract|maternity cover)\b/.test(title.toLowerCase())) type = 'contract';
+    const pub = tag(block, 'pubDate');
+    jobs.push({
+      id: crypto.randomUUID(),
+      title: title.slice(0, 200),
+      company: tag(block, 'job_listing:company') || source.name,
+      location: tag(block, 'job_listing:location'),
+      type,
+      source: source.name,
+      sourceUrl: source.url,
+      url,
+      description,
+      salary: tag(block, 'job_listing:salary') || (fullText.match(/£\s?[\d,]+k?(?:\s?[-–]\s?£?\s?[\d,]+k?)?/i)?.[0]),
+      postedDate: pub ? new Date(pub).toISOString().slice(0, 10) : 'Scraped just now',
+    });
+  }
+  console.log(`${source.name}: ${jobs.length} feed listings`);
+  const checked = await checkListingsBatch(jobs, (j: any) => j.url, 8);
+  return checked.filter((c: any) => c.status !== 'expired').map((c: any) => c.item);
+}
+
+/** Meredith Brown Associates (Wix site): titles + "View Job" links on /opportunities, details on each page. */
+async function scrapeMeredithBrown(source: { name: string; url: string }): Promise<any[]> {
+  const res = await fetch('https://www.meredithbrown.com/opportunities', { headers: { 'User-Agent': REC_UA } });
+  if (!res.ok) throw new Error(`Meredith Brown HTTP ${res.status}`);
+  const html = await res.text();
+  const cards: { title: string; url: string }[] = [];
+  const seen = new Set<string>();
+  const linkRe = /href="(https:\/\/www\.meredithbrown\.com\/opportunities-1\/[^"]+)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = linkRe.exec(html))) {
+    const url = m[1];
+    if (seen.has(url)) continue;
+    seen.add(url);
+    const before = html.slice(Math.max(0, m.index - 6000), m.index);
+    const h2s = [...before.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)];
+    const title = h2s.length ? stripHtml(h2s[h2s.length - 1][1]) : '';
+    if (title) cards.push({ title, url });
+  }
+  const jobs: any[] = [];
+  const CONC = 4;
+  for (let i = 0; i < cards.length; i += CONC) {
+    await Promise.all(cards.slice(i, i + CONC).map(async (c) => {
+      let description = '';
+      try {
+        const r = await fetch(c.url, { headers: { 'User-Agent': REC_UA } });
+        if (r.ok) {
+          const text = stripHtml(await r.text());
+          const back = text.indexOf('< Back');
+          description = (back >= 0 ? text.slice(back + 6) : text).slice(0, 12000);
+        }
+      } catch { /* keep card without description */ }
+      // "Client Services Associate - £Exc" → title + salary
+      const sm = c.title.match(/\s[-–]?\s*((?:c\.?|circa|up to)?\s*£[\s\S]*)$/i);
+      const title = (sm ? c.title.slice(0, sm.index) : c.title).replace(/[\s\-–,]+$/, '').trim();
+      const loc = description.match(/\b(London|Edinburgh|Manchester|Birmingham|Leeds|Bristol|Glasgow|Jersey|Guernsey)\b/);
+      jobs.push({
+        id: crypto.randomUUID(),
+        title: title.slice(0, 200),
+        company: 'Meredith Brown Associates',
+        location: loc ? loc[1] : 'United Kingdom',
+        type: /\b(contract|maternity cover|fixed[- ]term)\b/i.test(c.title) ? 'contract' : 'full-time',
+        source: source.name,
+        sourceUrl: source.url,
+        url: c.url,
+        description: description || undefined,
+        salary: sm ? sm[1].trim() : undefined,
+        postedDate: 'Scraped just now',
+      });
+    }));
+  }
+  console.log(`Meredith Brown: ${jobs.length} listings`);
   return jobs;
 }
 
