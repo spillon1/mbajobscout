@@ -137,18 +137,27 @@ export async function scrapeJobs(
 }
 
 export async function loadSavedJobs(mode: ScrapeMode = 'vc'): Promise<Job[]> {
-  const { data, error } = await supabase
-    .from('scraped_jobs')
-    .select('*')
-    .eq('mode', mode)
-    .order('scraped_at', { ascending: false });
-
-  if (error) {
-    console.error('Failed to load jobs:', error);
-    return [];
+  // The API caps each response at 1000 rows — page through all of them.
+  const PAGE = 1000;
+  const data: any[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data: page, error } = await supabase
+      .from('scraped_jobs')
+      .select('*')
+      .eq('mode', mode)
+      .order('scraped_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) {
+      console.error('Failed to load jobs:', error);
+      if (data.length === 0) return [];
+      break;
+    }
+    data.push(...(page || []));
+    if (!page || page.length < PAGE) break;
   }
 
-  const allSaved = (data || []).map((row): Job => ({
+  const allSaved = data.map((row): Job => ({
     id: row.id,
     title: row.title,
     company: row.company,
