@@ -301,8 +301,10 @@ Deno.serve(async (req) => {
           // Generalist finance recruiters: keep only investment-management roles on IM,
           // and otherwise defer to the board's own relevance gate.
           const filtered = locFiltered.filter((j: any) =>
-            isNotExcludedRole(j.title) &&
-            (jobMode === 'im' ? isAssetMgmtRecruiterRole(j.title, j.description) : roleFilter(j.title, j.company, j.description))
+            jobMode === 'im'
+              // isNotExcludedRole is VC-tuned (blocks "asset management", "fundraising"), so IM uses its own gate
+              ? isAssetMgmtRecruiterRole(j.title, j.description)
+              : isNotExcludedRole(j.title) && roleFilter(j.title, j.company, j.description)
           );
           console.log(`Found ${filtered.length} relevant jobs from ${source.name} (raw: ${recJobs.length}, loc-filtered: ${locFiltered.length})`);
           return { source: source.name, jobs: filtered, status: 'connected' as const };
