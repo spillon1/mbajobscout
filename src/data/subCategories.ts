@@ -12,7 +12,7 @@ const UNCLASSIFIED_OPTION: SubCategory = { value: UNCLASSIFIED_VALUE, label: 'Un
 
 export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
   vc: [
-    { value: 'investment', label: 'Investment', patterns: [/\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office|strategist|trust|consult|counsel|manag|direct|officer|writer|market))/i, /\bdeal\b/i, /\borigination\b/i, /\binvestment\s+analyst\b/i, /\binvestment\s+associate\b/i, /\binvestment\s+(manager|director|principal|partner)\b/i, /\bsecondar(y|ies)\b/i, /\bvc\s+analyst\b/i, /\bvc\s+associate\b/i, /\bventure\s+(capital\s+)?(analyst|associate|principal|partner|director|manager|vp|vice\s+president)\b/i, /\bvc\s+(manager|director|partner|principal|vp|vice\s+president)\b/i, /\bventure\s+(analyst|associate|director|manager|partner|principal)\b/i] },
+    { value: 'investment', label: 'Investment', patterns: [/\binvestment\b(?!\s+(admin|operat|account|support|report|service|compli|process|back\s*office|strategist|trust|consult|counsel|manag|direct|officer|writer|market))/i, /\bdeal\b/i, /\borigination\b/i, /\binvestment\s+analyst\b/i, /\binvestment\s+associate\b/i, /\binvestment\s+(manager|director|principal|partner)\b/i, /\bsecondar(y|ies)\b/i, /\bvc\s+analyst\b/i, /\bvc\s+intern/i, /\bventure\s+capital\b/i, /\bvc\s+associate\b/i, /\bventure\s+(capital\s+)?(analyst|associate|principal|partner|director|manager|vp|vice\s+president)\b/i, /\bvc\s+(manager|director|partner|principal|vp|vice\s+president)\b/i, /\bventure\s+(analyst|associate|director|manager|partner|principal)\b/i] },
     { value: 'platform', label: 'Platform', patterns: [/\bplatform\b/i, /\bportfolio\s+(support|operations|success)\b/i, /\bvalue\s+creation\b/i, /\boperating\s+partner\b/i, /\bportfolio\b/i] },
     { value: 'investor-relations', label: 'Investor Relations', patterns: [/\binvestor\s+relations\b/i, /\bir\b/i, /\bfundraising\b/i, /\blp\s+relations\b/i, /\bcapital\s+raising\b/i] },
     { value: 'fund-ops', label: 'Fund Operations', patterns: [/\bfund\s+operations\b/i, /\bfund\s+admin/i, /\bfund\s+accounting\b/i, /\bfund\s+manag/i, /\bcompliance\b/i, /\boperations\b/i, /\bops\b/i, /\boperational\b/i, /\bfinance\b/i, /\binvestment\s+(strategist|trust|consult|counsel|manag|writer|market)/i, /\basset\s+manag/i, /\bwealth\s+manag/i, /\bportfolio\s+manag/i] },
@@ -30,6 +30,7 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     { value: 'levfin', label: 'Leveraged Finance', patterns: [/\blevfin\b/i, /\bleveraged\s+finance\b/i, /\bhigh\s+yield\b/i] },
     { value: 'ecm-dcm', label: 'ECM / DCM', patterns: [/\becm\b/i, /\bdcm\b/i, /\bcapital\s+markets\b/i, /\bequity\s+capital\b/i, /\bdebt\s+capital\b/i] },
     { value: 'industry-coverage', label: 'Industry Coverage', patterns: [/\bcoverage\b/i, /\bindustry\b/i, /\bsector\b/i, /\btmt\b/i, /\bhealthcare\b/i, /\benergy\b/i, /\bfig\b/i, /\breal\s+estate\b/i, /\bconsumer\b/i, /\bindustrials\b/i] },
+    { value: 'generalist', label: 'Generalist / Corp Dev', patterns: [/\binvestment\s+bank/i, /\bcorporate\s+development\b/i, /\bcorp\s*dev\b/i, /\bdeal\s+origination\b/i, /\bglobal\s+(corporate\s+)?investment\s+banking\b/i, /\bgib\b/i, /\bbanking\b.*\b(analyst|associate|vp|vice\s+president|director)\b/i, /\b(summer|off[\s\-]?cycle)\s+(analyst|intern)/i] },
     { value: 'restructuring', label: 'Restructuring', patterns: [/\brestructuring\b/i, /\bturnaround\b/i, /\bdistressed\b/i, /\binsolvency\b/i] },
     { value: 'sponsors-pca', label: 'Sponsors / Private Capital', patterns: [/\bfinancial\s+sponsors?\b/i, /\bsponsors?\s+(group|coverage|team)\b/i, /\bprivate\s+capital\s+(advisory|markets)\b/i, /\bpca\b/i, /\bprivate\s+placement/i] },
     { value: 'advisory-valuation', label: 'Advisory / Valuations', patterns: [/\bvaluation/i, /\btransaction\s+(services|advisory)\b/i, /\bcorporate\s+finance\b/i, /\bdebt\s+advisory\b/i, /\bfairness\s+opinion/i] },
@@ -41,6 +42,7 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     { value: 'digital', label: 'Digital / Technology', patterns: [/\bdigital\b/i, /\btechnology\b/i, /\btransformation\b/i, /\bdata\b/i, /\banalytics\b/i, /\bai\b/i] },
     { value: 'implementation', label: 'Implementation', patterns: [/\bimplementation\b/i, /\bdelivery\b/i, /\bexecution\b/i, /\bprogram(me)?\s+manag/i] },
     { value: 'deal-advisory', label: 'Deal Advisory / DD', patterns: [/\bdue\s+diligence\b/i, /\bcommercial\s+diligence\b/i, /\bdeal\s+advisory\b/i, /\btransaction\s+services\b/i, /\bm&a\b/i, /\bvalue\s+creation\b/i] },
+    { value: 'generalist', label: 'Generalist Consulting', patterns: [/\bconsult(ing|ant|ancy)\b/i, /\badvisory\b/i, /\bengagement\s+manager\b/i] },
     { value: 'people-org', label: 'People & Organisation', patterns: [/\bpeople\b/i, /\borganisation(al)?\b/i, /\borganization(al)?\b/i, /\bchange\s+manag/i, /\bhr\s+transformation\b/i] },
     UNCLASSIFIED_OPTION,
   ],
@@ -54,12 +56,12 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     UNCLASSIFIED_OPTION,
   ],
   im: [
-    { value: 'portfolio-mgmt', label: 'Portfolio Management', patterns: [/\bportfolio\s+manag/i, /\bfund\s+manag/i, /\bpm\b/i] },
+    { value: 'portfolio-mgmt', label: 'Portfolio Management', patterns: [/\bportfolio\s+manag/i, /\bfund\s+manag/i, /\bpm\b/i, /\binvestment\s+(manager|associate|director|officer|specialist|management)\b/i, /\bcio\b/i] },
     { value: 'research', label: 'Investment Research', patterns: [/\bresearch\b/i, /\bequity\s+research\b/i, /\binvestment\s+research\b/i, /\banalyst\b/i] },
     { value: 'quant', label: 'Quantitative', patterns: [/\bquant/i, /\balgorithm/i, /\bsystematic\b/i] },
     { value: 'trading', label: 'Trading', patterns: [/\btrad(er|ing)\b/i, /\bexecution\b/i] },
-    { value: 'wealth-mgmt', label: 'Wealth Management', patterns: [/\bwealth\s+manag/i, /\bprivate\s+bank/i, /\bprivate\s+wealth/i] },
-    { value: 'client-distribution', label: 'Client / Distribution', patterns: [/\bclient\s+(service|relations|director|manager|coverage)\b/i, /\bdistribution\b/i, /\bsales\b/i, /\binvestor\s+relations\b/i, /\bconsultant\s+relations\b/i] },
+    { value: 'wealth-mgmt', label: 'Wealth Management', patterns: [/\bwealth\s+manag/i, /\bprivate\s+bank/i, /\bprivate\s+wealth/i, /\bfinancial\s+(planner|planning|adviser|advisor)\b/i, /\bparaplanner\b/i] },
+    { value: 'client-distribution', label: 'Client / Distribution', patterns: [/\bclient\s+(service|relations|director|manager|coverage)\b/i, /\bdistribution\b/i, /\bsales\b/i, /\binvestor\s+relations\b/i, /\bconsultant\s+relations\b/i, /\binvestor\s+(engagement|advisory|services)\b/i, /\baccount\s+(director|manager)\b/i, /\bfundraising\b/i] },
     { value: 'product-strategy', label: 'Product & Strategy', patterns: [/\bproduct\b/i, /\bstrateg(y|ist|ic)\b/i, /\bbusiness\s+development\b/i] },
     { value: 'risk-ops', label: 'Risk & Operations', patterns: [/\brisk\b/i, /\boperations\b/i, /\bops\b/i, /\bcompliance\b/i, /\bperformance\b/i, /\bmiddle\s+office\b/i] },
     UNCLASSIFIED_OPTION,
