@@ -56,14 +56,14 @@ export const SUB_CATEGORIES: Record<ScrapeMode, SubCategory[]> = {
     UNCLASSIFIED_OPTION,
   ],
   im: [
-    { value: 'portfolio-mgmt', label: 'Portfolio Management', patterns: [/\bportfolio\s+manag/i, /\bfund\s+manag/i, /\bpm\b/i, /\binvestment\s+(manager|associate|director|officer|specialist|management)\b/i, /\bcio\b/i] },
+    { value: 'portfolio-mgmt', label: 'Portfolio Management', patterns: [/\bportfolio\s+manag/i, /\bfund\s+manag/i, /\bpm\b/i, /\binvestment\s+(manager|associate|director|officer|specialist|management)\b/i, /\bcio\b/i, /\basset\s+manager\b/i] },
     { value: 'research', label: 'Investment Research', patterns: [/\bresearch\b/i, /\bequity\s+research\b/i, /\binvestment\s+research\b/i, /\banalyst\b/i] },
     { value: 'quant', label: 'Quantitative', patterns: [/\bquant/i, /\balgorithm/i, /\bsystematic\b/i] },
     { value: 'trading', label: 'Trading', patterns: [/\btrad(er|ing)\b/i, /\bexecution\b/i] },
     { value: 'wealth-mgmt', label: 'Wealth Management', patterns: [/\bwealth\s+manag/i, /\bprivate\s+bank/i, /\bprivate\s+wealth/i, /\bfinancial\s+(planner|planning|adviser|advisor)\b/i, /\bparaplanner\b/i] },
     { value: 'client-distribution', label: 'Client / Distribution', patterns: [/\bclient\s+(service|relations|director|manager|coverage)\b/i, /\bdistribution\b/i, /\bsales\b/i, /\binvestor\s+relations\b/i, /\bconsultant\s+relations\b/i, /\binvestor\s+(engagement|advisory|services)\b/i, /\baccount\s+(director|manager)\b/i, /\bfundraising\b/i] },
-    { value: 'product-strategy', label: 'Product & Strategy', patterns: [/\bproduct\b/i, /\bstrateg(y|ist|ic)\b/i, /\bbusiness\s+development\b/i] },
-    { value: 'risk-ops', label: 'Risk & Operations', patterns: [/\brisk\b/i, /\boperations\b/i, /\bops\b/i, /\bcompliance\b/i, /\bperformance\b/i, /\bmiddle\s+office\b/i] },
+    { value: 'product-strategy', label: 'Product & Strategy', patterns: [/\bproduct\b/i, /\bstrateg(y|ist|ic)\b/i, /\bbusiness\s+development\b/i, /\bproje?cts?\b/i, /\bprogram(me)?\b/i, /\bpmo\b/i, /\btransformation\b/i, /\bchange\s+(manag|lead)/i, /\bdelivery\s+lead\b/i, /\bconsult(ing|ant)\b/i, /\binnovation\b/i] },
+    { value: 'risk-ops', label: 'Risk & Operations', patterns: [/\brisk\b/i, /\boperations\b/i, /\bops\b/i, /\bcompliance\b/i, /\bperformance\b/i, /\bmiddle\s+office\b/i, /\bfinance\b/i, /\bfinancial\s+(control|reporting)/i, /\baudit\b/i, /\btreasury\b/i, /\bdata\b/i, /\breporting\b/i, /\bvaluation/i, /\bback\s+office\b/i] },
     UNCLASSIFIED_OPTION,
   ],
   tech: [
