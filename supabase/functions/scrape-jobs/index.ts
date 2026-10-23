@@ -2332,6 +2332,7 @@ function isAssetMgmtRecruiterRole(title: string, description = ''): boolean {
   const text = `${t} ${description.toLowerCase()}`;
   // General corporate finance / accountancy / bank advisory roles belong elsewhere
   if (/\b(fp&a|f p and a|accountant|accounts|auditor|payroll|financial controller|group financial|commercial finance|head of finance|finance (manager|director)|credit control|tax)\b/.test(t) && !/\bfund\b/.test(t)) return false;
+  if (/\b(engineer|developer|counsel|lawyer|solicitor|paralegal|designer|recruiter)\b/.test(t)) return false;
   if (/\b(m&a|corporate strategy|strategy analyst|vp strategy|director corporate strategy|investment banking|debt advisory|executive search|recruit)/.test(t)) return false;
   if (/\b(investment|portfolio|fund|asset|wealth|investor relations|client (services|relations|reporting)|distribution|sales|equity (research|analyst)|credit (research|analyst)|research analyst|buy side|hedge|trading|trade operations|middle office|private (markets|credit|capital))\b/.test(t)) {
     return /\b(asset manage|investment manage|fund|hedge|wealth|family office|investor|portfolio|aum|private markets|alternatives?|buy[- ]side|long[- ]only|equit(y|ies)|credit|outsourced investment)\b/.test(text);
