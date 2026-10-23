@@ -103,6 +103,7 @@ const MODES: ModeConfig[] = [
       { name: 'Google Jobs', url: 'https://www.google.com/search?udm=8&q=sales+trading+jobs' },
       { name: 'Indeed UK', url: 'https://uk.indeed.com/jobs?q=%22sales+and+trading%22' },
       { name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/search/?keywords=%22sales+and+trading%22&location=London' },
+      { name: 'Paragon Alpha', url: 'https://www.paragonalpha.com/jobs' },
     ],
     keywords: [
       'Sales and trading', 'Sales trading', 'Sales and trading internship',
@@ -123,6 +124,7 @@ const MODES: ModeConfig[] = [
       { name: 'Walker Hamill', url: 'https://www.walkerhamill.com/search-roles/' },
       { name: 'Greenwich Partners', url: 'https://www.greenwichpartners.co.uk/asset-management-roles/' },
       { name: 'Meredith Brown', url: 'https://www.meredithbrown.com/opportunities' },
+      { name: 'Paragon Alpha', url: 'https://www.paragonalpha.com/jobs' },
       { name: 'Asset Manager Careers', url: 'https://www.myworkdayjobs.com/?am-careers' },
     ],
     keywords: [

@@ -300,6 +300,15 @@ Deno.serve(async (req) => {
           return { source: source.name, jobs: filtered, status: 'connected' as const };
         }
 
+        // Paragon Alpha (hedge fund recruiter): front-office roles for IM and S&T
+        if (source.url.includes('paragonalpha.com')) {
+          const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
+          const paJobs = await scrapeParagonAlpha(source);
+          const filtered = paJobs.filter((j: any) => jobLocationMatches(j.location, searchCity));
+          console.log(`Found ${filtered.length} relevant jobs from ${source.name} (raw: ${paJobs.length})`);
+          return { source: source.name, jobs: filtered, status: 'connected' as const };
+        }
+
         // Asset-management recruiters (Walker Hamill, Greenwich Partners, Meredith Brown)
         if (/walkerhamill\.com|greenwichpartners\.co\.uk|meredithbrown\.com/.test(source.url)) {
           const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
@@ -2464,6 +2473,44 @@ async function scrapeWpJobFeed(source: { name: string; url: string }): Promise<a
   console.log(`${source.name}: ${jobs.length} feed listings`);
   const checked = await checkListingsBatch(jobs, (j: any) => j.url, 8);
   return checked.filter((c: any) => c.status !== 'expired').map((c: any) => c.item);
+}
+
+/** Paragon Alpha: static /jobs list with data-cat (pm, research, trading, risk, technology, careers).
+ *  Keeps front-office categories only, UK-located (multi-city listings including London count as London),
+ *  and posted within the last 180 days. */
+async function scrapeParagonAlpha(source: { name: string; url: string }): Promise<any[]> {
+  const res = await fetch('https://www.paragonalpha.com/jobs', { headers: { 'User-Agent': REC_UA } });
+  if (!res.ok) throw new Error(`Paragon Alpha HTTP ${res.status}`);
+  const html = await res.text();
+  const re = /<div class="job-item" data-cat="([^"]*)"><a href="(https:\/\/www\.paragonalpha\.com\/job\/[^"]+)"[^>]*><span class="job-title">([^<]+)<\/span><span class="job-location">([^<]*)<\/span><span class="job-date">([^<]*)<\/span>/g;
+  const cutoff = Date.now() - 180 * 86400000;
+  const jobs: any[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html))) {
+    const [, cat, url, rawTitle, rawLoc, rawDate] = m;
+    const cats = cat.split(/\s+/);
+    if (!cats.some((c) => ['pm', 'research', 'trading', 'risk'].includes(c))) continue;
+    const title = stripHtml(rawTitle).trim();
+    if (/\b(engineer|developer|devops|support)\b/i.test(title)) continue;
+    const locs = stripHtml(rawLoc).split(',').map((s) => s.trim());
+    const ukLoc = locs.find((l) => /^(london|uk|united kingdom|edinburgh|manchester)$/i.test(l));
+    if (!ukLoc) continue;
+    const d = Date.parse(rawDate);
+    if (!isNaN(d) && d < cutoff) continue;
+    jobs.push({
+      id: crypto.randomUUID(),
+      title: title.slice(0, 200),
+      company: 'Paragon Alpha (hedge fund client)',
+      location: ukLoc,
+      type: 'full-time',
+      source: source.name,
+      sourceUrl: source.url,
+      url,
+      postedDate: !isNaN(d) ? new Date(d).toISOString().slice(0, 10) : 'Scraped just now',
+    });
+  }
+  console.log(`Paragon Alpha: ${jobs.length} UK front-office listings`);
+  return jobs;
 }
 
 /** Meredith Brown Associates (Wix site): titles + "View Job" links on /opportunities, details on each page. */

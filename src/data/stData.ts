@@ -18,6 +18,7 @@ const ST_SOURCE_TEMPLATES: { id: string; name: string; defaultUrl: string; enabl
   { id: 'st-10', name: 'Glassdoor UK', defaultUrl: 'https://www.glassdoor.co.uk/Job/jobs.htm', enabled: true, status: 'unknown' },
   { id: 'st-m0', name: 'Google Jobs', defaultUrl: 'https://www.google.com/search?udm=8&q=sales+trading+jobs', enabled: true, status: 'unknown' },
   { id: 'st-9', name: 'Indeed UK', defaultUrl: 'https://uk.indeed.com/jobs?q=%22sales+and+trading%22', enabled: true, status: 'unknown' },
+  { id: 'st-pa', name: 'Paragon Alpha', defaultUrl: 'https://www.paragonalpha.com/jobs', enabled: true, status: 'unknown' },
   { id: 'st-2', name: 'LinkedIn Jobs', defaultUrl: 'https://www.linkedin.com/jobs/search/?keywords=%22sales+and+trading%22', enabled: true, status: 'unknown' },
 ];
 
