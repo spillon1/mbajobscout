@@ -123,7 +123,7 @@ const MODES: ModeConfig[] = [
       { name: 'Walker Hamill', url: 'https://www.walkerhamill.com/search-roles/' },
       { name: 'Greenwich Partners', url: 'https://www.greenwichpartners.co.uk/asset-management-roles/' },
       { name: 'Meredith Brown', url: 'https://www.meredithbrown.com/opportunities' },
-      { name: 'Asset Manager Careers', url: 'workday://asset-managers' },
+      { name: 'Asset Manager Careers', url: 'https://www.myworkdayjobs.com/?am-careers' },
     ],
     keywords: [
 

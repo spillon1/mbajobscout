@@ -292,7 +292,7 @@ Deno.serve(async (req) => {
 
 
         // Asset managers' own careers sites (Workday)
-        if (source.url.startsWith('workday://asset-managers')) {
+        if (source.url.includes('myworkdayjobs.com/?am-careers')) {
           const searchCity = location.split(',')[0]?.trim() || 'United Kingdom';
           const wdJobs = await scrapeAssetManagerWorkday(source);
           const filtered = wdJobs.filter((j: any) => jobLocationMatches(j.location, searchCity));
