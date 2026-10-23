@@ -2361,6 +2361,7 @@ async function scrapeAssetManagerWorkday(source: { name: string; url: string }):
     const base = `https://${host}.myworkdayjobs.com/wday/cxs/${tenant}/${site}`;
     const candidates: { title: string; path: string; loc: string; posted: string }[] = [];
     try {
+      let total = 0; // Workday only reports the total on the first page
       for (let offset = 0; offset < 1000; offset += 20) {
         const r = await fetch(`${base}/jobs`, {
           method: 'POST',
@@ -2370,6 +2371,7 @@ async function scrapeAssetManagerWorkday(source: { name: string; url: string }):
         if (!r.ok) break;
         const d = await r.json();
         const posts = d.jobPostings || [];
+        if (offset === 0) total = d.total || 0;
         for (const p of posts) {
           const loc = String(p.locationsText || '');
           const multi = /^\d+\s+locations?$/i.test(loc);
@@ -2378,7 +2380,7 @@ async function scrapeAssetManagerWorkday(source: { name: string; url: string }):
           if (!isAssetMgmtRecruiterRole(p.title || '', 'asset management')) continue;
           candidates.push({ title: p.title, path: p.externalPath, loc, posted: String(p.postedOn || '') });
         }
-        if (posts.length < 20 || offset + 20 >= (d.total || 0)) break;
+        if (posts.length < 20 || offset + 20 >= total) break;
       }
     } catch (e) { console.error(`Workday ${firm} list failed:`, e); }
 
