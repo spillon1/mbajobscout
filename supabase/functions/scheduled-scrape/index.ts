@@ -120,6 +120,9 @@ const MODES: ModeConfig[] = [
       { name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/search/?keywords=%22investment+management%22&location=London' },
       { name: 'SecondaryLink', url: 'https://secondarylink.com/seclink/jobs/board' },
       { name: 'Dartmouth Partners', url: 'https://www.dartmouthpartners.com/jobs' },
+      { name: 'Walker Hamill', url: 'https://www.walkerhamill.com/search-roles/' },
+      { name: 'Greenwich Partners', url: 'https://www.greenwichpartners.co.uk/asset-management-roles/' },
+      { name: 'Meredith Brown', url: 'https://www.meredithbrown.com/opportunities' },
     ],
     keywords: [
 

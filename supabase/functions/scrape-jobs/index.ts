@@ -2349,7 +2349,6 @@ async function scrapeWpJobFeed(source: { name: string; url: string }): Promise<a
     let type = 'full-time';
     if (/\bintern(?:ship|s)?\b/.test(title.toLowerCase())) type = 'internship';
     else if (/\b(graduate|entry[- ]level)\b/.test(title.toLowerCase())) type = 'graduate';
-    else if (/\b(temporary|interim|contract|maternity cover)\b/.test(title.toLowerCase())) type = 'contract';
     const pub = tag(block, 'pubDate');
     jobs.push({
       id: crypto.randomUUID(),
@@ -2410,7 +2409,7 @@ async function scrapeMeredithBrown(source: { name: string; url: string }): Promi
         title: title.slice(0, 200),
         company: 'Meredith Brown Associates',
         location: loc ? loc[1] : 'United Kingdom',
-        type: /\b(contract|maternity cover|fixed[- ]term)\b/i.test(c.title) ? 'contract' : 'full-time',
+        type: 'full-time',
         source: source.name,
         sourceUrl: source.url,
         url: c.url,

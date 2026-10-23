@@ -19,6 +19,9 @@ const IM_SOURCE_TEMPLATES: { id: string; name: string; defaultUrl: string; enabl
   { id: 'im-9', name: 'Indeed UK', defaultUrl: 'https://uk.indeed.com/jobs?q=%22investment+management%22', enabled: true, status: 'unknown' },
   { id: 'im-2', name: 'LinkedIn Jobs', defaultUrl: 'https://www.linkedin.com/jobs/search/?keywords=%22investment+management%22', enabled: true, status: 'unknown' },
   { id: 'im-14', name: 'Dartmouth Partners', defaultUrl: 'https://www.dartmouthpartners.com/jobs', enabled: true, status: 'unknown' },
+  { id: 'im-15', name: 'Walker Hamill', defaultUrl: 'https://www.walkerhamill.com/search-roles/', enabled: true, status: 'unknown' },
+  { id: 'im-16', name: 'Greenwich Partners', defaultUrl: 'https://www.greenwichpartners.co.uk/asset-management-roles/', enabled: true, status: 'unknown' },
+  { id: 'im-17', name: 'Meredith Brown', defaultUrl: 'https://www.meredithbrown.com/opportunities', enabled: true, status: 'unknown' },
 ];
 
 
