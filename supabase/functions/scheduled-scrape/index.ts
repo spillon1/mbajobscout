@@ -123,9 +123,12 @@ const MODES: ModeConfig[] = [
     ],
     keywords: [
 
-      'Investment management', 'Asset management', 'Hedge fund', 'Family office',
-      'Portfolio manager', 'Fund manager', 'Equity research',
-      'Investment analyst', 'Wealth management', 'Private wealth',
+      // Leads (indexes 0, 3, 6, 9 with MAX_PASSES=4) each head a nightly pass —
+      // keep IR/client-facing terms in lead positions so IR roles are searched directly.
+      'Investment management', 'Asset management', 'Hedge fund', 'Investor relations',
+      'Family office', 'Portfolio manager', 'Client relations', 'Fund manager',
+      'Equity research', 'Fundraising', 'Investment analyst', 'Wealth management',
+      'Private wealth',
     ],
   },
   {
